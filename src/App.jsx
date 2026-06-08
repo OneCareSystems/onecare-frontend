@@ -1,11 +1,12 @@
+import { BrowserRouter } from "react-router-dom";
 import "./App.css";
+import AppRoutes from "./routes/AppRoutes";
 
 function App() {
   return (
-    <div className="app-container">
-      <h1>OneCare Frontend</h1>
-      <p>Frontend application initialized successfully.</p>
-    </div>
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
   );
 }
 
