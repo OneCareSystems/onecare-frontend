@@ -12,8 +12,11 @@ COPY package*.json ./
 # Install exact dependencies from package-lock.json
 RUN npm ci
 
-# Copy application source
-COPY . .
+# Copy application source and assign ownership to the node user
+COPY --chown=node:node . .
+
+# Run the development server as a non-root user
+USER node
 
 # Vite development server
 EXPOSE 3000
