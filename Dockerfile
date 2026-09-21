@@ -1,22 +1,24 @@
 # =========================
 # Development Environment
 # =========================
-FROM node:20-alpine
+FROM node:22-alpine
 
+# Create application directory and give ownership to node
 WORKDIR /app
+RUN chown -R node:node /app
 
 # Copy dependency files first
 # This allows Docker to cache npm dependencies
-COPY package*.json ./
+COPY --chown=node:node package*.json ./
+
+# Run npm as the non-root node user
+USER node
 
 # Install exact dependencies from package-lock.json
 RUN npm ci
 
-# Copy application source and assign ownership to the node user
+# Copy application source
 COPY --chown=node:node . .
-
-# Run the development server as a non-root user
-USER node
 
 # Vite development server
 EXPOSE 3000
