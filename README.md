@@ -8,6 +8,7 @@ Built using:
 
 - React
 - Vite
+- Tailwind CSS
 - ESLint
 - Prettier
 - GitHub Actions
@@ -72,6 +73,33 @@ Check formatting:
 npm run format:check
 ```
 
+## Theming & Accessibility (CFG-01)
+
+Colour, font and spacing tokens are declared once in:
+
+```text
+src/theme/tokens.js
+```
+
+They are consumed by `tailwind.config.js`, the contrast gate and the
+colour/type reference page at:
+
+```text
+/styleguide
+```
+
+Components must use token classes (for example `bg-primary-600`) and never
+contain raw hex values.
+
+Check token contrast (WCAG 2.1, minimum 4.5:1):
+
+```bash
+npm run check:contrast
+```
+
+The same command runs in CI and fails the pipeline when a declared
+text/background pair drops below 4.5:1.
+
 ## Environment Variables
 
 Create:
@@ -99,5 +127,8 @@ CI workflow location:
 Pipeline currently performs:
 
 - Install dependencies
+- Colour contrast check (`npm run check:contrast`)
+- Lint
+- Tests with coverage
 - Build validation
 

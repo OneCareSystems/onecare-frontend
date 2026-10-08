@@ -18,6 +18,7 @@ const AppRoutes = () => {
             <Route element={<PublicLayout />}>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/home" element={<HomePage />} />
+                        <Route path="/styleguide" element={<ThemeReferencePage />} />
             </Route>
 
 

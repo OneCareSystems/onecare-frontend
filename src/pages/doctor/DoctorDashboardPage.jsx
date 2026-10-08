@@ -10,4 +10,3 @@ const DoctorDashboardPage = () => {
 }
 
 export default DoctorDashboardPage
-DoctorDashboardPage
