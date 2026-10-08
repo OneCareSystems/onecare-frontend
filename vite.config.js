@@ -5,13 +5,14 @@ import { configDefaults } from "vitest/config";
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  test : {
-  environment: "jsdom",
-  globals: true,
-  exclude:[...configDefaults.exclude],
-  coverage:{
-    provider:'v8',
-    reporter:['text','html'],
-  }
+  test: {
+    environment: "jsdom",
+    globals: true,
+    setupFiles: ["./test/setup.js"],
+    exclude: [...configDefaults.exclude],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html"],
+    },
   },
 });
