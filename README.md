@@ -131,4 +131,3 @@ Pipeline currently performs:
 - Lint
 - Tests with coverage
 - Build validation
-

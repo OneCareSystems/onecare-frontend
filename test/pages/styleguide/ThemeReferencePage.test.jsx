@@ -6,7 +6,10 @@ import tailwindcss from "tailwindcss";
 import { describe, expect, it } from "vitest";
 import config from "../../../tailwind.config.js";
 import { colors, contrastPairs, fontSize } from "../../../src/theme/tokens.js";
-import { evaluateContrastPairs, hexToRgbTriplet } from "../../../src/utils/contrast.js";
+import {
+  evaluateContrastPairs,
+  hexToRgbTriplet,
+} from "../../../src/utils/contrast.js";
 import ThemeReferencePage from "../../../src/pages/styleguide/ThemeReferencePage.jsx";
 
 const INDEX_CSS = path.resolve(process.cwd(), "src/index.css");
