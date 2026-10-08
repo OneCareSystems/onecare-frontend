@@ -7,4 +7,3 @@ const PharmacistDashboardPage = () => {
 };
 
 export default PharmacistDashboardPage;
-PharmacistDashboardPage;

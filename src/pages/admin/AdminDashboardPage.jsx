@@ -7,4 +7,3 @@ const AdminDashboardPage = () => {
 };
 
 export default AdminDashboardPage;
-AdminDashboardPage;

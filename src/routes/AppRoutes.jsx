@@ -10,7 +10,7 @@ import SuperAdminDashboardPage from "../pages/superAdmin/SuperAdminDashboardPage
 import PharmacistDashboardPage from "../pages/pharmacist/PharmacistDashboardPage";
 import DoctorDashboardPage from "../pages/doctor/DoctorDashboardPage";
 import HomePage from "../pages/public/HomePage";
-import ThemeReferencePage from '../pages/styleguide/ThemeReferencePage'
+import ThemeReferencePage from "../pages/styleguide/ThemeReferencePage";
 
 const AppRoutes = () => {
   return (
