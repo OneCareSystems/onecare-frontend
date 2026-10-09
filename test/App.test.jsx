@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
+import { Provider } from "react-redux";
+import { store } from "../src/app/store";
 import App from "../src/App";
 
 describe("Sample Test", () => {
@@ -8,6 +10,12 @@ describe("Sample Test", () => {
   });
 
   it("should render App component", () => {
-    render(<App />);
+    // <Provider> lives in src/main.jsx, so tests that render <App /> directly
+    // must provide the store themselves (SessionManager uses useSelector).
+    render(
+      <Provider store={store}>
+        <App />
+      </Provider>,
+    );
   });
 });

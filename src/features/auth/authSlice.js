@@ -32,9 +32,14 @@ const authSlice = createSlice({
         mustChangePassword,
       } = action.payload ?? {};
 
-      if (accessToken) {
-        state.accessToken = accessToken;
+      // A payload without an access token is not a session — ignore it
+      // entirely so we never store a refresh token (or role) with no access
+      // token to use it with.
+      if (!accessToken) {
+        return;
       }
+
+      state.accessToken = accessToken;
 
       if (refreshToken) {
         state.refreshToken = refreshToken;
@@ -65,9 +70,7 @@ const authSlice = createSlice({
         state.mustChangePassword = Boolean(mustChangePassword);
       }
 
-      if (accessToken) {
-        state.authStatus = "authenticated";
-      }
+      state.authStatus = "authenticated";
     },
 
     setMustChangePassword(state, action) {
@@ -87,38 +90,27 @@ const authSlice = createSlice({
   },
 });
 
-export const {
-  setSession,
-  setMustChangePassword,
-  clearSession,
-} = authSlice.actions;
+export const { setSession, setMustChangePassword, clearSession } =
+  authSlice.actions;
 
-export const selectAccessToken = (state) =>
-  state.auth.accessToken;
+export const selectAccessToken = (state) => state.auth.accessToken;
 
-export const selectRefreshToken = (state) =>
-  state.auth.refreshToken;
+export const selectRefreshToken = (state) => state.auth.refreshToken;
 
-export const selectExpiresAt = (state) =>
-  state.auth.expiresAt;
+export const selectExpiresAt = (state) => state.auth.expiresAt;
 
-export const selectRole = (state) =>
-  state.auth.role;
+export const selectRole = (state) => state.auth.role;
 
-export const selectUser = (state) =>
-  state.auth.user;
+export const selectUser = (state) => state.auth.user;
 
-export const selectAuthStatus = (state) =>
-  state.auth.authStatus;
+export const selectAuthStatus = (state) => state.auth.authStatus;
 
 export const selectMustChangePassword = (state) =>
   state.auth.mustChangePassword;
 
-export const selectRedirectUrl = (state) =>
-  state.auth.redirectUrl;
+export const selectRedirectUrl = (state) => state.auth.redirectUrl;
 
 export const selectIsAuthenticated = (state) =>
-  state.auth.authStatus === "authenticated" &&
-  Boolean(state.auth.accessToken);
+  state.auth.authStatus === "authenticated" && Boolean(state.auth.accessToken);
 
 export default authSlice.reducer;

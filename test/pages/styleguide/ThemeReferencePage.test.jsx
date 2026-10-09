@@ -86,8 +86,9 @@ describe("AC3 — integration: theme token change rebuilds everywhere", () => {
     const originalTriplet = hexToRgbTriplet(colors.primary[600]);
 
     const before = await buildCss();
-    expect(before).toContain(`rgb(${originalTriplet}`);
-    expect(before).toContain(".bg-primary-600");
+    expect(ruleFor(before, ".bg-primary-600")).toContain(
+      `rgb(${originalTriplet}`,
+    );
 
     const changedColors = structuredClone(colors);
     changedColors.primary[600] = colors.secondary[600];
@@ -100,8 +101,11 @@ describe("AC3 — integration: theme token change rebuilds everywhere", () => {
       },
     });
 
-    expect(after).toContain(`rgb(${replacementTriplet}`);
-    expect(after).not.toContain(`rgb(${originalTriplet}`);
+    // Scoped to the token's own rule: other selectors (e.g. Tailwind's
+    // default blue-600) may coincidentally share the same RGB value.
+    const changedRule = ruleFor(after, ".bg-primary-600");
+    expect(changedRule).toContain(`rgb(${replacementTriplet}`);
+    expect(changedRule).not.toContain(`rgb(${originalTriplet}`);
 
     // The component markup is untouched — the same token classes are still emitted.
     expect(usedClasses).toContain("bg-primary-600");
@@ -109,6 +113,12 @@ describe("AC3 — integration: theme token change rebuilds everywhere", () => {
     expect(after).toContain(`font-size: ${fontSize.base[0]}`);
   });
 });
+
+function ruleFor(css, selector) {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = new RegExp(`${escaped}\\s*\\{[^}]*\\}`).exec(css);
+  return match ? match[0] : "";
+}
 
 function screenHeading(container, text) {
   return [...container.querySelectorAll("h1")].find(
