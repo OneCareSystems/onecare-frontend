@@ -3,7 +3,12 @@ import apiClient, {
   refreshSession,
   resetAuthState,
 } from "./apiClient";
-import { clearTokens, hasSession, setTokens } from "./tokenStore";
+import { store } from "../app/store";
+import {
+  clearSession,
+  selectIsAuthenticated,
+  setSession,
+} from "../features/auth/authSlice";
 
 /**
  * CFG-02 — auth service (API Standards §7: /auth endpoints).
@@ -18,7 +23,7 @@ export const login = async (credentials) => {
   if (!tokens.accessToken) {
     throw new Error("Login response did not include an access token");
   }
-  setTokens(tokens);
+  store.dispatch(setSession(tokens));
   resetAuthState();
   return response.data;
 };
@@ -31,14 +36,15 @@ export const logout = async () => {
   } catch {
     /* best effort — local state is cleared regardless */
   } finally {
-    clearTokens();
+    store.dispatch(clearSession());
     resetAuthState();
   }
 };
 
 export const getCurrentUser = () => apiClient.get("/auth/me");
 
-export const isAuthenticated = () => hasSession();
+export const isAuthenticated = () => selectIsAuthenticated(store.getState());
 
 const authService = { login, refresh, logout, getCurrentUser, isAuthenticated };
+
 export default authService;

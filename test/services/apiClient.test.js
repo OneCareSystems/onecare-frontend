@@ -13,7 +13,7 @@ import {
   getAccessToken,
   getRefreshToken,
   setTokens,
-} from "../../src/services/tokenStore";
+} from "../helpers/session";
 
 const ok = (data, message = "ok") => ({ success: true, message, data });
 const fail = (message) => ({ success: false, message, data: null });

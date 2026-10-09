@@ -1,12 +1,13 @@
 import axios from "axios";
 import { API_BASE_URL } from "./config";
+import { store } from "../app/store";
 import {
-  clearTokens,
-  getAccessToken,
-  getExpiresAt,
-  getRefreshToken,
-  setTokens,
-} from "./tokenStore";
+  clearSession,
+  selectAccessToken,
+  selectExpiresAt,
+  selectRefreshToken,
+  setSession,
+} from "../features/auth/authSlice";
 
 /**
  * CFG-02 — central Axios client (API Standards §49–50).
@@ -18,8 +19,10 @@ import {
  * - 403 / 429 / 500: the standard {success, message, data} envelope is surfaced
  *   on the rejected error; the user is never logged out for these (§14–15, §44).
  *
- * Token storage lives behind ./tokenStore (Open Decision OD-1, interim
- * localStorage implementation). Never log tokens, passwords or request bodies.
+ * Auth state lives in the Redux store (src/features/auth/authSlice.js), read
+ * through selectors and written through dispatch — never in component-local
+ * copies.
+ * Never log tokens, passwords or request bodies.
  */
 
 export const REFRESH_URL = "/auth/refresh";
@@ -60,7 +63,7 @@ export const setNavigator = (fn) => {
 export const handleSessionExpired = () => {
   if (sessionExpired) return;
   sessionExpired = true;
-  clearTokens();
+  store.dispatch(clearSession());
   if (
     typeof window !== "undefined" &&
     typeof window.dispatchEvent === "function"
@@ -134,7 +137,7 @@ const isRefreshRequest = (config) => {
 };
 
 const performRefresh = async () => {
-  const refreshToken = getRefreshToken();
+  const refreshToken = selectRefreshToken(store.getState());
   if (!refreshToken) {
     throw new Error("No refresh token available");
   }
@@ -147,7 +150,7 @@ const performRefresh = async () => {
   if (!tokens.accessToken) {
     throw new Error("Refresh response did not include an access token");
   }
-  setTokens(tokens);
+  store.dispatch(setSession(tokens));
   sessionExpired = false;
   return tokens.accessToken;
 };
@@ -166,7 +169,7 @@ export const refreshSession = () => {
 
 apiClient.interceptors.request.use((config) => {
   if (config.skipAuth) return config;
-  const token = getAccessToken();
+  const token = selectAccessToken(store.getState());
   if (token) config.headers = withAuthHeader(config.headers, token);
   return config;
 });
@@ -224,7 +227,7 @@ export const startTokenRefreshScheduler = ({
 } = {}) => {
   const tick = () => {
     if (refreshPromise) return;
-    const expiresAt = getExpiresAt();
+    const expiresAt = selectExpiresAt(store.getState());
     if (!expiresAt) return;
     if (expiresAt - now() > leewayMs) return;
     if (!isUserActive()) return;
