@@ -210,7 +210,6 @@ Nothing is written to `localStorage` or `sessionStorage`, so a page reload ends
 the session and the user signs in again (the login ticket owns re-auth and the
 role-based redirect).
 
-
 POST/PUT/PATCH/DELETE, still in one place. Components and services are
 unaffected either way.
 
