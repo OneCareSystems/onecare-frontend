@@ -8,11 +8,7 @@ import apiClient, {
   startTokenRefreshScheduler,
 } from "../../src/services/apiClient";
 import LoginPage from "../../src/pages/public/LoginPage";
-import {
-  clearTokens,
-  getAccessToken,
-  setTokens,
-} from "../../src/services/tokenStore";
+import { clearTokens, getAccessToken, setTokens } from "../helpers/session";
 import { mswState, resetMswState } from "../msw/handlers";
 
 function ProtectedProbe({ path = "/patients/1" }) {

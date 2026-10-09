@@ -191,17 +191,25 @@ The remaining module services (`patientService`, `appointmentService`,
 `medicineService`, `prescriptionService`, …) are added by their feature
 tickets and must call the central client above.
 
-### Open Decision OD-1 — token storage (outcome: interim)
+### Session state — Redux (in-memory)
 
-**Status:** pending backend confirmation — coordinate before the release that
-ships session handling.
+**Decision:** auth state lives in Redux only; there is no storage adapter.
 
-**Interim implementation chosen:** tokens are stored behind a single adapter,
-`src/services/tokenStore.js`, currently using `localStorage`
-(`oc_access_token`, `oc_refresh_token`, `oc_expires_at`).
+Tokens are held by the `auth` feature slice in `src/features/auth/authSlice.js`
+(`accessToken`, `refreshToken`, `expiresAt`, `role`, `redirectUrl`):
 
-If OD-1 selects **cookies instead of bearer tokens**, only `tokenStore.js`
-changes: the client switches to `withCredentials` plus a CSRF header on
+- **store** — the single store lives in `src/app/store.js`; register new
+  feature reducers there
+- **write** — `store.dispatch(setSession(payload))` / `clearSession()`
+- **read** — selectors (`selectAccessToken`, `selectIsAuthenticated`, …) via
+  `store.getState()` in services, `useSelector` in components
+- the app is wrapped in `<Provider store={store}>` in `src/main.jsx` (inside
+  `StrictMode`, around the existing router in `App.jsx`)
+
+Nothing is written to `localStorage` or `sessionStorage`, so a page reload ends
+the session and the user signs in again (the login ticket owns re-auth and the
+role-based redirect).
+
 POST/PUT/PATCH/DELETE, still in one place. Components and services are
 unaffected either way.
 
