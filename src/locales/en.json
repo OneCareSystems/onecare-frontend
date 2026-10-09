@@ -1,0 +1,17 @@
+{
+  "common": {
+    "home": "Home",
+    "save": "Save",
+    "cancel": "Cancel",
+    "loading": "Loading...",
+    "language": "Language"
+  },
+  "patient": {
+    "welcome": "Welcome",
+    "dashboard": "Patient Dashboard",
+    "appointments": "My Appointments",
+    "prescriptions": "My Prescriptions",
+    "profile": "My Profile",
+    "logout": "Logout"
+  }
+}
