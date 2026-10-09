@@ -16,14 +16,15 @@ import {
   SESSION_EXPIRED_EVENT,
 } from "../../services/apiClient";
 
-// Session configuration
+import {
+  isUserActive,
+  recordUserActivity,
+} from "./sessionActivity";
+
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const WARNING_BEFORE_LOGOUT_MS = 2 * 60 * 1000;
 const WARNING_AFTER_MS =
   SESSION_TIMEOUT_MS - WARNING_BEFORE_LOGOUT_MS;
-
-// Refresh only when there was recent user activity.
-const ACTIVE_USER_WINDOW_MS = 5 * 60 * 1000;
 
 const ACTIVITY_EVENTS = [
   "mousedown",
@@ -34,15 +35,8 @@ const ACTIVITY_EVENTS = [
   "mousemove",
 ];
 
-let lastActivityAt = Date.now();
-
-export const isUserActive = () => {
-  return Date.now() - lastActivityAt < ACTIVE_USER_WINDOW_MS;
-};
-
 const SessionManager = () => {
   const navigate = useNavigate();
-
   const isAuthenticated = useSelector(selectIsAuthenticated);
 
   const [showWarning, setShowWarning] = useState(false);
@@ -51,12 +45,11 @@ const SessionManager = () => {
   const warningTimerRef = useRef(null);
   const logoutTimerRef = useRef(null);
   const countdownTimerRef = useRef(null);
-
   const resetTimersRef = useRef(null);
+
   const warningVisibleRef = useRef(false);
   const loggingOutRef = useRef(false);
 
-  // Clear all session timers.
   const clearTimers = useCallback(() => {
     window.clearTimeout(warningTimerRef.current);
     window.clearTimeout(logoutTimerRef.current);
@@ -67,7 +60,6 @@ const SessionManager = () => {
     countdownTimerRef.current = null;
   }, []);
 
-  // End the session. Local state is cleared even if logout fails.
   const endSession = useCallback(
     async (reason = "session-expired") => {
       if (loggingOutRef.current) return;
@@ -81,7 +73,7 @@ const SessionManager = () => {
       try {
         await logout();
       } catch {
-        // Local logout must still happen if the API fails.
+        // Continue local logout even if the API fails.
       } finally {
         store.dispatch(clearSession());
 
@@ -99,22 +91,22 @@ const SessionManager = () => {
     if (!isAuthenticated) {
       clearTimers();
       warningVisibleRef.current = false;
-      setShowWarning(false);
       resetTimersRef.current = null;
 
+      // Do not call setState synchronously inside this effect.
       return undefined;
     }
 
-    lastActivityAt = Date.now();
+    recordUserActivity();
     loggingOutRef.current = false;
 
-    // Start the warning and automatic logout timers.
     const resetTimers = () => {
       clearTimers();
 
       warningTimerRef.current = window.setTimeout(() => {
         warningVisibleRef.current = true;
         setShowWarning(true);
+
         setRemainingSeconds(
           WARNING_BEFORE_LOGOUT_MS / 1000,
         );
@@ -133,11 +125,10 @@ const SessionManager = () => {
 
     resetTimersRef.current = resetTimers;
 
-    // Reset the session whenever the user is active.
     const handleActivity = () => {
       if (loggingOutRef.current) return;
 
-      lastActivityAt = Date.now();
+      recordUserActivity();
 
       if (warningVisibleRef.current) {
         warningVisibleRef.current = false;
@@ -148,46 +139,34 @@ const SessionManager = () => {
     };
 
     ACTIVITY_EVENTS.forEach((eventName) => {
-      window.addEventListener(
-        eventName,
-        handleActivity,
-        { passive: true },
-      );
+      window.addEventListener(eventName, handleActivity, {
+        passive: true,
+      });
     });
 
     resetTimers();
 
-    // Use the existing CFG-02 token refresh scheduler.
     const stopScheduler = startTokenRefreshScheduler({
       isUserActive,
     });
 
     return () => {
       ACTIVITY_EVENTS.forEach((eventName) => {
-        window.removeEventListener(
-          eventName,
-          handleActivity,
-        );
+        window.removeEventListener(eventName, handleActivity);
       });
 
       clearTimers();
       stopScheduler();
       resetTimersRef.current = null;
     };
-  }, [
-    isAuthenticated,
-    clearTimers,
-    endSession,
-  ]);
+  }, [isAuthenticated, clearTimers, endSession]);
 
-  // Handle session expiry reported by the API client.
   useEffect(() => {
     const handleSessionExpired = () => {
       warningVisibleRef.current = false;
       clearTimers();
       setShowWarning(false);
 
-      // Avoid navigating to the login page repeatedly.
       if (window.location.pathname !== "/login") {
         navigate("/login?reason=session-expired", {
           replace: true,
@@ -208,29 +187,23 @@ const SessionManager = () => {
     };
   }, [clearTimers, navigate]);
 
-  // The user chooses to continue the session.
   const continueSession = () => {
     if (loggingOutRef.current) return;
 
-    lastActivityAt = Date.now();
+    recordUserActivity();
 
     warningVisibleRef.current = false;
     setShowWarning(false);
 
-    // Reset BOTH the warning and logout timers.
     resetTimersRef.current?.();
   };
 
-  // Do not show the dialog after logout.
   if (!isAuthenticated || !showWarning) {
     return null;
   }
 
   const minutes = Math.floor(remainingSeconds / 60);
-  const seconds = String(remainingSeconds % 60).padStart(
-    2,
-    "0",
-  );
+  const seconds = String(remainingSeconds % 60).padStart(2, "0");
 
   return (
     <div
