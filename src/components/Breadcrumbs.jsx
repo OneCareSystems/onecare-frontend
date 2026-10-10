@@ -5,7 +5,7 @@ const SEGMENT_LABELS = {
   admin: "Admin",
   doctor: "Doctor",
   pharmacist: "Pharmacist",
-  superadmin: "Super Admin",
+  "super-admin": "Super Admin",
   dashboard: "Dashboard",
   queue: "Queue",
 };

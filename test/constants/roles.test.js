@@ -17,7 +17,7 @@ describe("role constants — CFG-03", () => {
   });
 
   it("maps every role to its own dashboard", () => {
-    expect(ROLE_DASHBOARDS[ROLES.SUPER_ADMIN]).toBe("/superadmin/dashboard");
+    expect(ROLE_DASHBOARDS[ROLES.SUPER_ADMIN]).toBe("/super-admin/dashboard");
     expect(ROLE_DASHBOARDS[ROLES.ADMIN]).toBe("/admin/dashboard");
     expect(ROLE_DASHBOARDS[ROLES.DOCTOR]).toBe("/doctor/dashboard");
     expect(ROLE_DASHBOARDS[ROLES.PHARMACIST]).toBe("/pharmacist/dashboard");

@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import LoginPage from "../pages/public/LoginPage";
 import AdminLayout from "../layouts/AdminLayout";
 import DoctorLayout from "../layouts/DoctorLayout";
@@ -10,6 +10,7 @@ import SuperAdminDashboardPage from "../pages/superAdmin/SuperAdminDashboardPage
 import PharmacistDashboardPage from "../pages/pharmacist/PharmacistDashboardPage";
 import DoctorDashboardPage from "../pages/doctor/DoctorDashboardPage";
 import HomePage from "../pages/public/HomePage";
+import NotFoundPage from "../pages/public/NotFoundPage";
 import ThemeReferencePage from "../pages/styleguide/ThemeReferencePage";
 import ChangePasswordPage from "../pages/auth/ChangePasswordPage";
 import QueuePage from "../pages/shared/QueuePage";
@@ -20,10 +21,15 @@ import { CHANGE_PASSWORD_PATH, ROUTE_ACCESS } from "../constants/routeAccess";
 const AppRoutes = () => {
   return (
     <Routes>
+      {/* Site root always lands on the public home page. */}
+      <Route path="/" element={<Navigate to="/home" replace />} />
+
       <Route element={<PublicLayout />}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/home" element={<HomePage />} />
         <Route path="/styleguide" element={<ThemeReferencePage />} />
+        {/* Unknown URLs render the public 404 instead of a blank page. */}
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
 
       {/* Any authenticated staff member changing their password (AC5) */}
@@ -53,8 +59,8 @@ const AppRoutes = () => {
       </Route>
 
       {/* SUPER ADMIN AREA */}
-      <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.superadmin} />}>
-        <Route path="/superadmin" element={<SuperAdminLayout />}>
+      <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS["super-admin"]} />}>
+        <Route path="/super-admin" element={<SuperAdminLayout />}>
           <Route path="dashboard" element={<SuperAdminDashboardPage />} />
         </Route>
       </Route>

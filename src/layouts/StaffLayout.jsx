@@ -9,7 +9,7 @@ import Breadcrumbs from "../components/Breadcrumbs";
  * role-driven sidebar, breadcrumbs, and the routed screen.
  * Built with CFG-01 tokens and CFG-04 components. Role layouts delegate
  * here so the chrome stays consistent across /admin, /doctor,
- * /pharmacist and /superadmin.
+ * /pharmacist and /super-admin.
  */
 const StaffLayout = () => {
   return (
