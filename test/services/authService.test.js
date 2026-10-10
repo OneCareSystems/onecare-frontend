@@ -13,6 +13,8 @@ import {
   getAccessToken,
   getRefreshToken,
 } from "../helpers/session";
+import { store } from "../../src/app/store";
+import { selectRole, selectUser } from "../../src/features/auth/authSlice";
 
 const ok = (data, message = "ok") => ({ success: true, message, data });
 
@@ -68,6 +70,24 @@ describe("authService", () => {
     await login({ email: "a@b.c", password: "secret" });
 
     expect(getAccessToken()).toBe("a");
+  });
+
+  it("login stores the role and user from the response for the route guard (AC1)", async () => {
+    mock.onPost("/auth/login").reply(
+      200,
+      ok({
+        accessToken: "a",
+        refreshToken: "r",
+        expiresIn: 1800,
+        role: "DOCTOR",
+        user: { name: "Dr House" },
+      }),
+    );
+
+    await login({ email: "d@o.c", password: "x" });
+
+    expect(selectRole(store.getState())).toBe("DOCTOR");
+    expect(selectUser(store.getState())).toEqual({ name: "Dr House" });
   });
 
   it("login throws when the response carries no access token", async () => {
