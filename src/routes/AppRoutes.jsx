@@ -13,6 +13,7 @@ import HomePage from "../pages/public/HomePage";
 import ThemeReferencePage from "../pages/styleguide/ThemeReferencePage";
 import ChangePasswordPage from "../pages/auth/ChangePasswordPage";
 import QueuePage from "../pages/shared/QueuePage";
+import StaffLayout from "../layouts/StaffLayout";
 import RequireAuth from "./RequireAuth";
 import {
   CHANGE_PASSWORD_PATH,
@@ -63,7 +64,9 @@ const AppRoutes = () => {
 
       {/* SHARED SCREENS (AC4) — several roles, one route */}
       <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.queue} />}>
-        <Route path="/queue" element={<QueuePage />} />
+        <Route path="/queue" element={<StaffLayout />}>
+          <Route index element={<QueuePage />} />
+        </Route>
       </Route>
     </Routes>
   );
