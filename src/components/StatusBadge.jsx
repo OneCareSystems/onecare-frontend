@@ -9,7 +9,7 @@ const STATUS_STYLES = {
   },
   danger: {
     surface: "bg-danger-100 text-danger-800 border-danger-200",
-    icon: "✕",
+    icon: "×",
   },
   info: {
     surface: "bg-primary-100 text-primary-800 border-primary-200",
@@ -21,26 +21,72 @@ const STATUS_STYLES = {
   },
 };
 
-/**
- * Status is conveyed by an icon and a text label as well as colour
- * (SDS §2.4.10 — no colour-only indicators).
- */
+const STATUS_MAP = {
+  scheduled: { variant: "info", label: "Scheduled", icon: "◷" },
+  completed: { variant: "success", label: "Completed", icon: "✓" },
+  cancelled: { variant: "danger", label: "Cancelled", icon: "×" },
+  "no-show": { variant: "warning", label: "No-show", icon: "!" },
+
+  arrived: { variant: "info", label: "Arrived", icon: "✓" },
+
+  pending: { variant: "warning", label: "Pending", icon: "◷" },
+  paid: { variant: "success", label: "Paid", icon: "✓" },
+
+  "pending dispense": {
+    variant: "warning",
+    label: "Pending Dispense",
+    icon: "◷",
+  },
+  "partially dispensed": {
+    variant: "info",
+    label: "Partially Dispensed",
+    icon: "½",
+  },
+  "fully dispensed": {
+    variant: "success",
+    label: "Fully Dispensed",
+    icon: "✓",
+  },
+  "dispensed (external)": {
+    variant: "neutral",
+    label: "Dispensed (External)",
+    icon: "↗",
+  },
+
+  "low stock": { variant: "warning", label: "Low stock", icon: "!" },
+  "near expiry": { variant: "warning", label: "Near expiry", icon: "◷" },
+  expired: { variant: "danger", label: "Expired (unavailable)", icon: "×" },
+};
+
 const StatusBadge = ({ status = "neutral", children }) => {
-  const key = STATUS_STYLES[status] ? status : "neutral";
-  const style = STATUS_STYLES[key];
+  const normalizedStatus = String(status).trim().toLowerCase();
+
+  const mappedStatus = STATUS_MAP[normalizedStatus];
+
+  const legacyVariant = STATUS_STYLES[normalizedStatus]
+    ? normalizedStatus
+    : "neutral";
+
+  const variant = mappedStatus?.variant ?? legacyVariant;
+  const style = STATUS_STYLES[variant];
+
+  const label = children ?? mappedStatus?.label ?? status;
+
+  const icon = mappedStatus?.icon ?? style.icon;
 
   return (
     <span
       className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-semibold ${style.surface}`}
-      data-status={key}
+      data-status={mappedStatus ? normalizedStatus : variant}
     >
       <span
         aria-hidden="true"
-        className="flex h-5 w-5 items-center justify-center rounded-full bg-neutral-0 text-xs font-bold"
+        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-neutral-0 text-xs font-bold"
       >
-        {style.icon}
+        {icon}
       </span>
-      <span>{children}</span>
+
+      <span>{label}</span>
     </span>
   );
 };
