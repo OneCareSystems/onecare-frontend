@@ -4,7 +4,13 @@
     "save": "Save",
     "cancel": "Cancel",
     "loading": "Loading...",
-    "language": "Language"
+    "language": "Language",
+    "search": "Search",
+    "clear": "Clear",
+    "confirm": "Confirm",
+"dismiss": "Dismiss notification",
+"close": "Close",
+"tabs": "Content tabs"
   },
   "patient": {
     "welcome": "Welcome",
@@ -13,5 +19,19 @@
     "prescriptions": "My Prescriptions",
     "profile": "My Profile",
     "logout": "Logout"
+  },
+  
+  "emptyState": {
+    "title": "No results found",
+    "description": "There is no data to display yet."
+  },
+  "validation": {
+    "required": "This field is required."
+  },
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page",
+    "of": "of"
   }
 }
