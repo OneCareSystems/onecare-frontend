@@ -15,10 +15,7 @@ import ChangePasswordPage from "../pages/auth/ChangePasswordPage";
 import QueuePage from "../pages/shared/QueuePage";
 import StaffLayout from "../layouts/StaffLayout";
 import RequireAuth from "./RequireAuth";
-import {
-  CHANGE_PASSWORD_PATH,
-  ROUTE_ACCESS,
-} from "../constants/routeAccess";
+import { CHANGE_PASSWORD_PATH, ROUTE_ACCESS } from "../constants/routeAccess";
 
 const AppRoutes = () => {
   return (

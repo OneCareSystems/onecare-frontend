@@ -2,10 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 
-import {
-  clearSession,
-  selectIsAuthenticated,
-} from "./authSlice";
+import { clearSession, selectIsAuthenticated } from "./authSlice";
 
 import { store } from "../../app/store";
 import { logout } from "../../services/authService";
@@ -15,15 +12,11 @@ import {
   SESSION_EXPIRED_EVENT,
 } from "../../services/apiClient";
 
-import {
-  isUserActive,
-  recordUserActivity,
-} from "./sessionActivity";
+import { isUserActive, recordUserActivity } from "./sessionActivity";
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const WARNING_BEFORE_LOGOUT_MS = 2 * 60 * 1000;
-const WARNING_AFTER_MS =
-  SESSION_TIMEOUT_MS - WARNING_BEFORE_LOGOUT_MS;
+const WARNING_AFTER_MS = SESSION_TIMEOUT_MS - WARNING_BEFORE_LOGOUT_MS;
 
 const ACTIVITY_EVENTS = [
   "mousedown",
@@ -106,14 +99,10 @@ const SessionManager = () => {
         warningVisibleRef.current = true;
         setShowWarning(true);
 
-        setRemainingSeconds(
-          WARNING_BEFORE_LOGOUT_MS / 1000,
-        );
+        setRemainingSeconds(WARNING_BEFORE_LOGOUT_MS / 1000);
 
         countdownTimerRef.current = window.setInterval(() => {
-          setRemainingSeconds((seconds) =>
-            Math.max(0, seconds - 1),
-          );
+          setRemainingSeconds((seconds) => Math.max(0, seconds - 1));
         }, 1000);
       }, WARNING_AFTER_MS);
 
@@ -173,16 +162,10 @@ const SessionManager = () => {
       }
     };
 
-    window.addEventListener(
-      SESSION_EXPIRED_EVENT,
-      handleSessionExpired,
-    );
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
 
     return () => {
-      window.removeEventListener(
-        SESSION_EXPIRED_EVENT,
-        handleSessionExpired,
-      );
+      window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
     };
   }, [clearTimers, navigate]);
 

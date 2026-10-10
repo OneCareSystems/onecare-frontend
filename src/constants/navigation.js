@@ -18,7 +18,11 @@ export const NAV_ITEMS = Object.freeze({
     Object.freeze({ id: "queue", to: "/queue", label: "Queue" }),
   ]),
   [ROLES.ADMIN]: Object.freeze([
-    Object.freeze({ id: "dashboard", to: "/admin/dashboard", label: "Dashboard" }),
+    Object.freeze({
+      id: "dashboard",
+      to: "/admin/dashboard",
+      label: "Dashboard",
+    }),
     Object.freeze({ id: "queue", to: "/queue", label: "Queue" }),
   ]),
   [ROLES.DOCTOR]: Object.freeze([

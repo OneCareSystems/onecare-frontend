@@ -1,4 +1,3 @@
-
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
@@ -23,7 +22,7 @@ const renderTable = (props = {}) =>
   render(
     <I18nextProvider i18n={testI18n}>
       <Table {...props} />
-    </I18nextProvider>
+    </I18nextProvider>,
   );
 
 const columns = [
@@ -41,11 +40,11 @@ describe("Table", () => {
     renderTable({ columns, data });
 
     expect(
-      screen.getByRole("columnheader", { name: "Name" })
+      screen.getByRole("columnheader", { name: "Name" }),
     ).toBeInTheDocument();
 
     expect(
-      screen.getByRole("columnheader", { name: "Status" })
+      screen.getByRole("columnheader", { name: "Status" }),
     ).toBeInTheDocument();
   });
 
@@ -61,9 +60,7 @@ describe("Table", () => {
   it("renders EmptyState when there is no data", () => {
     renderTable({ columns, data: [] });
 
-    expect(
-      screen.getByText("No results found")
-    ).toBeInTheDocument();
+    expect(screen.getByText("No results found")).toBeInTheDocument();
   });
 
   it("renders a dash for missing cell values", () => {
@@ -89,8 +86,6 @@ describe("Table", () => {
       data: [{ id: 1, name: "Kumar" }],
     });
 
-    expect(
-      screen.getByText("Patient: Kumar")
-    ).toBeInTheDocument();
+    expect(screen.getByText("Patient: Kumar")).toBeInTheDocument();
   });
 });

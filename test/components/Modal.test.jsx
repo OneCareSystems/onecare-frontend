@@ -1,10 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import {
-  render,
-  screen,
-  fireEvent,
-  cleanup,
-} from "@testing-library/react";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { I18nextProvider } from "react-i18next";
 import i18next from "i18next";
@@ -31,7 +26,7 @@ const renderModal = (props = {}) =>
   render(
     <I18nextProvider i18n={testI18n}>
       <Modal {...props} />
-    </I18nextProvider>
+    </I18nextProvider>,
   );
 
 afterEach(() => {
@@ -59,8 +54,9 @@ describe("Modal", () => {
   it("renders its title and content when open", () => {
     renderModal(defaultProps);
 
-    expect(screen.getByRole("heading", { name: "Confirm" }))
-      .toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Confirm" }),
+    ).toBeInTheDocument();
 
     expect(screen.getByText("Content")).toBeInTheDocument();
   });
@@ -68,10 +64,7 @@ describe("Modal", () => {
   it("exposes modal dialog semantics", () => {
     renderModal(defaultProps);
 
-    expect(screen.getByRole("dialog")).toHaveAttribute(
-      "aria-modal",
-      "true"
-    );
+    expect(screen.getByRole("dialog")).toHaveAttribute("aria-modal", "true");
   });
 
   it("calls onClose when the close button is clicked", () => {
@@ -82,9 +75,7 @@ describe("Modal", () => {
       onClose,
     });
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Close" })
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
 
     expect(onClose).toHaveBeenCalledOnce();
   });

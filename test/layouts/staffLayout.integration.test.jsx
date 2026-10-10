@@ -19,7 +19,7 @@ const renderAppAt = (initialPath) =>
       <MemoryRouter initialEntries={[initialPath]}>
         <Routes>
           <Route path="*" element={<AppRoutes />} />
-          </Routes>
+        </Routes>
         <LocationDisplay />
       </MemoryRouter>
     </Provider>,
@@ -52,10 +52,9 @@ describe("StaffLayout — CFG-04 staff chrome (integration)", () => {
     const sidebar = screen.getByRole("navigation", {
       name: "Main navigation",
     });
-    expect(within(sidebar).getByRole("link", { name: "Queue" })).toHaveAttribute(
-      "href",
-      "/queue",
-    );
+    expect(
+      within(sidebar).getByRole("link", { name: "Queue" }),
+    ).toHaveAttribute("href", "/queue");
 
     const crumbs = screen.getByRole("navigation", { name: "Breadcrumb" });
     expect(within(crumbs).getByText("Dashboard")).toHaveAttribute(

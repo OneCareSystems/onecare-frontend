@@ -1,5 +1,5 @@
-import { describe, it, expect, vi,beforeEach} from "vitest";
-import { render, screen, fireEvent,act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { I18nextProvider } from "react-i18next";
 import i18next from "i18next";
@@ -31,7 +31,7 @@ const renderPagination = (props = {}) =>
     </I18nextProvider>,
   );
 
-  beforeEach(async () => {
+beforeEach(async () => {
   await act(async () => {
     await testI18n.changeLanguage("en");
   });
@@ -81,27 +81,24 @@ describe("Pagination", () => {
   });
 
   it("uses Tamil built-in text when Tamil is selected", async () => {
-  await act(async () => {
-    await testI18n.changeLanguage("ta");
-  });
+    await act(async () => {
+      await testI18n.changeLanguage("ta");
+    });
 
-  renderPagination();
+    renderPagination();
 
-  expect(
-    screen.getByRole("button", { name: ta.pagination.previous }),
-  ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: ta.pagination.previous }),
+    ).toBeInTheDocument();
 
-  expect(
-    screen.getByRole("button", { name: ta.pagination.next }),
-  ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: ta.pagination.next }),
+    ).toBeInTheDocument();
 
-  expect(
-    screen.getByText(
-      new RegExp(
-        `${ta.pagination.page}.*${ta.pagination.of}`,
+    expect(
+      screen.getByText(
+        new RegExp(`${ta.pagination.page}.*${ta.pagination.of}`),
       ),
-    ),
-  ).toBeInTheDocument();
+    ).toBeInTheDocument();
+  });
 });
-});
-

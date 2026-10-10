@@ -4,10 +4,7 @@ import { Provider } from "react-redux";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 
 import { store } from "../../src/app/store";
-import {
-  clearSession,
-  setSession,
-} from "../../src/features/auth/authSlice";
+import { clearSession, setSession } from "../../src/features/auth/authSlice";
 import { ROLES } from "../../src/constants/roles";
 import AppRoutes from "../../src/routes/AppRoutes";
 
@@ -57,16 +54,8 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
     const cases = [
       [ROLES.ADMIN, "/admin/dashboard", "AdminDashboardPage"],
       [ROLES.DOCTOR, "/doctor/dashboard", "DoctorDashboardPage"],
-      [
-        ROLES.PHARMACIST,
-        "/pharmacist/dashboard",
-        "PharmacistDashboardPage",
-      ],
-      [
-        ROLES.SUPER_ADMIN,
-        "/superadmin/dashboard",
-        "SuperAdminDashboardPage",
-      ],
+      [ROLES.PHARMACIST, "/pharmacist/dashboard", "PharmacistDashboardPage"],
+      [ROLES.SUPER_ADMIN, "/superadmin/dashboard", "SuperAdminDashboardPage"],
     ];
 
     for (const [role, path, heading] of cases) {
@@ -75,7 +64,9 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
 
       const { unmount } = renderAppAt(path);
 
-      expect(screen.getByRole("heading", { name: heading })).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: heading }),
+      ).toBeInTheDocument();
       expectLocation(path);
       unmount();
     }

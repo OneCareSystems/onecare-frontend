@@ -1,4 +1,3 @@
-
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
@@ -23,7 +22,7 @@ const renderSpinner = (props = {}) =>
   render(
     <I18nextProvider i18n={testI18n}>
       <LoadingSpinner {...props} />
-    </I18nextProvider>
+    </I18nextProvider>,
   );
 
 describe("LoadingSpinner", () => {
@@ -32,7 +31,7 @@ describe("LoadingSpinner", () => {
 
     expect(screen.getByRole("status")).toHaveAttribute(
       "aria-label",
-      "Loading..."
+      "Loading...",
     );
   });
 
@@ -41,7 +40,7 @@ describe("LoadingSpinner", () => {
 
     expect(screen.getByRole("status")).toHaveAttribute(
       "aria-label",
-      "Loading patients"
+      "Loading patients",
     );
   });
 
@@ -53,14 +52,14 @@ describe("LoadingSpinner", () => {
     rerender(
       <I18nextProvider i18n={testI18n}>
         <LoadingSpinner size="md" />
-      </I18nextProvider>
+      </I18nextProvider>,
     );
     expect(container.querySelector(".h-8.w-8")).toBeInTheDocument();
 
     rerender(
       <I18nextProvider i18n={testI18n}>
         <LoadingSpinner size="lg" />
-      </I18nextProvider>
+      </I18nextProvider>,
     );
     expect(container.querySelector(".h-12.w-12")).toBeInTheDocument();
   });

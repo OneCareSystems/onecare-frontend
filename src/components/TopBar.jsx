@@ -51,11 +51,7 @@ const TopBar = () => {
             {displayName}
           </span>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => void handleLogout()}
-          >
+          <Button variant="ghost" size="sm" onClick={() => void handleLogout()}>
             <LuLogOut aria-hidden="true" className="h-4 w-4" />
             Log out
           </Button>

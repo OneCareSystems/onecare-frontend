@@ -30,40 +30,35 @@ describe("StatusBadge", () => {
     },
   );
 
-  it.each(statuses)(
-    "renders an icon for status: %s",
-    (status) => {
-      render(<StatusBadge status={status} />);
+  it.each(statuses)("renders an icon for status: %s", (status) => {
+    render(<StatusBadge status={status} />);
 
-      const badge = screen.getByText(
-        statuses.find(([value]) => value === status)[1],
-      ).parentElement;
+    const badge = screen.getByText(
+      statuses.find(([value]) => value === status)[1],
+    ).parentElement;
 
-      expect(
-        badge.querySelector('[aria-hidden="true"]'),
-      ).toBeInTheDocument();
-    },
-  );
+    expect(badge.querySelector('[aria-hidden="true"]')).toBeInTheDocument();
+  });
 
   it("uses the neutral fallback for an unknown status", () => {
-const { container } = render(
-<StatusBadge status="unknown-status" />,
-);
+    const { container } = render(<StatusBadge status="unknown-status" />);
 
-expect(screen.getByText("unknown-status")).toBeInTheDocument();
+    expect(screen.getByText("unknown-status")).toBeInTheDocument();
 
-expect(container.querySelector('[data-status="neutral"]'))
-.toBeInTheDocument();
-});
+    expect(
+      container.querySelector('[data-status="neutral"]'),
+    ).toBeInTheDocument();
+  });
 
   it("preserves the existing variant and children API", () => {
-const { container } = render(
-<StatusBadge status="success">Saved successfully</StatusBadge>,
-);
+    const { container } = render(
+      <StatusBadge status="success">Saved successfully</StatusBadge>,
+    );
 
-expect(screen.getByText("Saved successfully")).toBeInTheDocument();
+    expect(screen.getByText("Saved successfully")).toBeInTheDocument();
 
-expect(container.querySelector('[data-status="success"]'))
-.toBeInTheDocument();
-});
+    expect(
+      container.querySelector('[data-status="success"]'),
+    ).toBeInTheDocument();
+  });
 });

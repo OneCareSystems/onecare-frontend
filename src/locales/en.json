@@ -8,9 +8,9 @@
     "search": "Search",
     "clear": "Clear",
     "confirm": "Confirm",
-"dismiss": "Dismiss notification",
-"close": "Close",
-"tabs": "Content tabs"
+    "dismiss": "Dismiss notification",
+    "close": "Close",
+    "tabs": "Content tabs"
   },
   "patient": {
     "welcome": "Welcome",
@@ -20,7 +20,7 @@
     "profile": "My Profile",
     "logout": "Logout"
   },
-  
+
   "emptyState": {
     "title": "No results found",
     "description": "There is no data to display yet."

@@ -11,9 +11,7 @@ export default function LanguageSwitcher() {
 
   return (
     <div>
-      <label htmlFor="language-select">
-        {i18n.t("common.language")}
-      </label>
+      <label htmlFor="language-select">{i18n.t("common.language")}</label>
 
       <select
         id="language-select"

@@ -1,4 +1,3 @@
-
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
@@ -7,7 +6,6 @@ import i18n from "i18next";
 import EmptyState from "../../src/components/EmptyState.jsx";
 import en from "../../src/locales/en.json";
 import ta from "../../src/locales/ta.json";
-
 
 const testI18n = i18n.createInstance();
 
@@ -26,11 +24,7 @@ beforeEach(async () => {
 const renderEmptyState = (ui, language = "en") => {
   testI18n.changeLanguage(language);
 
-  return render(
-    <I18nextProvider i18n={testI18n}>
-      {ui}
-    </I18nextProvider>,
-  );
+  return render(<I18nextProvider i18n={testI18n}>{ui}</I18nextProvider>);
 };
 
 describe("EmptyState", () => {
@@ -85,17 +79,12 @@ describe("EmptyState", () => {
       />,
     );
 
-    expect(
-      screen.getByRole("button", { name: "Retry" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
   });
 
   it("exposes the empty state to assistive technology", () => {
     renderEmptyState(<EmptyState />);
 
-    expect(screen.getByRole("status")).toHaveAttribute(
-      "aria-live",
-      "polite",
-    );
+    expect(screen.getByRole("status")).toHaveAttribute("aria-live", "polite");
   });
 });

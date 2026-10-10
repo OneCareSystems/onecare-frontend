@@ -23,5 +23,4 @@ export const ROLE_DASHBOARDS = Object.freeze({
 /**
  * Safe fallback when the session carries no known role.
  */
-export const dashboardPathForRole = (role) =>
-  ROLE_DASHBOARDS[role] ?? "/login";
+export const dashboardPathForRole = (role) => ROLE_DASHBOARDS[role] ?? "/login";

@@ -1,11 +1,6 @@
-
 import { useTranslation } from "react-i18next";
 
-const LoadingSpinner = ({
-  label,
-  size = "md",
-  className = "",
-}) => {
+const LoadingSpinner = ({ label, size = "md", className = "" }) => {
   const { t } = useTranslation();
 
   const sizes = {

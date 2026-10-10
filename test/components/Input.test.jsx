@@ -1,4 +1,3 @@
-
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
@@ -27,21 +26,13 @@ beforeEach(async () => {
 const renderWithI18n = (ui, language = "en") => {
   testI18n.changeLanguage(language);
 
-  return render(
-    <I18nextProvider i18n={testI18n}>
-      {ui}
-    </I18nextProvider>,
-  );
+  return render(<I18nextProvider i18n={testI18n}>{ui}</I18nextProvider>);
 };
 
 describe("Input", () => {
   it("renders an accessible label", () => {
     renderWithI18n(
-      <Input
-        id="patientName"
-        name="patientName"
-        label="Patient name"
-      />,
+      <Input id="patientName" name="patientName" label="Patient name" />,
     );
 
     expect(
@@ -85,13 +76,7 @@ describe("Input", () => {
           submitted
         />
 
-        <Input
-          id="email"
-          name="email"
-          label="Email"
-          required
-          submitted
-        />
+        <Input id="email" name="email" label="Email" required submitted />
       </>,
     );
 
@@ -101,9 +86,10 @@ describe("Input", () => {
       screen.getByRole("textbox", { name: /Patient name/ }),
     ).toHaveAttribute("aria-invalid", "true");
 
-    expect(
-      screen.getByRole("textbox", { name: /Email/ }),
-    ).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("textbox", { name: /Email/ })).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
   });
 
   it("does not show required validation for a non-empty value", () => {
@@ -132,9 +118,7 @@ describe("Input", () => {
       "ta",
     );
 
-    fireEvent.blur(
-      screen.getByRole("textbox", { name: "நோயாளியின் பெயர்" }),
-    );
+    fireEvent.blur(screen.getByRole("textbox", { name: "நோயாளியின் பெயர்" }));
 
     expect(screen.getByRole("alert")).toHaveTextContent(
       "இந்தப் புலத்தை நிரப்புவது அவசியம்.",
