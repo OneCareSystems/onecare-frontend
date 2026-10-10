@@ -6,7 +6,11 @@
     "loading": "Loading...",
     "language": "Language",
     "search": "Search",
-    "clear": "Clear"
+    "clear": "Clear",
+    "confirm": "Confirm",
+"dismiss": "Dismiss notification",
+"close": "Close",
+"tabs": "Content tabs"
   },
   "patient": {
     "welcome": "Welcome",

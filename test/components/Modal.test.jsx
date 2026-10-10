@@ -1,52 +1,90 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import {
+  render,
+  screen,
+  fireEvent,
+  cleanup,
+} from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
+import { I18nextProvider } from "react-i18next";
+import i18next from "i18next";
+
 import Modal from "../../src/components/Modal.jsx";
+import en from "../../src/locales/en.json";
+
+const testI18n = i18next.createInstance();
+
+await testI18n.init({
+  lng: "en",
+  fallbackLng: "en",
+  resources: {
+    en: {
+      translation: en,
+    },
+  },
+  interpolation: {
+    escapeValue: false,
+  },
+});
+
+const renderModal = (props = {}) =>
+  render(
+    <I18nextProvider i18n={testI18n}>
+      <Modal {...props} />
+    </I18nextProvider>
+  );
+
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
 
 describe("Modal", () => {
+  const defaultProps = {
+    isOpen: true,
+    onClose: vi.fn(),
+    title: "Confirm",
+    children: "Content",
+  };
+
   it("does not render when closed", () => {
-    render(
-      <Modal isOpen={false} title="Confirm">
-        Are you sure?
-      </Modal>,
-    );
+    renderModal({
+      ...defaultProps,
+      isOpen: false,
+    });
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("renders its title and content when open", () => {
-    render(
-      <Modal isOpen title="Confirm">
-        Are you sure?
-      </Modal>,
-    );
+    renderModal(defaultProps);
 
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Confirm" }))
       .toBeInTheDocument();
-    expect(screen.getByText("Are you sure?")).toBeInTheDocument();
+
+    expect(screen.getByText("Content")).toBeInTheDocument();
   });
 
   it("exposes modal dialog semantics", () => {
-    render(
-      <Modal isOpen title="Confirm">
-        Content
-      </Modal>,
-    );
+    renderModal(defaultProps);
 
-    expect(screen.getByRole("dialog")).toHaveAttribute("aria-modal", "true");
+    expect(screen.getByRole("dialog")).toHaveAttribute(
+      "aria-modal",
+      "true"
+    );
   });
 
   it("calls onClose when the close button is clicked", () => {
     const onClose = vi.fn();
 
-    render(
-      <Modal isOpen title="Confirm" onClose={onClose}>
-        Content
-      </Modal>,
-    );
+    renderModal({
+      ...defaultProps,
+      onClose,
+    });
 
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Close" })
+    );
 
     expect(onClose).toHaveBeenCalledOnce();
   });
@@ -54,11 +92,10 @@ describe("Modal", () => {
   it("calls onClose when Escape is pressed", () => {
     const onClose = vi.fn();
 
-    render(
-      <Modal isOpen title="Confirm" onClose={onClose}>
-        Content
-      </Modal>,
-    );
+    renderModal({
+      ...defaultProps,
+      onClose,
+    });
 
     fireEvent.keyDown(document, { key: "Escape" });
 
@@ -68,11 +105,10 @@ describe("Modal", () => {
   it("calls onClose when the backdrop is clicked", () => {
     const onClose = vi.fn();
 
-    const { container } = render(
-      <Modal isOpen title="Confirm" onClose={onClose}>
-        Content
-      </Modal>,
-    );
+    const { container } = renderModal({
+      ...defaultProps,
+      onClose,
+    });
 
     fireEvent.mouseDown(container.firstChild);
 

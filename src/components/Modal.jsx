@@ -1,13 +1,17 @@
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 const Modal = ({
   isOpen,
   onClose,
   title,
   children,
-  closeLabel = "Close",
+  closeLabel,
   className = "",
 }) => {
+  const { t } = useTranslation();
+  const resolvedCloseLabel = closeLabel ?? t("common.close");
+
   useEffect(() => {
     if (!isOpen) return undefined;
 
@@ -49,7 +53,7 @@ const Modal = ({
           <button
             type="button"
             onClick={onClose}
-            aria-label={closeLabel}
+            aria-label={resolvedCloseLabel}
             className="rounded p-2 text-neutral-600 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
           >
             <span aria-hidden="true">×</span>

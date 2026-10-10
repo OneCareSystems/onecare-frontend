@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi,beforeEach} from "vitest";
 import { render, screen, fireEvent,act } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { I18nextProvider } from "react-i18next";
@@ -30,6 +30,12 @@ const renderPagination = (props = {}) =>
       />
     </I18nextProvider>,
   );
+
+  beforeEach(async () => {
+  await act(async () => {
+    await testI18n.changeLanguage("en");
+  });
+});
 
 describe("Pagination", () => {
   it("renders the current page and total pages", () => {
@@ -81,13 +87,21 @@ describe("Pagination", () => {
 
   renderPagination();
 
-  expect(screen.getByText(/பக்கம்/)).toBeInTheDocument();
   expect(
     screen.getByRole("button", { name: ta.pagination.previous }),
   ).toBeInTheDocument();
 
-  await act(async () => {
-    await testI18n.changeLanguage("en");
-  });
+  expect(
+    screen.getByRole("button", { name: ta.pagination.next }),
+  ).toBeInTheDocument();
+
+  expect(
+    screen.getByText(
+      new RegExp(
+        `${ta.pagination.page}.*${ta.pagination.of}`,
+      ),
+    ),
+  ).toBeInTheDocument();
 });
 });
+

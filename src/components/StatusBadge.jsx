@@ -9,7 +9,7 @@ const STATUS_STYLES = {
   },
   danger: {
     surface: "bg-danger-100 text-danger-800 border-danger-200",
-    icon: "×",
+    icon: "\u2715",
   },
   info: {
     surface: "bg-primary-100 text-primary-800 border-primary-200",
@@ -24,7 +24,7 @@ const STATUS_STYLES = {
 const STATUS_MAP = {
   scheduled: { variant: "info", label: "Scheduled", icon: "◷" },
   completed: { variant: "success", label: "Completed", icon: "✓" },
-  cancelled: { variant: "danger", label: "Cancelled", icon: "×" },
+  cancelled: { variant: "danger", label: "Cancelled", icon: "X" },
   "no-show": { variant: "warning", label: "No-show", icon: "!" },
 
   arrived: { variant: "info", label: "Arrived", icon: "✓" },

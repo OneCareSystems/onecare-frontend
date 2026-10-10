@@ -1,13 +1,15 @@
-
 import { useId, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const Tabs = ({
   tabs = [],
   defaultActiveTab,
   activeTab,
   onChange,
+  ariaLabel,
   className = "",
 }) => {
+  const { t } = useTranslation();
   const generatedId = useId();
 
   const [internalActiveTab, setInternalActiveTab] = useState(
@@ -16,9 +18,7 @@ const Tabs = ({
 
   const selectedTab = activeTab ?? internalActiveTab;
   const activeTabExists = tabs.some((tab) => tab.id === selectedTab);
-  const currentTab = activeTabExists
-    ? selectedTab
-    : tabs[0]?.id;
+  const currentTab = activeTabExists ? selectedTab : tabs[0]?.id;
 
   if (tabs.length === 0) return null;
 
@@ -30,12 +30,13 @@ const Tabs = ({
   };
 
   const activeTabData = tabs.find((tab) => tab.id === currentTab);
+  const resolvedAriaLabel = ariaLabel ?? t("common.tabs");
 
   return (
     <div className={className}>
       <div
         role="tablist"
-        aria-label="Content tabs"
+        aria-label={resolvedAriaLabel}
         className="flex gap-1 overflow-x-auto border-b border-neutral-200"
       >
         {tabs.map((tab) => {
