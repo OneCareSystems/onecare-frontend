@@ -42,7 +42,10 @@ describe("StatusBadge", () => {
       .closest("span")?.parentElement;
     expect(badge).toHaveAttribute("data-status", "danger");
     expect(badge?.className).toContain("bg-danger-100");
-    expect(badge?.querySelector('[aria-hidden="true"]')?.textContent).toBe("✕");
+     const icon = badge?.querySelector('svg[aria-hidden="true"]');
+
+  expect(icon).toBeInTheDocument();
+  expect(icon).toHaveAttribute("focusable", "false");
   });
 
   it("falls back to the neutral style for unknown statuses", () => {
