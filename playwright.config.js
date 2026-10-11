@@ -1,3 +1,4 @@
+
 import { defineConfig, devices } from "@playwright/test";
 
 /**
@@ -11,11 +12,30 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
+
+  reporter: process.env.CI
+    ? [
+        ["github"],
+        ["html", { open: "never" }],
+      ]
+    : [
+        ["list"],
+        ["html", { open: "never" }],
+      ],
+
   use: {
     baseURL: "http://localhost:5173",
+
+    // Capture screenshots when tests fail.
+    screenshot: "only-on-failure",
+
+    // Retain traces when a test fails after a retry.
     trace: "on-first-retry",
+
+    // Uncomment to capture screenshots for both passed and failed tests.
+    // screenshot: "on",
   },
+
   projects: [
     {
       name: "chromium-360px",
@@ -25,11 +45,13 @@ export default defineConfig({
       },
     },
   ],
+
   webServer: {
     command: "npm run dev -- --port 5173 --strictPort",
     url: "http://localhost:5173",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+
     // Same-origin API base so page.route() mocks need no CORS preflight.
     env: { ...process.env, VITE_API_BASE_URL: "/api" },
   },
