@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -26,9 +25,7 @@ const Select = ({
   const selectValue = value !== undefined ? value : internalValue;
   const validationMessage =
     error ||
-    (required && !String(selectValue).trim()
-      ? t("validation.required")
-      : "");
+    (required && !String(selectValue).trim() ? t("validation.required") : "");
 
   const showError = Boolean(validationMessage) && (touched || submitted);
   const selectId = id ?? name;

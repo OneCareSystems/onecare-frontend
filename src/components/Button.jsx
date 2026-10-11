@@ -1,4 +1,3 @@
-
 const VARIANTS = {
   primary:
     "bg-primary-600 text-white hover:bg-primary-700 focus-visible:ring-primary-500",

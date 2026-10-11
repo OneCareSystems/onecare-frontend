@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
@@ -7,11 +6,10 @@ import i18n from "../../src/i18n";
 import Input from "../../src/components/Input";
 import Button from "../../src/components/Button";
 
-
 function TestForm({ onSubmit }) {
-const [name, setName] = useState("");
-const [email, setEmail] = useState("");
-const [submitted, setSubmitted] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -56,7 +54,7 @@ describe("Form validation integration", () => {
     render(
       <I18nextProvider i18n={i18n}>
         <TestForm onSubmit={onSubmit} />
-      </I18nextProvider>
+      </I18nextProvider>,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Submit" }));
@@ -64,11 +62,11 @@ describe("Form validation integration", () => {
     expect(screen.getAllByRole("alert")).toHaveLength(2);
     expect(screen.getByRole("textbox", { name: /Name/ })).toHaveAttribute(
       "aria-invalid",
-      "true"
+      "true",
     );
     expect(screen.getByRole("textbox", { name: /Email/ })).toHaveAttribute(
       "aria-invalid",
-      "true"
+      "true",
     );
     expect(onSubmit).not.toHaveBeenCalled();
   });
@@ -79,7 +77,7 @@ describe("Form validation integration", () => {
     render(
       <I18nextProvider i18n={i18n}>
         <TestForm onSubmit={onSubmit} />
-      </I18nextProvider>
+      </I18nextProvider>,
     );
 
     fireEvent.change(screen.getByRole("textbox", { name: /Name/ }), {
@@ -98,4 +96,3 @@ describe("Form validation integration", () => {
     });
   });
 });
-

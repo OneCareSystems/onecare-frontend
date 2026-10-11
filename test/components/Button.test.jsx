@@ -1,4 +1,3 @@
-
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
@@ -8,9 +7,7 @@ describe("Button", () => {
   it("renders its label", () => {
     render(<Button>Save</Button>);
 
-    expect(
-      screen.getByRole("button", { name: "Save" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
   });
 
   it("calls onClick when clicked", () => {
@@ -32,19 +29,13 @@ describe("Button", () => {
     render(<Button loading>Saving</Button>);
 
     expect(screen.getByRole("button")).toBeDisabled();
-    expect(screen.getByRole("button")).toHaveAttribute(
-      "aria-busy",
-      "true",
-    );
+    expect(screen.getByRole("button")).toHaveAttribute("aria-busy", "true");
   });
 
   it("supports submit type", () => {
     render(<Button type="submit">Submit</Button>);
 
-    expect(screen.getByRole("button")).toHaveAttribute(
-      "type",
-      "submit",
-    );
+    expect(screen.getByRole("button")).toHaveAttribute("type", "submit");
   });
 
   it("supports a custom class", () => {

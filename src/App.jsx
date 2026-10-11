@@ -7,11 +7,11 @@ function App() {
   return (
     <BrowserRouter>
       <>
-      <LanguageDocumentSync />
+        <LanguageDocumentSync />
 
-      {/* Existing routes and layout go here */}
-    </>
-     <SessionManager />
+        {/* Existing routes and layout go here */}
+      </>
+      <SessionManager />
       <AppRoutes />
     </BrowserRouter>
   );

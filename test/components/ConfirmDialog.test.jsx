@@ -1,10 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import {
-  render,
-  screen,
-  fireEvent,
-  cleanup,
-} from "@testing-library/react";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { I18nextProvider } from "react-i18next";
 import i18next from "i18next";
@@ -31,7 +26,7 @@ const renderConfirmDialog = (props = {}) =>
   render(
     <I18nextProvider i18n={testI18n}>
       <ConfirmDialog {...props} />
-    </I18nextProvider>
+    </I18nextProvider>,
   );
 
 afterEach(() => {
@@ -51,18 +46,12 @@ describe("ConfirmDialog", () => {
   it("renders the dialog title and message when open", () => {
     renderConfirmDialog(defaultProps);
 
-    expect(
-      screen.getByRole("dialog")
-    ).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    expect(screen.getByText("Delete Medicine")).toBeInTheDocument();
 
     expect(
-      screen.getByText("Delete Medicine")
-    ).toBeInTheDocument();
-
-    expect(
-      screen.getByText(
-        "Are you sure you want to delete this medicine?"
-      )
+      screen.getByText("Are you sure you want to delete this medicine?"),
     ).toBeInTheDocument();
   });
 
@@ -72,9 +61,7 @@ describe("ConfirmDialog", () => {
       isOpen: false,
     });
 
-    expect(
-      screen.queryByRole("dialog")
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("calls onConfirm when the confirm button is clicked", () => {
@@ -85,9 +72,7 @@ describe("ConfirmDialog", () => {
       onConfirm,
     });
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Confirm" })
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
@@ -100,9 +85,7 @@ describe("ConfirmDialog", () => {
       onClose,
     });
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Cancel" })
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
@@ -114,13 +97,9 @@ describe("ConfirmDialog", () => {
       cancelLabel: "Keep",
     });
 
-    expect(
-      screen.getByRole("button", { name: "Delete" })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
 
-    expect(
-      screen.getByRole("button", { name: "Keep" })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Keep" })).toBeInTheDocument();
   });
 
   it("does not call onConfirm while loading", () => {
@@ -140,8 +119,6 @@ describe("ConfirmDialog", () => {
 
     expect(onConfirm).not.toHaveBeenCalled();
 
-    expect(
-      screen.getByRole("button", { name: "Cancel" })
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
   });
 });

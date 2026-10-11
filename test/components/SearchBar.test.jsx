@@ -26,8 +26,9 @@ describe("SearchBar", () => {
   it("renders an accessible search input", () => {
     renderSearchBar();
 
-    expect(screen.getByRole("searchbox", { name: "Search" }))
-      .toBeInTheDocument();
+    expect(
+      screen.getByRole("searchbox", { name: "Search" }),
+    ).toBeInTheDocument();
   });
 
   it("calls onChange when text is entered", () => {
@@ -73,7 +74,6 @@ describe("SearchBar", () => {
   it("supports a custom placeholder", () => {
     renderSearchBar({ placeholder: "Search patients" });
 
-    expect(screen.getByPlaceholderText("Search patients"))
-      .toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search patients")).toBeInTheDocument();
   });
 });

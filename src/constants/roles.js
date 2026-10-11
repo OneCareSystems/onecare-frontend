@@ -14,7 +14,7 @@ export const ROLES = Object.freeze({
  * from a screen their role may not use (AC2, AC4).
  */
 export const ROLE_DASHBOARDS = Object.freeze({
-  [ROLES.SUPER_ADMIN]: "/superadmin/dashboard",
+  [ROLES.SUPER_ADMIN]: "/super-admin/dashboard",
   [ROLES.ADMIN]: "/admin/dashboard",
   [ROLES.DOCTOR]: "/doctor/dashboard",
   [ROLES.PHARMACIST]: "/pharmacist/dashboard",
@@ -23,5 +23,4 @@ export const ROLE_DASHBOARDS = Object.freeze({
 /**
  * Safe fallback when the session carries no known role.
  */
-export const dashboardPathForRole = (role) =>
-  ROLE_DASHBOARDS[role] ?? "/login";
+export const dashboardPathForRole = (role) => ROLE_DASHBOARDS[role] ?? "/login";

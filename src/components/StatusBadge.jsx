@@ -1,6 +1,5 @@
-
 import {
-    LuTriangleAlert,
+  LuTriangleAlert,
   LuArrowUpRight,
   LuCalendarClock,
   LuCheck,
@@ -20,7 +19,7 @@ const STATUS_STYLES = {
   },
   warning: {
     surface: "bg-warning-100 text-warning-900 border-warning-200",
-    icon:   LuTriangleAlert,
+    icon: LuTriangleAlert,
   },
   danger: {
     surface: "bg-danger-100 text-danger-800 border-danger-200",
@@ -55,7 +54,7 @@ const STATUS_MAP = {
   "no-show": {
     variant: "warning",
     label: "No-show",
-    icon:   LuTriangleAlert,
+    icon: LuTriangleAlert,
   },
   arrived: {
     variant: "info",
@@ -95,7 +94,7 @@ const STATUS_MAP = {
   "low stock": {
     variant: "warning",
     label: "Low stock",
-    icon:   LuTriangleAlert,
+    icon: LuTriangleAlert,
   },
   "near expiry": {
     variant: "warning",
@@ -128,11 +127,7 @@ const StatusBadge = ({ status = "neutral", children }) => {
       className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-sm font-medium ${style.surface}`}
       data-status={mappedStatus ? normalizedStatus : variant}
     >
-      <Icon
-        aria-hidden="true"
-        focusable="false"
-        className="h-4 w-4 shrink-0"
-      />
+      <Icon aria-hidden="true" focusable="false" className="h-4 w-4 shrink-0" />
       <span>{label}</span>
     </span>
   );

@@ -20,7 +20,7 @@ const Input = ({
   className = "",
   ...rest
 }) => {
-const { t } = useTranslation();
+  const { t } = useTranslation();
   const [touched, setTouched] = useState(false);
   const [internalValue, setInternalValue] = useState(defaultValue ?? "");
 
@@ -62,10 +62,7 @@ const { t } = useTranslation();
 
   return (
     <div className={`flex flex-col gap-1 ${className}`}>
-      <label
-        htmlFor={inputId}
-        className="text-sm font-medium text-neutral-800"
-      >
+      <label htmlFor={inputId} className="text-sm font-medium text-neutral-800">
         {label}
         {required && (
           <span aria-hidden="true" className="ml-1">
@@ -86,16 +83,13 @@ const { t } = useTranslation();
         required={required}
         placeholder={placeholder}
         aria-invalid={showError}
-        aria-describedby={[
-          hint ? hintId : null,
-          showError ? errorId : null,
-        ]
-          .filter(Boolean)
-          .join(" ") || undefined}
+        aria-describedby={
+          [hint ? hintId : null, showError ? errorId : null]
+            .filter(Boolean)
+            .join(" ") || undefined
+        }
         className={`w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:bg-neutral-100 ${
-          showError
-            ? "border-danger-600"
-            : "border-neutral-300"
+          showError ? "border-danger-600" : "border-neutral-300"
         }`}
       />
 
@@ -106,11 +100,7 @@ const { t } = useTranslation();
       )}
 
       {showError && (
-        <p
-          id={errorId}
-          role="alert"
-          className="text-sm text-danger-700"
-        >
+        <p id={errorId} role="alert" className="text-sm text-danger-700">
           {validationMessage}
         </p>
       )}

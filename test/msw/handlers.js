@@ -6,6 +6,8 @@ export const mswState = {
   refreshCount: 0,
   protectedHits: [],
   refreshTokens: [],
+  loginValid: true,
+  loginRole: "ADMIN",
 };
 
 export const resetMswState = () => {
@@ -14,6 +16,8 @@ export const resetMswState = () => {
   mswState.refreshCount = 0;
   mswState.protectedHits = [];
   mswState.refreshTokens = [];
+  mswState.loginValid = true;
+  mswState.loginRole = "ADMIN";
 };
 
 const ok = (data, message = "ok") =>
@@ -32,6 +36,22 @@ const protectedReply = ({ request, params }) => {
 };
 
 export const handlers = [
+  http.post("*/auth/login", async ({ request }) => {
+    const body = await request.json().catch(() => ({}));
+    if (!mswState.loginValid) {
+      return fail(401, "Invalid credentials");
+    }
+    return ok({
+      accessToken: "login-access",
+      refreshToken: "login-refresh",
+      expiresIn: 1800,
+      role: mswState.loginRole,
+      user: {
+        name: "Test User",
+        email: body?.email ?? "test@onecare.test",
+      },
+    });
+  }),
   http.get("*/patients/:id", protectedReply),
   http.get("*/reports/:id", protectedReply),
   http.get("*", ({ request }) => {

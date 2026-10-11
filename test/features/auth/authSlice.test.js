@@ -74,11 +74,11 @@ describe("authSlice (Redux, in-memory session)", () => {
       refreshToken: "r",
       expiresIn: 1800,
       role: "SUPER_ADMIN",
-      redirectUrl: "/superadmin/dashboard",
+      redirectUrl: "/super-admin/dashboard",
     });
 
     expect(selectRole(state())).toBe("SUPER_ADMIN");
-    expect(state().auth.redirectUrl).toBe("/superadmin/dashboard");
+    expect(state().auth.redirectUrl).toBe("/super-admin/dashboard");
   });
 
   it("treats a non-positive or invalid expiresIn as no expiry", () => {

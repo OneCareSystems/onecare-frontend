@@ -26,9 +26,7 @@ const DatePicker = ({
 
   const validationMessage =
     error ||
-    (required && !String(dateValue).trim()
-      ? t("validation.required")
-      : "");
+    (required && !String(dateValue).trim() ? t("validation.required") : "");
 
   const showError = Boolean(validationMessage) && (touched || submitted);
   const dateId = id ?? name;
@@ -48,10 +46,7 @@ const DatePicker = ({
 
   return (
     <div className={`flex flex-col gap-1 ${className}`}>
-      <label
-        htmlFor={dateId}
-        className="text-sm font-medium text-neutral-800"
-      >
+      <label htmlFor={dateId} className="text-sm font-medium text-neutral-800">
         {label}
         {required && (
           <span aria-hidden="true" className="ml-1">

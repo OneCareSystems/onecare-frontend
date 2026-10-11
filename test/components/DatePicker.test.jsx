@@ -33,9 +33,10 @@ describe("DatePicker", () => {
   it("renders a labeled date input", () => {
     renderDatePicker();
 
-    expect(
-      screen.getByLabelText(/Appointment date/),
-    ).toHaveAttribute("type", "date");
+    expect(screen.getByLabelText(/Appointment date/)).toHaveAttribute(
+      "type",
+      "date",
+    );
   });
 
   it("calls onChange when the date changes", () => {

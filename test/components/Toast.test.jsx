@@ -1,4 +1,3 @@
-
 import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   render,
@@ -29,7 +28,7 @@ const renderToast = (props = {}) =>
   render(
     <I18nextProvider i18n={testI18n}>
       <Toast {...props} />
-    </I18nextProvider>
+    </I18nextProvider>,
   );
 
 afterEach(() => {
@@ -42,7 +41,7 @@ describe("Toast", () => {
     renderToast({ message: "Patient saved successfully" });
 
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Patient saved successfully"
+      "Patient saved successfully",
     );
   });
 
@@ -53,7 +52,7 @@ describe("Toast", () => {
     });
 
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "Unable to save patient"
+      "Unable to save patient",
     );
   });
 
@@ -68,7 +67,7 @@ describe("Toast", () => {
     rerender(
       <I18nextProvider i18n={testI18n}>
         <Toast type="warning" message="Check details" />
-      </I18nextProvider>
+      </I18nextProvider>,
     );
 
     expect(screen.getByRole("status")).toHaveClass("bg-amber-50");
@@ -76,7 +75,7 @@ describe("Toast", () => {
     rerender(
       <I18nextProvider i18n={testI18n}>
         <Toast type="info" message="Information" />
-      </I18nextProvider>
+      </I18nextProvider>,
     );
 
     expect(screen.getByRole("status")).toHaveClass("bg-blue-50");
@@ -93,7 +92,7 @@ describe("Toast", () => {
     fireEvent.click(
       screen.getByRole("button", {
         name: "Dismiss notification",
-      })
+      }),
     );
 
     expect(onClose).toHaveBeenCalledOnce();

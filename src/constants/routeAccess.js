@@ -10,7 +10,9 @@ export const ROUTE_ACCESS = Object.freeze({
   admin: Object.freeze([ROLES.ADMIN]),
   doctor: Object.freeze([ROLES.DOCTOR]),
   pharmacist: Object.freeze([ROLES.PHARMACIST]),
-  superadmin: Object.freeze([ROLES.SUPER_ADMIN]),
+  // Key must equal the URL segment: navigation.test.js derives the group
+  // from `item.to.split("/")`.
+  "super-admin": Object.freeze([ROLES.SUPER_ADMIN]),
   // Shared screens (AC4): one route, several allowed roles.
   queue: Object.freeze([ROLES.ADMIN, ROLES.DOCTOR, ROLES.SUPER_ADMIN]),
 });

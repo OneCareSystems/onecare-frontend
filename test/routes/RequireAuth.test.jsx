@@ -4,10 +4,7 @@ import { Provider } from "react-redux";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 
 import { store } from "../../src/app/store";
-import {
-  clearSession,
-  setSession,
-} from "../../src/features/auth/authSlice";
+import { clearSession, setSession } from "../../src/features/auth/authSlice";
 import { ROLES } from "../../src/constants/roles";
 import { ROUTE_ACCESS } from "../../src/constants/routeAccess";
 import RequireAuth from "../../src/routes/RequireAuth";
@@ -46,9 +43,7 @@ const renderGuardedRoute = (
             path="/pharmacist/dashboard"
             element={<div data-testid="pharmacist-page" />}
           />
-          <Route
-            element={<RequireAuth allowedRoles={allowedRoles} />}
-          >
+          <Route element={<RequireAuth allowedRoles={allowedRoles} />}>
             <Route
               path="/protected"
               element={<div data-testid={pageTestId} />}

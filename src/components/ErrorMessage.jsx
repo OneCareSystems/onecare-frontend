@@ -1,4 +1,3 @@
-
 const ErrorMessage = ({
   title,
   message,
@@ -15,17 +14,9 @@ const ErrorMessage = ({
       role={role}
       className={`rounded-md border border-red-200 bg-red-50 p-4 text-red-800 ${className}`}
     >
-      {title && (
-        <h2 className="mb-1 text-sm font-semibold">
-          {title}
-        </h2>
-      )}
+      {title && <h2 className="mb-1 text-sm font-semibold">{title}</h2>}
 
-      {content && (
-        <p className="text-sm">
-          {content}
-        </p>
-      )}
+      {content && <p className="text-sm">{content}</p>}
     </div>
   );
 };

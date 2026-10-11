@@ -1,11 +1,4 @@
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-  vi,
-} from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 import {
   render,
@@ -19,10 +12,7 @@ import { Provider } from "react-redux";
 import { MemoryRouter, useLocation } from "react-router-dom";
 
 import { store } from "../../../src/app/store";
-import {
-  setSession,
-  clearSession,
-} from "../../../src/features/auth/authSlice";
+import { setSession, clearSession } from "../../../src/features/auth/authSlice";
 
 vi.mock("../../../src/services/authService", () => ({
   logout: vi.fn(),
@@ -156,9 +146,7 @@ describe("SessionManager — CFG-05", () => {
 
     expect(screen.queryByRole("dialog")).toBeNull();
 
-    expect(store.getState().auth.accessToken).toBe(
-      "test-access-token",
-    );
+    expect(store.getState().auth.accessToken).toBe("test-access-token");
 
     await advanceTime(28 * 60 * 1000);
 

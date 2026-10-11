@@ -1,11 +1,5 @@
-import { Outlet } from "react-router-dom";
+import StaffLayout from "./StaffLayout";
 
-const AdminLayout = () => {
-  return (
-    <div>
-      <Outlet />
-    </div>
-  );
-};
+const AdminLayout = () => <StaffLayout />;
 
 export default AdminLayout;

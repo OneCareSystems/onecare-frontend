@@ -38,10 +38,12 @@ describe("Select", () => {
     renderSelect();
 
     expect(screen.getByLabelText("Status")).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Scheduled" }))
-      .toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Completed" }))
-      .toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "Scheduled" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "Completed" }),
+    ).toBeInTheDocument();
   });
 
   it("calls onChange when an option is selected", () => {
@@ -57,7 +59,7 @@ describe("Select", () => {
 
   it("shows required validation after blur", () => {
     renderSelect({ required: true });
-fireEvent.blur(screen.getByRole("combobox", { name: /Status/ }));
+    fireEvent.blur(screen.getByRole("combobox", { name: /Status/ }));
 
     expect(screen.getByRole("alert")).toHaveTextContent(
       "This field is required.",

@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -19,8 +18,7 @@ const Toast = ({
 }) => {
   const { t } = useTranslation();
 
-  const resolvedCloseLabel =
-    closeLabel ?? t("common.dismiss");
+  const resolvedCloseLabel = closeLabel ?? t("common.dismiss");
 
   useEffect(() => {
     if (!message || duration <= 0 || !onClose) return undefined;

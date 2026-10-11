@@ -13,7 +13,7 @@ const Tabs = ({
   const generatedId = useId();
 
   const [internalActiveTab, setInternalActiveTab] = useState(
-    defaultActiveTab ?? tabs[0]?.id
+    defaultActiveTab ?? tabs[0]?.id,
   );
 
   const selectedTab = activeTab ?? internalActiveTab;

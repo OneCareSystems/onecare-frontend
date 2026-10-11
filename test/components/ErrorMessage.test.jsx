@@ -1,4 +1,3 @@
-
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
@@ -10,20 +9,15 @@ describe("ErrorMessage", () => {
     render(<ErrorMessage message="Unable to load patients" />);
 
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "Unable to load patients"
+      "Unable to load patients",
     );
   });
 
   it("renders a title and message", () => {
-    render(
-      <ErrorMessage
-        title="Request failed"
-        message="Please try again"
-      />
-    );
+    render(<ErrorMessage title="Request failed" message="Please try again" />);
 
     expect(
-      screen.getByRole("heading", { name: "Request failed" })
+      screen.getByRole("heading", { name: "Request failed" }),
     ).toBeInTheDocument();
 
     expect(screen.getByText("Please try again")).toBeInTheDocument();
@@ -32,9 +26,7 @@ describe("ErrorMessage", () => {
   it("supports children as message content", () => {
     render(<ErrorMessage>Something went wrong</ErrorMessage>);
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Something went wrong"
-    );
+    expect(screen.getByRole("alert")).toHaveTextContent("Something went wrong");
   });
 
   it("supports a custom role", () => {
@@ -42,7 +34,7 @@ describe("ErrorMessage", () => {
       <ErrorMessage
         role="status"
         message="Operation completed with a warning"
-      />
+      />,
     );
 
     expect(screen.getByRole("status")).toBeInTheDocument();

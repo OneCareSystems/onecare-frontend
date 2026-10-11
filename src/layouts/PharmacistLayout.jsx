@@ -1,11 +1,5 @@
-import { Outlet } from "react-router-dom";
+import StaffLayout from "./StaffLayout";
 
-const PharmacistLayout = () => {
-  return (
-    <div>
-      <Outlet />
-    </div>
-  );
-};
+const PharmacistLayout = () => <StaffLayout />;
 
 export default PharmacistLayout;

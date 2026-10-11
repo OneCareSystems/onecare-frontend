@@ -1,11 +1,5 @@
-import { Outlet } from "react-router-dom";
+import StaffLayout from "./StaffLayout";
 
-const SuperAdminLayout = () => {
-  return (
-    <div>
-      <Outlet />
-    </div>
-  );
-};
+const SuperAdminLayout = () => <StaffLayout />;
 
 export default SuperAdminLayout;

@@ -5,9 +5,7 @@ export default function LanguageDocumentSync() {
   const { i18n } = useTranslation();
 
   useEffect(() => {
-    const language = i18n.resolvedLanguage?.startsWith("ta")
-      ? "ta"
-      : "en";
+    const language = i18n.resolvedLanguage?.startsWith("ta") ? "ta" : "en";
 
     document.documentElement.lang = language;
   }, [i18n.resolvedLanguage]);
