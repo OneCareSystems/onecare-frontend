@@ -1,4 +1,7 @@
+import IconButton from "../../components/IconButton";
+import Icon from "../../components/Icon";
 import StatusBadge from "../../components/StatusBadge";
+import Table from "../../components/Table";
 import {
   borderRadius,
   colors,
@@ -41,6 +44,81 @@ const STATUS_EXAMPLES = [
   { status: "danger", label: "Payment failed" },
   { status: "info", label: "Refill requested" },
   { status: "neutral", label: "Draft" },
+];
+
+/**
+ * CFG-07 — medical icon set (client feedback #4). Rendered with the
+ * shared Icon component so the styleguide always shows the real registry.
+ */
+const MEDICAL_ICON_EXAMPLES = [
+  { name: "stethoscope", label: "Consultation" },
+  { name: "pill", label: "Medication" },
+  { name: "calendar", label: "Appointment" },
+  { name: "heart-pulse", label: "Vitals" },
+  { name: "syringe", label: "Immunisation" },
+  { name: "thermometer", label: "Temperature" },
+  { name: "hospital", label: "Ward" },
+  { name: "microscope", label: "Laboratory" },
+  { name: "test-tube", label: "Pathology" },
+  { name: "clipboard", label: "Notes" },
+  { name: "users", label: "Patients" },
+  { name: "shield-plus", label: "First aid" },
+];
+
+/**
+ * CFG-07 AC3 demo — a deliberately wide table. At a 360 px viewport it
+ * overflows its own scroll container (`overflow-x-auto` region in Table)
+ * without producing a page-level horizontal scrollbar.
+ */
+const WIDE_TABLE_COLUMNS = [
+  { key: "mrn", header: "Medical record no." },
+  { key: "patient", header: "Patient name" },
+  { key: "dob", header: "Date of birth" },
+  { key: "appointment", header: "Appointment" },
+  { key: "clinician", header: "Clinician" },
+  { key: "department", header: "Department" },
+  { key: "status", header: "Status" },
+  { key: "prescription", header: "Prescription" },
+  { key: "notes", header: "Notes" },
+];
+
+const WIDE_TABLE_ROWS = [
+  {
+    id: 1,
+    mrn: "MRN-000184722",
+    patient: "Anandhi Rajendran",
+    dob: "1984-03-12",
+    appointment: "2026-10-14 09:30",
+    clinician: "Dr house",
+    department: "General medicine",
+    status: "scheduled",
+    prescription: "Metformin 500 mg, twice daily",
+    notes: "Fasting glucose review due",
+  },
+  {
+    id: 2,
+    mrn: "MRN-000184933",
+    patient: "Kumaravel Subramanian",
+    dob: "1971-11-02",
+    appointment: "2026-10-14 10:15",
+    clinician: "Dr Nila",
+    department: "Cardiology",
+    status: "arrived",
+    prescription: "Atorvastatin 20 mg, nightly",
+    notes: "ECG on arrival",
+  },
+  {
+    id: 3,
+    mrn: "MRN-000185104",
+    patient: "Mary Josephine",
+    dob: "1996-07-25",
+    appointment: "2026-10-14 11:00",
+    clinician: "Dr arun",
+    department: "Paediatrics",
+    status: "completed",
+    prescription: "Amoxicillin 250 mg, three times daily",
+    notes: "Follow-up in two weeks",
+  },
 ];
 
 const SPACING_SAMPLES = [1, 2, 4, 8, 12, 16];
@@ -240,6 +318,81 @@ const ThemeReferencePage = () => {
             </StatusBadge>
           ))}
         </div>
+      </section>
+
+      <section aria-labelledby="icons-heading">
+        <h2 id="icons-heading" className={SECTION_TITLE}>
+          Medical icons
+        </h2>
+        <p className="mb-4 text-base text-neutral-700">
+          The shared{" "}
+          <code className="rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-sm text-neutral-800">
+            Icon
+          </code>{" "}
+          component exposes one medical icon set (client feedback #4). Icons
+          next to a text label are decorative; standalone icons carry an ARIA
+          label so screen readers announce them.
+        </p>
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {MEDICAL_ICON_EXAMPLES.map((icon) => (
+            <li
+              key={icon.name}
+              className="flex items-center gap-3 rounded-xl border border-neutral-200 p-4"
+            >
+              <Icon
+                name={icon.name}
+                size="1.5rem"
+                className="shrink-0 text-primary-600"
+              />
+              <span className="text-sm font-semibold text-neutral-800">
+                {icon.label}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section aria-labelledby="icon-buttons-heading">
+        <h2 id="icon-buttons-heading" className={SECTION_TITLE}>
+          Icon-only buttons
+        </h2>
+        <p className="mb-4 text-base text-neutral-700">
+          Icon-only controls always expose an ARIA label (AC2), so a screen
+          reader announces the action instead of &ldquo;button&rdquo;. Each
+          button keeps a ≥ 44 × 44 px touch target and the shared
+          <code className="rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-sm text-neutral-800">
+            {" "}
+            :focus-visible{" "}
+          </code>
+          ring.
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <IconButton icon="refresh" label="Refresh queue" />
+          <IconButton icon="print" label="Print prescription" />
+          <IconButton icon="pencil" label="Edit appointment" />
+          <IconButton
+            icon="trash"
+            label="Cancel appointment"
+            variant="danger"
+          />
+        </div>
+      </section>
+
+      <section aria-labelledby="wide-table-heading">
+        <h2 id="wide-table-heading" className={SECTION_TITLE}>
+          Wide table
+        </h2>
+        <p className="mb-4 text-base text-neutral-700">
+          Wide tables scroll inside their own container (AC3). On a 360 px
+          screen the table region below scrolls horizontally while the page
+          itself never scrolls sideways.
+        </p>
+        <Table
+          label="Example appointment list"
+          columns={WIDE_TABLE_COLUMNS}
+          data={WIDE_TABLE_ROWS}
+          getRowKey={(row) => row.id}
+        />
       </section>
 
       <section aria-labelledby="spacing-heading">
