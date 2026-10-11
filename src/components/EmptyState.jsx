@@ -1,5 +1,7 @@
 import { useTranslation } from "react-i18next";
 
+import Icon from "./Icon";
+
 const EmptyState = ({ title, message, description, action }) => {
   const { t } = useTranslation();
 
@@ -16,7 +18,7 @@ const EmptyState = ({ title, message, description, action }) => {
         aria-hidden="true"
         className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 text-xl text-neutral-600"
       >
-        ∅
+        <Icon name="inbox" className="h-6 w-6" />
       </span>
 
       <h2 className="text-lg font-semibold text-neutral-900">{displayTitle}</h2>

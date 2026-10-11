@@ -1,11 +1,20 @@
 import EmptyState from "./EmptyState.jsx";
 
+/**
+ * CFG-07 — wide tables scroll inside their own container (AC3, NFRU-004).
+ * `overflow-x-auto` alone is not enough at 360 px: the scrollable region
+ * must also be reachable and named for keyboard / screen-reader users
+ * (SDS §2.4.10), so the wrapper is a labelled `region` with `tabIndex=0`.
+ * The page itself never scrolls sideways because the overflow is contained
+ * here.
+ */
 const Table = ({
   columns = [],
   data = [],
   getRowKey,
   emptyTitle,
   emptyMessage,
+  label = "Data table",
   className = "",
 }) => {
   if (data.length === 0) {
@@ -14,7 +23,10 @@ const Table = ({
 
   return (
     <div
-      className={`w-full overflow-x-auto rounded-lg border border-neutral-200 ${className}`}
+      role="region"
+      aria-label={label}
+      tabIndex={0}
+      className={`w-full overflow-x-auto rounded-lg border border-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 ${className}`}
     >
       <table className="w-full border-collapse text-left text-sm">
         <thead className="bg-neutral-50">

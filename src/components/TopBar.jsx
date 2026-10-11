@@ -1,8 +1,8 @@
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { LuLogOut } from "react-icons/lu";
 
 import Button from "./Button";
+import Icon from "./Icon";
 import Logo from "./Logo";
 import LanguageSwitcher from "./LanguageSwitcher";
 import {
@@ -52,7 +52,7 @@ const TopBar = () => {
           </span>
 
           <Button variant="ghost" size="sm" onClick={() => void handleLogout()}>
-            <LuLogOut aria-hidden="true" className="h-4 w-4" />
+            <Icon name="log-out" className="h-4 w-4" />
             Log out
           </Button>
         </div>

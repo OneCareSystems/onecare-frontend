@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
+import Icon from "./Icon";
+
 const TOAST_STYLES = {
   success: "border-green-200 bg-green-50 text-green-800",
   error: "border-red-200 bg-red-50 text-red-800",
@@ -48,7 +50,7 @@ const Toast = ({
           aria-label={resolvedCloseLabel}
           className="shrink-0 rounded px-2 py-1 font-medium hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current"
         >
-          ×
+          <Icon name="close" className="h-4 w-4" />
         </button>
       )}
     </div>

@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
+import Icon from "./Icon";
+
 const Modal = ({
   isOpen,
   onClose,
@@ -56,7 +58,7 @@ const Modal = ({
             aria-label={resolvedCloseLabel}
             className="rounded p-2 text-neutral-600 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
           >
-            <span aria-hidden="true">×</span>
+            <Icon name="close" className="h-4 w-4" />
           </button>
         </div>
 
