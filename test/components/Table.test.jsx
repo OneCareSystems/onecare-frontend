@@ -88,4 +88,20 @@ describe("Table", () => {
 
     expect(screen.getByText("Patient: Kumar")).toBeInTheDocument();
   });
+
+  it("wraps the table in a labelled, keyboard-scrollable region (CFG-07 AC3)", () => {
+    renderTable({ columns, data, label: "Patient list" });
+
+    const region = screen.getByRole("region", { name: "Patient list" });
+    expect(region).toHaveAttribute("tabindex", "0");
+    expect(region.className).toContain("overflow-x-auto");
+  });
+
+  it("defaults the scroll region label so it is always named", () => {
+    renderTable({ columns, data });
+
+    expect(
+      screen.getByRole("region", { name: "Data table" }),
+    ).toBeInTheDocument();
+  });
 });

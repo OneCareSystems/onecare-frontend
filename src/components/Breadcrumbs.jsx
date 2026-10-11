@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
-import { LuChevronRight } from "react-icons/lu";
+
+import Icon from "./Icon";
 
 const SEGMENT_LABELS = {
   admin: "Admin",
@@ -36,9 +37,7 @@ const Breadcrumbs = () => {
 
           return (
             <li key={path} className="flex items-center gap-1">
-              {index > 0 && (
-                <LuChevronRight aria-hidden="true" className="h-4 w-4" />
-              )}
+              {index > 0 && <Icon name="chevron-right" className="h-4 w-4" />}
 
               {isLast ? (
                 <span

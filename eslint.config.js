@@ -31,4 +31,10 @@ export default defineConfig([
       globals: { ...globals.browser, ...globals.node },
     },
   },
+  {
+    files: ["e2e/**/*.{js,jsx}", "playwright.config.js"],
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.node },
+    },
+  },
 ]);
