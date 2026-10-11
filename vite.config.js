@@ -9,7 +9,8 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./test/setup.js"],
-    exclude: [...configDefaults.exclude],
+    // e2e/ specs run in Playwright's real browser, not vitest.
+    exclude: [...configDefaults.exclude, "e2e/**"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],
