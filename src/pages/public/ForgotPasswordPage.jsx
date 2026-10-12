@@ -41,12 +41,10 @@ const ForgotPasswordPage = () => {
       setSuccess(true);
     } catch (err) {
       const status = err?.response?.status;
-      const message = err?.response?.data?.message;
-
       if (status === 429) {
         setError("Too many attempts, please try again shortly.");
       } else {
-        setError(message || "Something went wrong. Please try again later.");
+        setError("Something went wrong. Please try again shortly.");
       }
     } finally {
       setSubmitting(false);
@@ -118,9 +116,7 @@ const ForgotPasswordPage = () => {
                     Check your email
                   </h2>
                   <p className="mt-1 text-xs leading-relaxed text-emerald-800">
-                    If an account is associated with{" "}
-                    <span className="font-semibold text-emerald-950">{email}</span>,
-                    a password reset link has been sent. Please check your inbox and spam folder.
+                    If an account exists for this email, a reset link has been sent.
                   </p>
                 </div>
               </div>

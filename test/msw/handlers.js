@@ -89,6 +89,9 @@ export const handlers = [
     if (mswState.forgotPasswordErrorMode === "server-error") {
       return fail(500, "Internal server error");
     }
+    if (mswState.forgotPasswordErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
 
     return ok(null, "Password reset instructions sent");
   }),

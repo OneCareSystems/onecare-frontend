@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Link, useSearchParams, useNavigate } from "react-router-dom";
+import { useState, useMemo, useEffect } from "react";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import Button from "../../components/Button";
 import ErrorMessage from "../../components/ErrorMessage";
 import Input from "../../components/Input";
@@ -9,10 +9,10 @@ import { resetPassword } from "../../services/authService";
 const ResetPasswordPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const tokenFromUrl = searchParams.get("token") || "";
-
-  const [token, setToken] = useState(tokenFromUrl);
+  const [token, setToken] = useState(() => searchParams.get("token") || "");
+  const tokenFromUrl = token !== "";
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -21,7 +21,17 @@ const ResetPasswordPage = () => {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [invalidLink, setInvalidLink] = useState(false);
+
+  useEffect(() => {
+    if (!searchParams.has("token")) return;
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("token");
+    navigate(
+      `${location.pathname}${nextParams.size ? `?${nextParams}` : ""}${location.hash}`,
+      { replace: true },
+    );
+  }, [location.hash, location.pathname, navigate, searchParams]);
 
   const passwordCriteria = useMemo(() => {
     return {
@@ -64,21 +74,21 @@ const ResetPasswordPage = () => {
 
     setSubmitting(true);
     try {
-      await resetPassword(token.trim(), newPassword);
-      setSuccess(true);
+      await resetPassword(token, newPassword);
+      navigate("/login", {
+        replace: true,
+        state: { passwordResetSuccess: "Your password has been reset. You can now sign in." },
+      });
     } catch (err) {
       const status = err?.response?.status;
-      const message = err?.response?.data?.message;
+      const backendMessage = err?.response?.data?.message;
 
-      if (status === 400 || status === 401 || status === 404 || status === 422) {
-        setError(
-          message ||
-          "This reset link is invalid or has expired. Please request a new password reset link."
-        );
+      if (status === 400 && backendMessage === "Invalid or expired token") {
+        setInvalidLink(true);
       } else if (status === 429) {
         setError("Too many attempts. Please try again later.");
       } else {
-        setError(message || "Something went wrong. Please try again.");
+        setError("Something went wrong. Please try again.");
       }
     } finally {
       setSubmitting(false);
@@ -135,39 +145,15 @@ const ResetPasswordPage = () => {
             />
           )}
 
-          {success ? (
-            <div
-              role="alert"
-              aria-live="polite"
-              className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900"
-            >
-              <div className="flex items-start gap-3">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-                  <Icon name="circle-check" className="h-4 w-4" />
-                </span>
-                <div>
-                  <h2 className="text-sm font-bold text-emerald-950">
-                    Password reset successful!
-                  </h2>
-                  <p className="mt-1 text-xs leading-relaxed text-emerald-800">
-                    Your password has been changed successfully. You can now log in using your new credentials.
-                  </p>
-                </div>
+          {invalidLink ? (
+            <section aria-labelledby="invalid-link-heading" role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
+              <h2 id="invalid-link-heading" className="text-sm font-bold">This reset link is invalid</h2>
+              <p className="mt-1 text-xs leading-relaxed">The link may have expired or already been used. Request a new reset link to continue.</p>
+              <div className="mt-4 flex justify-between text-xs font-semibold">
+                <Link to="/forgot-password" className="text-blue-700 hover:underline">Request a new link</Link>
+                <Link to="/login" className="text-blue-700 hover:underline">Go to login</Link>
               </div>
-
-              <div className="mt-5 border-t border-emerald-200/60 pt-4">
-                <Button
-                  onClick={() => navigate("/login")}
-                  className="group flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-emerald-600/20 transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/25"
-                >
-                  <span>Sign in with new password</span>
-                  <Icon
-                    name="arrow-right"
-                    className="h-4 w-4 transition-transform group-hover:translate-x-1"
-                  />
-                </Button>
-              </div>
-            </div>
+            </section>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4" noValidate>
               {!tokenFromUrl && (

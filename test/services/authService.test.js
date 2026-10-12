@@ -236,5 +236,14 @@ describe("authService", () => {
     const logged = spy.mock.calls.flat().map((value) => JSON.stringify(value));
     expect(logged.join("\n")).not.toContain("super-secret");
   });
+
+  it("never logs reset credentials or token", async () => {
+    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+    mock.onPost("/auth/reset-password").reply(200, ok(null));
+    await authService.resetPassword("secret-reset-token", "SecretPassword123!");
+    const logged = spy.mock.calls.flat().map((value) => JSON.stringify(value));
+    expect(logged.join("\n")).not.toContain("secret-reset-token");
+    expect(logged.join("\n")).not.toContain("SecretPassword123!");
+  });
 });
 

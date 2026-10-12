@@ -113,7 +113,6 @@ export const extractTokens = (payload) => {
   if (data.username !== undefined && data.username !== null) {
     session.user = data.username;
   }
-  console.log(session)
   return session;
 };
 

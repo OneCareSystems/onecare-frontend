@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation, useSearchParams, Link } from "react-router-dom";
 import Button from "../../components/Button";
 import ErrorMessage from "../../components/ErrorMessage";
@@ -11,6 +11,15 @@ const LoginPage = () => {
   const sessionExpired = searchParams.get("reason") === "session-expired";
   const navigate = useNavigate();
   const location = useLocation();
+  const [passwordResetSuccess] = useState(() => location.state?.passwordResetSuccess || "");
+
+  useEffect(() => {
+    if (!passwordResetSuccess) return;
+    navigate(`${location.pathname}${location.search}${location.hash}`, {
+      replace: true,
+      state: null,
+    });
+  }, [location.hash, location.pathname, location.search, navigate, passwordResetSuccess]);
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -206,6 +215,12 @@ const LoginPage = () => {
                   className="mb-3 rounded-xl border border-red-200 bg-red-50 p-2.5 text-xs text-red-800"
                 >
                   Your session has expired. Please sign in again.
+                </p>
+              )}
+
+              {passwordResetSuccess && (
+                <p role="status" aria-live="polite" className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 p-2.5 text-xs text-emerald-900">
+                  {passwordResetSuccess}
                 </p>
               )}
 

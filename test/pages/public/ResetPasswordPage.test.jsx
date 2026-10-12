@@ -1,18 +1,25 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 
 import ResetPasswordPage from "../../../src/pages/public/ResetPasswordPage";
 import { mswState, resetMswState } from "../../msw/handlers";
 
-const renderAt = (location = "/reset-password") =>
+const LocationDisplay = () => {
+  const location = useLocation();
+  return <output data-testid="location">{`${location.pathname}${location.search}${location.hash}`}</output>;
+};
+
+const renderAt = (location = "/reset-password", state = null) =>
   render(
-    <MemoryRouter initialEntries={[location]}>
+    <MemoryRouter initialEntries={[{ pathname: location.split(/[?#]/)[0], search: location.includes("?") ? `?${location.split("?")[1].split("#")[0]}` : "", hash: location.includes("#") ? `#${location.split("#").at(-1)}` : "", state }]}>
       <Routes>
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/login" element={<div data-testid="login-page">Login Page</div>} />
+        <Route path="/forgot-password" element={<div data-testid="forgot-page">Forgot Page</div>} />
       </Routes>
+      <LocationDisplay />
     </MemoryRouter>
   );
 
@@ -39,6 +46,20 @@ describe("ResetPasswordPage", () => {
     expect(screen.getByLabelText(/confirm new password/i)).toBeInTheDocument();
   });
 
+  it("removes only the token from the URL and still submits the captured token", async () => {
+    const user = userEvent.setup();
+    renderAt("/reset-password?keep=yes&token=still-secret#form");
+    await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent(
+      "/reset-password?keep=yes#form",
+    ));
+    await user.type(screen.getByLabelText(/^new password/i), "BrandNewPass888!");
+    await user.type(screen.getByLabelText(/confirm new password/i), "BrandNewPass888!");
+    await user.click(screen.getByRole("button", { name: /reset password/i }));
+    await waitFor(() => expect(mswState.resetPasswordHits).toEqual([
+      { token: "still-secret", newPassword: "BrandNewPass888!" },
+    ]));
+  });
+
   it("validates empty fields", async () => {
     const user = userEvent.setup();
     renderAt("/reset-password");
@@ -57,9 +78,7 @@ describe("ResetPasswordPage", () => {
     await user.type(screen.getByLabelText(/confirm new password/i), "short");
     await user.click(screen.getByRole("button", { name: /reset password/i }));
 
-    expect(
-      screen.getByText(/password must be at least 8 characters/i)
-    ).toBeInTheDocument();
+      expect(screen.getByText(/password must be at least 8 characters/i)).toBeInTheDocument();
     expect(mswState.resetPasswordHits.length).toBe(0);
   });
 
@@ -83,11 +102,7 @@ describe("ResetPasswordPage", () => {
     await user.type(screen.getByLabelText(/confirm new password/i), "BrandNewPass888!");
     await user.click(screen.getByRole("button", { name: /reset password/i }));
 
-    await waitFor(() => {
-      expect(
-        screen.getByRole("heading", { name: /password reset successful!/i })
-      ).toBeInTheDocument();
-    });
+    await waitFor(() => expect(screen.getByTestId("login-page")).toBeInTheDocument());
 
     expect(mswState.resetPasswordHits).toEqual([
       {
@@ -96,9 +111,6 @@ describe("ResetPasswordPage", () => {
       },
     ]);
 
-    // Button to go back to sign in
-    await user.click(screen.getByRole("button", { name: /sign in with new password/i }));
-    expect(screen.getByTestId("login-page")).toBeInTheDocument();
   });
 
   it("shows error when token is invalid or expired", async () => {
@@ -111,10 +123,20 @@ describe("ResetPasswordPage", () => {
     await user.click(screen.getByRole("button", { name: /reset password/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent(
-        /invalid or expired/i
-      );
+      expect(screen.getByRole("heading", { name: /this reset link is invalid/i })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /reset password/i })).not.toBeInTheDocument();
     });
+  });
+
+  it("links from the invalid-link screen to forgot password and login", async () => {
+    const user = userEvent.setup();
+    mswState.resetPasswordErrorMode = "invalid-token";
+    renderAt("/reset-password?token=expired");
+    await user.type(screen.getByLabelText(/^new password/i), "BrandNewPass888!");
+    await user.type(screen.getByLabelText(/confirm new password/i), "BrandNewPass888!");
+    await user.click(screen.getByRole("button", { name: /reset password/i }));
+    await user.click(await screen.findByRole("link", { name: /request a new link/i }));
+    expect(screen.getByTestId("forgot-page")).toBeInTheDocument();
   });
 
   it("toggles password visibility", async () => {
