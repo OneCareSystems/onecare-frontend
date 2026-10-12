@@ -10,7 +10,6 @@ const ResetPasswordPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // Support reading token from query param ?token=...
   const tokenFromUrl = searchParams.get("token") || "";
 
   const [token, setToken] = useState(tokenFromUrl);
@@ -24,7 +23,6 @@ const ResetPasswordPage = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
-  // Requirements checks for password
   const passwordCriteria = useMemo(() => {
     return {
       minLength: newPassword.length >= 8 && newPassword.length <= 64,
@@ -89,18 +87,18 @@ const ResetPasswordPage = () => {
 
   return (
     <main className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-slate-50 px-4 py-8 lg:px-8">
-      {/* Background decoration */}
+      {/* Background decoration - optimized for lighter paint overhead */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -left-32 -top-32 h-80 w-80 rounded-full bg-blue-100/60 blur-3xl"
+        className="pointer-events-none absolute -left-20 -top-20 h-64 w-64 rounded-full bg-blue-100/40 blur-2xl"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-40 right-0 h-80 w-80 rounded-full bg-indigo-100/60 blur-3xl"
+        className="pointer-events-none absolute -bottom-20 right-0 h-64 w-64 rounded-full bg-indigo-100/40 blur-2xl"
       />
 
       <div className="relative w-full max-w-md">
-        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-2xl shadow-slate-200/70 sm:p-8">
+        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xl shadow-slate-200/50 sm:p-8">
           {/* Header */}
           <div className="mb-6 flex items-center justify-between">
             <Link
@@ -111,7 +109,7 @@ const ResetPasswordPage = () => {
               <span>Back to sign in</span>
             </Link>
 
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-600/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-600/20">
               <Icon name="stethoscope" className="h-4 w-4" />
             </div>
           </div>
@@ -140,6 +138,7 @@ const ResetPasswordPage = () => {
           {success ? (
             <div
               role="alert"
+              aria-live="polite"
               className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900"
             >
               <div className="flex items-start gap-3">
@@ -171,7 +170,6 @@ const ResetPasswordPage = () => {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-              {/* Token field if not in URL or editable if needed */}
               {!tokenFromUrl && (
                 <div>
                   <Input
@@ -227,7 +225,6 @@ const ResetPasswordPage = () => {
                   }
                 />
 
-                {/* Password strength/criteria indicator */}
                 <div className="mt-2 rounded-lg bg-slate-50 p-2.5 text-[11px] text-slate-600 border border-slate-100">
                   <p className="font-semibold text-slate-700 mb-1">
                     Password requirements:
@@ -236,9 +233,8 @@ const ResetPasswordPage = () => {
                     <li className="flex items-center gap-1.5">
                       <Icon
                         name={passwordCriteria.minLength ? "circle-check" : "circle-help"}
-                        className={`h-3.5 w-3.5 ${
-                          passwordCriteria.minLength ? "text-emerald-600" : "text-slate-400"
-                        }`}
+                        className={`h-3.5 w-3.5 ${passwordCriteria.minLength ? "text-emerald-600" : "text-slate-400"
+                          }`}
                       />
                       <span className={passwordCriteria.minLength ? "text-slate-900 font-medium" : ""}>
                         Between 8 and 64 characters
@@ -288,7 +284,7 @@ const ResetPasswordPage = () => {
 
               <Button
                 type="submit"
-                className="group flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-blue-600/20 transition duration-200 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-600/20 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-600/25 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+                className="group flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-blue-600/10 transition duration-200 hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-600/25 disabled:cursor-not-allowed disabled:opacity-60"
                 loading={submitting}
                 disabled={submitting}
               >

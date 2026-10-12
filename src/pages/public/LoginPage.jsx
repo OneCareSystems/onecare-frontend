@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams, Link } from "react-router-dom";
 import Button from "../../components/Button";
 import ErrorMessage from "../../components/ErrorMessage";
 import Input from "../../components/Input";
@@ -34,7 +34,6 @@ const LoginPage = () => {
       });
 
       const { redirectUrl } = result.data;
-
       const requestedPath = location.state?.from;
 
       const target =
@@ -72,19 +71,19 @@ const LoginPage = () => {
 
   return (
     <main className="relative flex h-screen w-full items-center justify-center overflow-hidden bg-slate-50 px-4 py-4 lg:px-8">
-      {/* Background blobs */}
+      {/* Background blobs - optimized for lighter paint overhead */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -left-32 -top-32 h-80 w-80 rounded-full bg-blue-100/60 blur-3xl"
+        className="pointer-events-none absolute -left-20 -top-20 h-64 w-64 rounded-full bg-blue-100/40 blur-2xl"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-40 right-0 h-80 w-80 rounded-full bg-indigo-100/60 blur-3xl"
+        className="pointer-events-none absolute -bottom-20 right-0 h-64 w-64 rounded-full bg-indigo-100/40 blur-2xl"
       />
 
       {/* Main card container optimized for non-scrollable viewport fit */}
       <div className="relative w-full max-w-5xl my-auto">
-        <div className="grid w-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl shadow-slate-200/70 lg:grid-cols-[1fr_0.92fr]">
+        <div className="grid w-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xl shadow-slate-200/50 lg:grid-cols-[1fr_0.92fr]">
           {/* Left Branding Section */}
           <section
             aria-hidden="true"
@@ -203,6 +202,7 @@ const LoginPage = () => {
               {sessionExpired && (
                 <p
                   role="alert"
+                  aria-live="polite"
                   className="mb-3 rounded-xl border border-red-200 bg-red-50 p-2.5 text-xs text-red-800"
                 >
                   Your session has expired. Please sign in again.
@@ -239,12 +239,12 @@ const LoginPage = () => {
 
                 <div>
                   <div className="mb-1 flex items-center justify-between gap-3">
-                    <a
-                      href="/forgot-password"
-                      className="text-xs font-semibold text-blue-600 transition hover:text-blue-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                    <Link
+                      to="/forgot-password"
+                      className="text-xs font-semibold text-blue-600 transition hover:text-blue-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 rounded"
                     >
                       Forgot password?
-                    </a>
+                    </Link>
                   </div>
 
                   <div className="group relative">
@@ -285,7 +285,7 @@ const LoginPage = () => {
 
                 <Button
                   type="submit"
-                  className="group flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-blue-600/20 transition duration-200 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-600/20 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-600/25 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+                  className="group flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-blue-600/15 transition duration-200 hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-600/25 disabled:cursor-not-allowed disabled:opacity-60"
                   loading={submitting}
                   disabled={submitting}
                 >

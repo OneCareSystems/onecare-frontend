@@ -38,7 +38,6 @@ const ForgotPasswordPage = () => {
     setSubmitting(true);
     try {
       await forgotPassword(email.trim());
-      // Backend returns identical external outcome (silent no-op if email not found)
       setSuccess(true);
     } catch (err) {
       const status = err?.response?.status;
@@ -56,18 +55,18 @@ const ForgotPasswordPage = () => {
 
   return (
     <main className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-slate-50 px-4 py-8 lg:px-8">
-      {/* Background decoration */}
+      {/* Background decoration - optimized with reduced blur complexity for better paint times */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -left-32 -top-32 h-80 w-80 rounded-full bg-blue-100/60 blur-3xl"
+        className="pointer-events-none absolute -left-20 -top-20 h-64 w-64 rounded-full bg-blue-100/40 blur-2xl"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-40 right-0 h-80 w-80 rounded-full bg-indigo-100/60 blur-3xl"
+        className="pointer-events-none absolute -bottom-20 right-0 h-64 w-64 rounded-full bg-indigo-100/40 blur-2xl"
       />
 
       <div className="relative w-full max-w-md">
-        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-2xl shadow-slate-200/70 sm:p-8">
+        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xl shadow-slate-200/50 sm:p-8">
           {/* Header logo / branding */}
           <div className="mb-6 flex items-center justify-between">
             <Link
@@ -78,7 +77,7 @@ const ForgotPasswordPage = () => {
               <span>Back to sign in</span>
             </Link>
 
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-600/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-600/20">
               <Icon name="stethoscope" className="h-4 w-4" />
             </div>
           </div>
@@ -107,6 +106,7 @@ const ForgotPasswordPage = () => {
           {success ? (
             <div
               role="alert"
+              aria-live="polite"
               className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900"
             >
               <div className="flex items-start gap-3">
@@ -159,7 +159,7 @@ const ForgotPasswordPage = () => {
 
               <Button
                 type="submit"
-                className="group flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-blue-600/20 transition duration-200 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-600/20 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-600/25 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+                className="group flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-600/10 transition duration-200 hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-600/25 disabled:cursor-not-allowed disabled:opacity-60"
                 loading={submitting}
                 disabled={submitting}
               >
