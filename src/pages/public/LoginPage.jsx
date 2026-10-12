@@ -32,7 +32,7 @@ const LoginPage = () => {
     setSubmitting(true);
     try {
       const result = await login({ username: username.trim(), password });
-      const { role, mustChangePassword } = result;
+      const { role, mustChangePassword } = result.data;
       if (mustChangePassword) {
         navigate("/change-password", { replace: true });
       } else {
