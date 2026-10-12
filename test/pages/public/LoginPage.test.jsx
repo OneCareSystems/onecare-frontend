@@ -203,7 +203,9 @@ describe("LoginPage", () => {
       const passwordInput = screen.getByLabelText(/^password/i);
       expect(passwordInput).toHaveAttribute("type", "password");
 
-      const toggleButton = screen.getByRole('button', { name: /show password/i });
+      const toggleButton = screen.getByRole("button", {
+        name: /show password/i,
+      });
       await userEvent.click(toggleButton);
 
       expect(passwordInput).toHaveAttribute("type", "text");

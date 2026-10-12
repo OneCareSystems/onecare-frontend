@@ -70,7 +70,6 @@ const LoginPage = () => {
       {/* Main card container optimized for non-scrollable viewport fit */}
       <div className="relative w-full max-w-5xl my-auto">
         <div className="grid w-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl shadow-slate-200/70 lg:grid-cols-[1fr_0.92fr]">
-
           {/* Left Branding Section */}
           <section
             aria-hidden="true"
@@ -196,7 +195,11 @@ const LoginPage = () => {
               )}
 
               {error && (
-                <ErrorMessage className="mb-3 text-xs" message={error} role="alert" />
+                <ErrorMessage
+                  className="mb-3 text-xs"
+                  message={error}
+                  role="alert"
+                />
               )}
 
               <form onSubmit={handleSubmit} className="space-y-3.5" noValidate>
@@ -249,11 +252,16 @@ const LoginPage = () => {
                         <button
                           type="button"
                           onClick={() => setShowPassword((v) => !v)}
-                          aria-label={showPassword ? "Hide password" : "Show password"}
+                          aria-label={
+                            showPassword ? "Hide password" : "Show password"
+                          }
                           aria-pressed={showPassword}
                           className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
                         >
-                          <Icon name={showPassword ? "eye-off" : "eye"} className="h-4 w-4" />
+                          <Icon
+                            name={showPassword ? "eye-off" : "eye"}
+                            className="h-4 w-4"
+                          />
                         </button>
                       }
                     />

@@ -21,14 +21,8 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setSession(state, action) {
-      const {
-        accessToken,
-        refreshToken,
-        expiresIn,
-        user,
-        role,
-        redirectUrl,
-      } = action.payload ?? {};
+      const { accessToken, refreshToken, expiresIn, user, role, redirectUrl } =
+        action.payload ?? {};
 
       // A payload without an access token is not a session — ignore it
       // entirely so we never store a refresh token (or role) with no access

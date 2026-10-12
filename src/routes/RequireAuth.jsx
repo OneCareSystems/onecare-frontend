@@ -1,10 +1,7 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 
-import {
-  selectIsAuthenticated,
-  selectRole,
-} from "../features/auth/authSlice";
+import { selectIsAuthenticated, selectRole } from "../features/auth/authSlice";
 import { dashboardPathForRole } from "../constants/roles";
 
 /**

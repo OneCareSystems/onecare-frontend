@@ -157,7 +157,6 @@ test.describe("AC3 — wide table scrolls inside its own container at 360 px", (
 });
 
 test.describe("AC4 — keyboard-only use of the shared layouts at 360 px", () => {
-
   /** AC4 helper: the currently focused element must show a visible focus ring. */
   const hasVisibleFocus = async (page) => {
     return page.evaluate(() => {

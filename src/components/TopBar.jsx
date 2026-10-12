@@ -44,7 +44,6 @@ const TopBar = () => {
         </button>
 
         <div className="flex flex-wrap items-center gap-3">
-
           <span className="hidden text-sm text-neutral-600 sm:inline">
             {displayName}
           </span>

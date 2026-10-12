@@ -103,9 +103,11 @@ const Input = ({
               .filter(Boolean)
               .join(" ") || undefined
           }
-          className={`w-full rounded-xl border bg-slate-50/70 py-3.5 text-sm outline-none focus:ring-4 focus:ring-teal-600/10 disabled:cursor-not-allowed disabled:bg-neutral-100 transition placeholder:text-slate-400 hover:border-slate-300 focus:border-teal-600 focus:bg-white ${hasLeftIcon ? "pl-12" : "pl-4"
-            } ${hasRightIcon ? "pr-12" : "pr-4"} ${showError ? "border-danger-600" : "border-slate-200"
-            }`}
+          className={`w-full rounded-xl border bg-slate-50/70 py-3.5 text-sm outline-none focus:ring-4 focus:ring-teal-600/10 disabled:cursor-not-allowed disabled:bg-neutral-100 transition placeholder:text-slate-400 hover:border-slate-300 focus:border-teal-600 focus:bg-white ${
+            hasLeftIcon ? "pl-12" : "pl-4"
+          } ${hasRightIcon ? "pr-12" : "pr-4"} ${
+            showError ? "border-danger-600" : "border-slate-200"
+          }`}
         />
 
         {hasRightIcon && (

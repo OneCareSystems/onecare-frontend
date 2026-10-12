@@ -198,9 +198,12 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
 
     await signIn("admin@onecare.test");
 
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, 500));
     console.log("URL after signIn:", window.location.pathname);
-    console.log("Alerts on page:", screen.queryAllByRole("alert").map(a => a.textContent));
+    console.log(
+      "Alerts on page:",
+      screen.queryAllByRole("alert").map((a) => a.textContent),
+    );
 
     await waitFor(() => {
       expect(
