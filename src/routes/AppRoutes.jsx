@@ -59,7 +59,9 @@ const AppRoutes = () => {
       </Route>
 
       {/* SUPER ADMIN AREA */}
-      <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS["super-admin"]} />}>
+      <Route
+        element={<RequireAuth allowedRoles={ROUTE_ACCESS["super-admin"]} />}
+      >
         <Route path="/super-admin" element={<SuperAdminLayout />}>
           <Route path="dashboard" element={<SuperAdminDashboardPage />} />
         </Route>
