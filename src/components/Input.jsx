@@ -67,16 +67,14 @@ const Input = ({
 
   return (
     <div className={`flex flex-col gap-1 ${className}`}>
-      {label ? (
-        <label htmlFor={inputId} className="text-sm font-medium text-neutral-800">
-          {label}
-          {required && (
-            <span aria-hidden="true" className="ml-1">
-              *
-            </span>
-          )}
-        </label>
-      ) : null}
+      <label htmlFor={inputId} className="...">
+        <span>{label}</span>
+        {required && (
+          <span aria-hidden="true" className="ml-1">
+            *
+          </span>
+        )}
+      </label>
 
       <div className="relative">
         {hasLeftIcon && (
@@ -111,10 +109,7 @@ const Input = ({
         />
 
         {hasRightIcon && (
-          <div
-            className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center"
-            aria-hidden="true"
-          >
+          <div className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center">
             {rightIcon}
           </div>
         )}

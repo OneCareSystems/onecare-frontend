@@ -46,8 +46,8 @@ const renderAt = (location = "/login") =>
 
 const fillForm = async (username, password) => {
   const user = userEvent.setup();
-  await user.type(screen.getByLabelText(/username/i), username);
-  await user.type(screen.getByLabelText(/^password$/i), password);
+  await user.type(screen.getByLabelText(/^username/i), username);
+  await user.type(screen.getByLabelText(/^password/i), password);
 };
 
 const submitForm = async () => {
@@ -155,7 +155,7 @@ describe("LoginPage", () => {
         expect(apiError).toBeInTheDocument();
       });
 
-      expect(screen.getByLabelText(/^password$/i)).toHaveValue("");
+      expect(screen.getByLabelText(/^password/i)).toHaveValue("");
     });
 
     it("clears password field on invalid credentials", async () => {
@@ -167,7 +167,7 @@ describe("LoginPage", () => {
       await submitForm();
 
       await waitFor(() => {
-        expect(screen.getByLabelText(/^password$/i)).toHaveValue("");
+        expect(screen.getByLabelText(/^password/i)).toHaveValue("");
       });
     });
   });
@@ -191,7 +191,7 @@ describe("LoginPage", () => {
         expect(lockoutError).toHaveTextContent("Forgot Password");
       });
 
-      expect(screen.getByLabelText(/^password$/i)).toHaveValue("");
+      expect(screen.getByLabelText(/^password/i)).toHaveValue("");
     });
   });
 
@@ -212,7 +212,7 @@ describe("LoginPage", () => {
         expect(rateLimitError).toBeInTheDocument();
       });
 
-      expect(screen.getByLabelText(/^password$/i)).toHaveValue("");
+      expect(screen.getByLabelText(/^password/i)).toHaveValue("");
     });
   });
 
@@ -220,10 +220,10 @@ describe("LoginPage", () => {
     it("toggles password visibility with ARIA attributes", async () => {
       renderAt("/login");
 
-      const passwordInput = screen.getByLabelText(/^password$/i);
+      const passwordInput = screen.getByLabelText(/^password/i);
       expect(passwordInput).toHaveAttribute("type", "password");
 
-      const toggleButton = screen.getByLabelText(/show password/i);
+      const toggleButton = screen.getByRole('button', { name: /show password/i });
       await userEvent.click(toggleButton);
 
       expect(passwordInput).toHaveAttribute("type", "text");

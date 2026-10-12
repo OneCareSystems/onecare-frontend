@@ -176,19 +176,18 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
    *    It must be queried via `getByLabelText`, NOT `getByRole("textbox", ...)`.
    */
   const signIn = async (username) => {
-    await waitFor(() => {
-      expect(
-        screen.getByRole("textbox", { name: /username/i }),
-      ).toBeInTheDocument();
-      expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
-    });
+    // Wait for the login form to mount
+    await screen.findByRole("heading", { name: /sign in to onecare/i });
 
-    fireEvent.change(screen.getByRole("textbox", { name: /username/i }), {
-      target: { value: username },
-    });
-    fireEvent.change(screen.getByLabelText(/^password$/i), {
-      target: { value: "secret" },
-    });
+    // Dump the DOM so we can see the real markup
+    screen.debug(undefined, 200000);
+
+    // Now query explicitly (no waitFor wrapper to hide the error)
+    const usernameInput = screen.getByRole("textbox", { name: /username/i });
+    const passwordInput = screen.getByLabelText(/^password/i);
+
+    fireEvent.change(usernameInput, { target: { value: username } });
+    fireEvent.change(passwordInput, { target: { value: "secret" } });
     fireEvent.click(screen.getByRole("button", { name: /sign in securely/i }));
   };
 
