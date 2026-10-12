@@ -62,21 +62,25 @@ const LoginPage = () => {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-slate-50">
+    <main className="relative flex min-h-screen w-full items-center justify-center overflow-x-hidden overflow-y-auto bg-slate-50 px-4 py-6 lg:px-8">
+      {/* Background blobs */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-teal-100/60 blur-3xl"
+        className="pointer-events-none absolute -left-32 -top-32 h-80 w-80 rounded-full bg-teal-100/60 blur-3xl"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-40 right-0 h-96 w-96 rounded-full bg-primary-100/60 blur-3xl"
+        className="pointer-events-none absolute -bottom-40 right-0 h-80 w-80 rounded-full bg-primary-100/60 blur-3xl"
       />
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-7xl items-center px-4 py-8 lg:px-12 lg:py-12">
+      {/* Main card container optimized for height and responsiveness */}
+      <div className="relative w-full max-w-6xl my-auto">
         <div className="grid w-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl shadow-slate-200/70 lg:grid-cols-[1fr_0.92fr]">
+          
+          {/* Left Branding Section */}
           <section
             aria-hidden="true"
-            className="hidden relative flex-col justify-between overflow-hidden bg-gradient-to-br from-slate-950 via-teal-950 to-emerald-900 p-10 text-white lg:flex xl:p-14"
+            className="hidden relative flex-col justify-between overflow-hidden bg-gradient-to-br from-slate-950 via-teal-950 to-emerald-900 p-8 text-white lg:flex xl:p-10"
           >
             <div
               aria-hidden="true"
@@ -93,75 +97,76 @@ const LoginPage = () => {
 
             <div className="relative z-10">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/15 bg-white/10 shadow-lg backdrop-blur">
-                  <Icon name="stethoscope" className="h-6 w-6 text-teal-300" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/10 shadow-lg backdrop-blur">
+                  <Icon name="stethoscope" className="h-5 w-5 text-teal-300" />
                 </div>
                 <div>
-                  <p className="text-lg font-extrabold tracking-tight">
+                  <p className="text-base font-extrabold tracking-tight">
                     OneCare
                   </p>
-                  <p className="text-xs font-medium tracking-[0.18em] text-teal-200">
+                  <p className="text-[10px] font-medium tracking-[0.18em] text-teal-200">
                     FAMILY CLINIC
                   </p>
                 </div>
               </div>
 
-              <div className="mt-20 max-w-md">
-                <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-teal-300/20 bg-teal-300/10 px-3 py-1.5 text-xs font-semibold text-teal-200">
+              <div className="mt-10 max-w-md">
+                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-teal-300/20 bg-teal-300/10 px-3 py-1 text-xs font-semibold text-teal-200">
                   <Icon name="activity" className="h-3.5 w-3.5" />
                   Connected care. Simplified.
                 </div>
 
-                <h1 className="text-4xl font-extrabold leading-tight tracking-tight xl:text-5xl">
+                <h1 className="text-3xl font-extrabold leading-tight tracking-tight xl:text-4xl">
                   Better care
                   <br />
                   starts with
                   <span className="text-teal-300"> better systems.</span>
                 </h1>
 
-                <p className="mt-6 max-w-sm text-sm leading-7 text-slate-300">
+                <p className="mt-4 max-w-sm text-xs leading-6 text-slate-300 xl:text-sm">
                   Your central workspace for clinical operations, patient care,
                   and healthcare management — all in one place.
                 </p>
               </div>
 
-              <div className="mt-12 space-y-4">
+              <div className="mt-8 space-y-3">
                 {[
                   "A unified clinical workspace",
                   "Role-based access to your tools",
                   "Streamlined healthcare workflows",
                 ].map((item) => (
                   <div key={item} className="flex items-center gap-3">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal-300/15">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-teal-300/15">
                       <Icon
                         name="circle-check"
-                        className="h-4 w-4 text-teal-300"
+                        className="h-3.5 w-3.5 text-teal-300"
                       />
                     </span>
-                    <span className="text-sm text-slate-200">{item}</span>
+                    <span className="text-xs text-slate-200 xl:text-sm">{item}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="relative z-10 mt-12 flex items-center justify-between border-t border-white/10 pt-6">
-              <p className="text-xs text-slate-400">
+            <div className="relative z-10 mt-8 flex items-center justify-between border-t border-white/10 pt-4">
+              <p className="text-[11px] text-slate-400">
                 Healthcare Management System
               </p>
-              <div className="flex items-center gap-2 text-xs text-teal-200">
-                <Icon name="shield" className="h-4 w-4" />
+              <div className="flex items-center gap-2 text-[11px] text-teal-200">
+                <Icon name="shield" className="h-3.5 w-3.5" />
                 Secure workspace
               </div>
             </div>
           </section>
 
-          <section className="flex min-w-0 flex-col justify-center px-5 py-8 sm:px-10 sm:py-12 lg:px-12 xl:px-16">
-            <div className="mb-8 flex items-center gap-3 lg:hidden">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-teal-700 text-white shadow-lg shadow-teal-700/20">
+          {/* Right Form Section */}
+          <section className="flex min-w-0 flex-col justify-center px-5 py-8 sm:px-10 sm:py-10 lg:px-10 xl:px-12">
+            <div className="mb-6 flex items-center gap-3 lg:hidden">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-700 text-white shadow-lg shadow-teal-700/20">
                 <Icon name="stethoscope" className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-lg font-extrabold tracking-tight">
+                <p className="text-base font-extrabold tracking-tight">
                   OneCare Family Clinic
                 </p>
                 <p className="text-xs text-slate-500">
@@ -171,18 +176,18 @@ const LoginPage = () => {
             </div>
 
             <div className="mx-auto w-full max-w-md">
-              <div className="mb-8">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-50 text-teal-700 ring-1 ring-teal-100">
-                  <Icon name="heart-pulse" className="h-6 w-6" />
+              <div className="mb-6">
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-700 ring-1 ring-teal-100">
+                  <Icon name="heart-pulse" className="h-5 w-5" />
                 </div>
 
-                <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-teal-700">
+                <p className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-teal-700">
                   Welcome back
                 </p>
-                <h2 className="text-3xl font-extrabold tracking-tight text-slate-900">
+                <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 xl:text-3xl">
                   Sign in to OneCare
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-slate-500">
+                <p className="mt-1.5 text-xs leading-5 text-slate-500 xl:text-sm">
                   Enter your professional credentials to access your workspace.
                 </p>
               </div>
@@ -190,24 +195,23 @@ const LoginPage = () => {
               {sessionExpired && (
                 <p
                   role="alert"
-                  className="mb-5 rounded-xl border border-danger-200 bg-danger-50 p-3.5 text-sm text-danger-800"
+                  className="mb-4 rounded-xl border border-danger-200 bg-danger-50 p-3 text-xs text-danger-800 xl:text-sm"
                 >
                   Your session has expired. Please sign in again.
                 </p>
               )}
 
               {error && (
-                <ErrorMessage className="mb-5" message={error} role="alert" />
+                <ErrorMessage className="mb-4 text-xs xl:text-sm" message={error} role="alert" />
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+              <form onSubmit={handleSubmit} className="space-y-4" noValidate>
                 <div>
                   <Input
                     id="professional-id"
                     name="username"
                     type="text"
                     label="Username"
-                    className="mt-4"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     autoComplete="username"
@@ -216,16 +220,16 @@ const LoginPage = () => {
                     submitted={submitted}
                     placeholder="Enter your professional ID"
                     leftIcon={
-                      <Icon name="user" className="h-5 w-5 text-slate-400" />
+                      <Icon name="user" className="h-4 w-4 text-slate-400" />
                     }
                   />
                 </div>
 
                 <div>
-                  <div className="mb-2 flex items-center justify-between gap-3">
+                  <div className="mb-1.5 flex items-center justify-between gap-3">
                     <label
                       htmlFor="professional-password"
-                      className="block text-sm font-semibold text-slate-700"
+                      className="block text-xs font-semibold text-slate-700 xl:text-sm"
                     >
                       Password
                     </label>
@@ -252,7 +256,7 @@ const LoginPage = () => {
                       submitted={submitted}
                       placeholder="Enter your password"
                       leftIcon={
-                        <Icon name="lock" className="h-5 w-5 text-slate-400" />
+                        <Icon name="lock" className="h-4 w-4 text-slate-400" />
                       }
                       rightIcon={
                         <button
@@ -262,11 +266,11 @@ const LoginPage = () => {
                             showPassword ? "Hide password" : "Show password"
                           }
                           aria-pressed={showPassword}
-                          className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
+                          className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
                         >
                           <Icon
                             name={showPassword ? "eye-off" : "eye"}
-                            className="h-5 w-5"
+                            className="h-4 w-4"
                           />
                         </button>
                       }
@@ -276,7 +280,7 @@ const LoginPage = () => {
 
                 <Button
                   type="submit"
-                  className="group flex w-full items-center justify-center gap-2.5 rounded-xl bg-teal-700 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-teal-700/20 transition duration-200 hover:-translate-y-0.5 hover:bg-teal-800 hover:shadow-xl hover:shadow-teal-700/20 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-teal-600/25 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+                  className="group flex w-full items-center justify-center gap-2 rounded-xl bg-teal-700 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-teal-700/20 transition duration-200 hover:-translate-y-0.5 hover:bg-teal-800 hover:shadow-xl hover:shadow-teal-700/20 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-teal-600/25 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
                   loading={submitting}
                   disabled={submitting}
                 >
@@ -288,7 +292,7 @@ const LoginPage = () => {
                 </Button>
               </form>
 
-              <div className="mt-8 flex items-center justify-center gap-2 border-t border-slate-100 pt-5 text-center text-[11px] leading-5 text-slate-400">
+              <div className="mt-6 flex items-center justify-center gap-2 border-t border-slate-100 pt-4 text-center text-[11px] leading-relaxed text-slate-400">
                 <Icon name="shield" className="h-3.5 w-3.5 shrink-0" />
                 <span>
                   Authorized access only. Protect patient information and sign
