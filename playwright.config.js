@@ -1,4 +1,3 @@
-
 import { defineConfig, devices } from "@playwright/test";
 
 /**
@@ -14,14 +13,8 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
 
   reporter: process.env.CI
-    ? [
-        ["github"],
-        ["html", { open: "never" }],
-      ]
-    : [
-        ["list"],
-        ["html", { open: "never" }],
-      ],
+    ? [["github"], ["html", { open: "never" }]]
+    : [["list"], ["html", { open: "never" }]],
 
   use: {
     baseURL: "http://localhost:5173",

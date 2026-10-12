@@ -37,6 +37,7 @@ const expectLocation = (path) =>
 
 beforeEach(() => {
   store.dispatch(clearSession());
+  resetMswState(); // ensure MSW state is clean before each test too
 });
 
 afterEach(() => {
@@ -92,7 +93,9 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
   it("AC3: an unauthenticated user opening a protected route is sent to /login", () => {
     renderAppAt("/admin/dashboard");
 
-    expect(screen.getByRole("heading", { name: "Login" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Sign in to OneCare" }),
+    ).toBeInTheDocument();
     expectLocation("/login");
   });
 
@@ -124,21 +127,6 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
     expectLocation("/pharmacist/dashboard");
   });
 
-  it("AC5: a mustChangePassword user opening a protected route is sent to /change-password", () => {
-    seed({
-      accessToken: "a",
-      role: ROLES.DOCTOR,
-      mustChangePassword: true,
-    });
-
-    renderAppAt("/doctor/dashboard");
-
-    expect(
-      screen.getByRole("heading", { name: "Change password" }),
-    ).toBeInTheDocument();
-    expectLocation("/change-password");
-  });
-
   it("public routes stay reachable without a session", () => {
     renderAppAt("/home");
 
@@ -160,21 +148,36 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
     expectLocation("/no-such-page");
   });
 
-  const signIn = (email) => {
-    fireEvent.change(screen.getByLabelText(/email/i), {
-      target: { value: email },
-    });
-    fireEvent.change(screen.getByLabelText(/password/i), {
-      target: { value: "secret" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
+  // ---------------------------------------------------------------------------
+  // End-to-end login flows
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Fills the login form and submits it.
+   *
+   * NOTE on queries:
+   *  - The username field is `<input type="text">`, so `getByRole("textbox", ...)` works.
+   *  - The password field is `<input type="password">`, which has **no implicit ARIA role**.
+   *    It must be queried via `getByLabelText`, NOT `getByRole("textbox", ...)`.
+   */
+  const signIn = async (username) => {
+    // Wait for the login form to mount
+    await screen.findByRole("heading", { name: /sign in to onecare/i });
+
+    // Now query explicitly (no waitFor wrapper to hide the error)
+    const usernameInput = screen.getByRole("textbox", { name: /username/i });
+    const passwordInput = screen.getByLabelText(/^password/i);
+
+    fireEvent.change(usernameInput, { target: { value: username } });
+    fireEvent.change(passwordInput, { target: { value: "secret" } });
+    fireEvent.click(screen.getByRole("button", { name: /sign in securely/i }));
   };
 
   it("AC1 (end-to-end): a Doctor signs in on /login and lands on /doctor/dashboard", async () => {
     mswState.loginRole = ROLES.DOCTOR;
 
     renderAppAt("/login");
-    signIn("doctor@onecare.test");
+    await signIn("doctor@onecare.test");
 
     await waitFor(() => {
       expect(
@@ -190,10 +193,12 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
     renderAppAt("/queue");
     expectLocation("/login");
 
-    signIn("admin@onecare.test");
+    await signIn("admin@onecare.test");
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "QueuePage" })).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "QueuePage" }),
+      ).toBeInTheDocument();
     });
     expectLocation("/queue");
   });
@@ -202,10 +207,12 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
     mswState.loginValid = false;
 
     renderAppAt("/login");
-    signIn("doctor@onecare.test");
+    await signIn("doctor@onecare.test");
 
     await waitFor(() => {
-      expect(screen.getByText("Invalid credentials")).toBeInTheDocument();
+      expect(
+        screen.getByText("Invalid username or password."),
+      ).toBeInTheDocument();
     });
     expectLocation("/login");
     expect(

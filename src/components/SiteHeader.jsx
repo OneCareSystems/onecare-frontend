@@ -2,9 +2,9 @@ import { Link } from "react-router-dom";
 import Logo from "./Logo";
 
 const NAV_LINKS = [
-  { to: "/home", label: "Home" },
-  { to: "/styleguide", label: "Style guide" },
-  { to: "/login", label: "Log in" },
+  // { to: "/home", label: "Home" },
+  // { to: "/styleguide", label: "Style guide" },
+  // { to: "/login", label: "Log in" },
 ];
 
 const SiteHeader = () => {

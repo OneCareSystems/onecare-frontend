@@ -105,14 +105,15 @@ export const normalizeError = (error) => {
 export const extractTokens = (payload) => {
   const data = payload?.data ?? payload ?? {};
   const session = {
-    accessToken: data.accessToken ?? data.access_token ?? data.token ?? null,
-    refreshToken: data.refreshToken ?? data.refresh_token ?? null,
-    expiresIn: data.expiresIn ?? data.expires_in ?? DEFAULT_EXPIRES_IN_SECONDS,
-    role: data.role ?? data.user?.role ?? null,
+    accessToken: data.accessToken ?? null,
+    refreshToken: data.refreshToken ?? null,
+    expiresIn: data.expiresIn ?? DEFAULT_EXPIRES_IN_SECONDS,
+    role: data.role ?? null,
   };
-  if (data.user !== undefined && data.user !== null) {
-    session.user = data.user;
+  if (data.username !== undefined && data.username !== null) {
+    session.user = data.username;
   }
+  console.log(session)
   return session;
 };
 

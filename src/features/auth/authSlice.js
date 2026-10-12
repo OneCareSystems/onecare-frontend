@@ -13,7 +13,6 @@ const initialState = {
   user: null,
   role: null,
   authStatus: "unauthenticated",
-  mustChangePassword: false,
   redirectUrl: null,
 };
 
@@ -22,15 +21,8 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setSession(state, action) {
-      const {
-        accessToken,
-        refreshToken,
-        expiresIn,
-        user,
-        role,
-        redirectUrl,
-        mustChangePassword,
-      } = action.payload ?? {};
+      const { accessToken, refreshToken, expiresIn, user, role, redirectUrl } =
+        action.payload ?? {};
 
       // A payload without an access token is not a session — ignore it
       // entirely so we never store a refresh token (or role) with no access
@@ -66,15 +58,7 @@ const authSlice = createSlice({
         state.redirectUrl = redirectUrl;
       }
 
-      if (mustChangePassword !== undefined) {
-        state.mustChangePassword = Boolean(mustChangePassword);
-      }
-
       state.authStatus = "authenticated";
-    },
-
-    setMustChangePassword(state, action) {
-      state.mustChangePassword = Boolean(action.payload);
     },
 
     clearSession(state) {
@@ -84,14 +68,12 @@ const authSlice = createSlice({
       state.user = null;
       state.role = null;
       state.authStatus = "unauthenticated";
-      state.mustChangePassword = false;
       state.redirectUrl = null;
     },
   },
 });
 
-export const { setSession, setMustChangePassword, clearSession } =
-  authSlice.actions;
+export const { setSession, clearSession } = authSlice.actions;
 
 export const selectAccessToken = (state) => state.auth.accessToken;
 
@@ -104,9 +86,6 @@ export const selectRole = (state) => state.auth.role;
 export const selectUser = (state) => state.auth.user;
 
 export const selectAuthStatus = (state) => state.auth.authStatus;
-
-export const selectMustChangePassword = (state) =>
-  state.auth.mustChangePassword;
 
 export const selectRedirectUrl = (state) => state.auth.redirectUrl;
 

@@ -1,5 +1,7 @@
 import { http, HttpResponse } from "msw";
 
+import { ROLE_DASHBOARDS } from "../../src/constants/roles";
+
 export const mswState = {
   tokenValid: true,
   refreshValid: true,
@@ -8,6 +10,7 @@ export const mswState = {
   refreshTokens: [],
   loginValid: true,
   loginRole: "ADMIN",
+  loginErrorMode: null,
 };
 
 export const resetMswState = () => {
@@ -18,6 +21,7 @@ export const resetMswState = () => {
   mswState.refreshTokens = [];
   mswState.loginValid = true;
   mswState.loginRole = "ADMIN";
+  mswState.loginErrorMode = null;
 };
 
 const ok = (data, message = "ok") =>
@@ -38,17 +42,32 @@ const protectedReply = ({ request, params }) => {
 export const handlers = [
   http.post("*/auth/login", async ({ request }) => {
     const body = await request.json().catch(() => ({}));
+
+    if (mswState.loginErrorMode === "rate-limit") {
+      return fail(429, "Too many requests. Please slow down.");
+    }
+
+    if (mswState.loginErrorMode === "lockout") {
+      return fail(
+        423,
+        "Account locked. Wait for timed unlock, contact Super Admin, or use Forgot Password.",
+      );
+    }
+
     if (!mswState.loginValid) {
       return fail(401, "Invalid credentials");
     }
+
     return ok({
       accessToken: "login-access",
       refreshToken: "login-refresh",
       expiresIn: 1800,
       role: mswState.loginRole,
+      username: body?.username ?? "test-user",
+      redirectUrl: ROLE_DASHBOARDS[mswState.loginRole],
       user: {
         name: "Test User",
-        email: body?.email ?? "test@onecare.test",
+        email: body?.username ?? "test@onecare.test",
       },
     });
   }),

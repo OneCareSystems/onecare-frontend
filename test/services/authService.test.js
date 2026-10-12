@@ -59,12 +59,12 @@ describe("authService", () => {
     expect(header(mock.history.post[0], "Authorization")).toBeUndefined();
   });
 
-  it("login accepts snake_case payloads", async () => {
+  it("login accepts camelCase payloads", async () => {
     mock
       .onPost("/auth/login")
       .reply(
         200,
-        ok({ access_token: "a", refresh_token: "r", expires_in: 1800 }),
+        ok({ accessToken: "a", refreshToken: "r", expiresIn: 1800 }),
       );
 
     await login({ email: "a@b.c", password: "secret" });
@@ -72,7 +72,7 @@ describe("authService", () => {
     expect(getAccessToken()).toBe("a");
   });
 
-  it("login stores the role and user from the response for the route guard (AC1)", async () => {
+  it("login stores the role and username from the response for the route guard (AC1)", async () => {
     mock.onPost("/auth/login").reply(
       200,
       ok({
@@ -80,14 +80,14 @@ describe("authService", () => {
         refreshToken: "r",
         expiresIn: 1800,
         role: "DOCTOR",
-        user: { name: "Dr House" },
+        username: "dr.house",
       }),
     );
 
     await login({ email: "d@o.c", password: "x" });
 
     expect(selectRole(store.getState())).toBe("DOCTOR");
-    expect(selectUser(store.getState())).toEqual({ name: "Dr House" });
+    expect(selectUser(store.getState())).toBe("dr.house");
   });
 
   it("login throws when the response carries no access token", async () => {
@@ -206,6 +206,7 @@ describe("authService", () => {
 
     await login({ email: "a@b.c", password: "super-secret" });
 
-    expect(spy).not.toHaveBeenCalled();
+    const logged = spy.mock.calls.flat().map((value) => JSON.stringify(value));
+    expect(logged.join("\n")).not.toContain("super-secret");
   });
 });

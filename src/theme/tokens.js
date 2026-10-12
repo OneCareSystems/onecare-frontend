@@ -76,6 +76,19 @@ export const colors = {
     900: "#7f1d1d",
     950: "#450a0a",
   },
+  teal: {
+    50: "#f0fdfa",
+    100: "#ccfbf1",
+    200: "#99f6e4",
+    300: "#5eead4",
+    400: "#2dd4bf",
+    500: "#14b8a6",
+    600: "#0d9488",
+    700: "#0f766e",
+    800: "#115e59",
+    900: "#134e4a",
+    950: "#042f2e",
+  },
   neutral: {
     0: "#ffffff",
     50: "#f8fafc",
@@ -186,6 +199,11 @@ export const contrastPairs = [
   { id: "on-dark-surface", fg: ["neutral", 50], bg: ["neutral", 900] },
   { id: "muted-on-dark-surface", fg: ["neutral", 300], bg: ["neutral", 900] },
   { id: "on-dark-card", fg: ["neutral", 100], bg: ["neutral", 800] },
+  { id: "heading-on-teal", fg: ["teal", 700], bg: ["neutral", 0] },
+  { id: "body-on-teal-subtle", fg: ["teal", 700], bg: ["teal", 50] },
+  { id: "label-on-teal-subtle", fg: ["teal", 800], bg: ["teal", 100] },
+  { id: "on-teal-button", fg: ["neutral", 0], bg: ["teal", 700] },
+  { id: "on-teal-strong", fg: ["neutral", 0], bg: ["teal", 800] },
 ];
 
 export const themeTokens = {

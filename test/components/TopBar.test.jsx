@@ -39,18 +39,18 @@ beforeEach(() => {
 });
 
 describe("TopBar — CFG-04 staff chrome", () => {
-  it("shows the signed-in user's name", () => {
+  it("shows the signed-in username", () => {
     store.dispatch(
       setSession({
         accessToken: "a",
         role: ROLES.DOCTOR,
-        user: { name: "Dr House" },
+        user: "dr.house",
       }),
     );
 
     renderTopBar();
 
-    expect(screen.getByText("Dr House")).toBeInTheDocument();
+    expect(screen.getByText("dr.house")).toBeInTheDocument();
   });
 
   it("falls back to a generic label when no user is stored", () => {

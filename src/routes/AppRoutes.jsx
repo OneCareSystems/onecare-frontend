@@ -24,8 +24,10 @@ const AppRoutes = () => {
       {/* Site root always lands on the public home page. */}
       <Route path="/" element={<Navigate to="/home" replace />} />
 
+      {/* Login page is full-screen, no PublicLayout */}
+      <Route path="/login" element={<LoginPage />} />
+
       <Route element={<PublicLayout />}>
-        <Route path="/login" element={<LoginPage />} />
         <Route path="/home" element={<HomePage />} />
         <Route path="/styleguide" element={<ThemeReferencePage />} />
         {/* Unknown URLs render the public 404 instead of a blank page. */}
@@ -59,7 +61,9 @@ const AppRoutes = () => {
       </Route>
 
       {/* SUPER ADMIN AREA */}
-      <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS["super-admin"]} />}>
+      <Route
+        element={<RequireAuth allowedRoles={ROUTE_ACCESS["super-admin"]} />}
+      >
         <Route path="/super-admin" element={<SuperAdminLayout />}>
           <Route path="dashboard" element={<SuperAdminDashboardPage />} />
         </Route>

@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { afterAll, afterEach, beforeAll } from "vitest";
 import { server } from "./msw/server";
+import { resetMswState } from "./msw/handlers";
 import "../src/i18n";
 
 beforeAll(() => {
@@ -9,6 +10,7 @@ beforeAll(() => {
 
 afterEach(() => {
   server.resetHandlers();
+  resetMswState();
 });
 
 afterAll(() => {

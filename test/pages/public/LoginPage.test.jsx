@@ -1,66 +1,255 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import userEvent from "@testing-library/user-event";
 
 import LoginPage from "../../../src/pages/public/LoginPage";
 import { mswState, resetMswState } from "../../msw/handlers";
 
-const renderAt = (location) =>
+const renderAt = (location = "/login") =>
   render(
     <MemoryRouter initialEntries={[location]}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/admin/dashboard"
+          element={<div data-testid="admin-dashboard">Admin Dashboard</div>}
+        />
+        <Route
+          path="/doctor/dashboard"
+          element={<div data-testid="doctor-dashboard">Doctor Dashboard</div>}
+        />
+        <Route
+          path="/pharmacist/dashboard"
+          element={
+            <div data-testid="pharmacist-dashboard">Pharmacist Dashboard</div>
+          }
+        />
+        <Route
+          path="/super-admin/dashboard"
+          element={
+            <div data-testid="super-admin-dashboard">Super Admin Dashboard</div>
+          }
+        />
+        <Route path="/forgot-password" element={<div>Forgot Password</div>} />
+        <Route
+          path="/doctor/patients"
+          element={<div data-testid="patients">Patients</div>}
+        />
       </Routes>
     </MemoryRouter>,
   );
 
-const fillAndSubmit = () => {
-  fireEvent.change(screen.getByLabelText(/email/i), {
-    target: { value: "doctor@onecare.test" },
-  });
-  fireEvent.change(screen.getByLabelText(/password/i), {
-    target: { value: "secret" },
-  });
-  fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
+const fillForm = async (username, password) => {
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText(/^username/i), username);
+  await user.type(screen.getByLabelText(/^password/i), password);
+};
+
+const submitForm = async () => {
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: /sign in securely/i }));
 };
 
 afterEach(() => {
   resetMswState();
+  vi.clearAllMocks();
 });
 
 describe("LoginPage", () => {
-  it("shows the session expired message after a forced logout", () => {
-    renderAt("/login?reason=session-expired");
+  describe("AC1: Happy Path - valid credentials redirect to role dashboard", () => {
+    const roles = [
+      { role: "ADMIN", testId: "admin-dashboard" },
+      { role: "DOCTOR", testId: "doctor-dashboard" },
+      { role: "PHARMACIST", testId: "pharmacist-dashboard" },
+      { role: "SUPER_ADMIN", testId: "super-admin-dashboard" },
+    ];
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Your session has expired. Please sign in again.",
-    );
-  });
+    roles.forEach(({ role, testId }) => {
+      it(`redirects ${role} to dashboard`, async () => {
+        mswState.loginValid = true;
+        mswState.loginRole = role;
 
-  it("shows no message on a normal visit", () => {
-    renderAt("/login");
+        renderAt("/login");
+        await fillForm("test-user", "password123");
+        await submitForm();
 
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Login" })).toBeInTheDocument();
-  });
-
-  it("blocks an empty submit and flags both required fields", () => {
-    renderAt("/login");
-
-    fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
-
-    expect(screen.getAllByText("This field is required.")).toHaveLength(2);
-  });
-
-  it("shows the API error when credentials are rejected", async () => {
-    mswState.loginValid = false;
-
-    renderAt("/login");
-    fillAndSubmit();
-
-    await waitFor(() => {
-      expect(screen.getByText("Invalid credentials")).toBeInTheDocument();
+        await waitFor(() => {
+          expect(screen.getByTestId(testId)).toBeInTheDocument();
+        });
+      });
     });
-    expect(screen.getByRole("heading", { name: "Login" })).toBeInTheDocument();
+
+    it("redirects to preserved location when from state exists", async () => {
+      mswState.loginValid = true;
+      mswState.loginRole = "DOCTOR";
+
+      render(
+        <MemoryRouter
+          initialEntries={[
+            {
+              pathname: "/login",
+              state: { from: "/doctor/patients" },
+            },
+          ]}
+        >
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route
+              path="/doctor/dashboard"
+              element={
+                <div data-testid="doctor-dashboard">Doctor Dashboard</div>
+              }
+            />
+            <Route
+              path="/doctor/patients"
+              element={<div data-testid="patients">Patients</div>}
+            />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      await fillForm("test-user", "password123");
+      await submitForm();
+
+      await waitFor(() => {
+        expect(screen.getByTestId("patients")).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("AC2: Error Handling - invalid credentials", () => {
+    it("shows 'Invalid username or password.' with no hint which was wrong", async () => {
+      mswState.loginValid = false;
+      mswState.loginErrorMode = null;
+
+      renderAt("/login");
+      await fillForm("wrong-user", "wrong-pass");
+      await submitForm();
+
+      await waitFor(() => {
+        const alerts = screen.getAllByRole("alert");
+        const apiError = alerts.find((a) =>
+          a.textContent.includes("Invalid username or password"),
+        );
+        expect(apiError).toBeInTheDocument();
+      });
+
+      expect(screen.getByLabelText(/^password/i)).toHaveValue("");
+    });
+
+    it("clears password field on invalid credentials", async () => {
+      mswState.loginValid = false;
+      mswState.loginErrorMode = null;
+
+      renderAt("/login");
+      await fillForm("wrong-user", "wrong-pass");
+      await submitForm();
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/^password/i)).toHaveValue("");
+      });
+    });
+  });
+
+  describe("AC3: Edge Case - locked account", () => {
+    it("shows lockout message with three routes to regain access", async () => {
+      mswState.loginValid = false;
+      mswState.loginErrorMode = "lockout";
+
+      renderAt("/login");
+      await fillForm("locked-user", "password123");
+      await submitForm();
+
+      await waitFor(() => {
+        const alerts = screen.getAllByRole("alert");
+        const lockoutError = alerts.find((a) =>
+          a.textContent.includes("Account locked"),
+        );
+        expect(lockoutError).toBeInTheDocument();
+        expect(lockoutError).toHaveTextContent("Super Admin");
+        expect(lockoutError).toHaveTextContent("Forgot Password");
+      });
+
+      expect(screen.getByLabelText(/^password/i)).toHaveValue("");
+    });
+  });
+
+  describe("AC4: Edge Case - rate limit (429)", () => {
+    it("shows 'too many attempts' message and clears password", async () => {
+      mswState.loginValid = false;
+      mswState.loginErrorMode = "rate-limit";
+
+      renderAt("/login");
+      await fillForm("test-user", "password123");
+      await submitForm();
+
+      await waitFor(() => {
+        const alerts = screen.getAllByRole("alert");
+        const rateLimitError = alerts.find((a) =>
+          a.textContent.includes("Too many attempts"),
+        );
+        expect(rateLimitError).toBeInTheDocument();
+      });
+
+      expect(screen.getByLabelText(/^password/i)).toHaveValue("");
+    });
+  });
+
+  describe("UI Interactions", () => {
+    it("toggles password visibility with ARIA attributes", async () => {
+      renderAt("/login");
+
+      const passwordInput = screen.getByLabelText(/^password/i);
+      expect(passwordInput).toHaveAttribute("type", "password");
+
+      const toggleButton = screen.getByRole("button", {
+        name: /show password/i,
+      });
+      await userEvent.click(toggleButton);
+
+      expect(passwordInput).toHaveAttribute("type", "text");
+      expect(toggleButton).toHaveAttribute("aria-label", "Hide password");
+      expect(toggleButton).toHaveAttribute("aria-pressed", "true");
+
+      await userEvent.click(toggleButton);
+
+      expect(passwordInput).toHaveAttribute("type", "password");
+      expect(toggleButton).toHaveAttribute("aria-label", "Show password");
+      expect(toggleButton).toHaveAttribute("aria-pressed", "false");
+    });
+
+    it("has forgot password link to /forgot-password", async () => {
+      renderAt("/login");
+
+      const link = screen.getByRole("link", { name: /forgot password/i });
+      expect(link).toHaveAttribute("href", "/forgot-password");
+    });
+
+    it("shows session expired message when reason=session-expired", () => {
+      renderAt("/login?reason=session-expired");
+
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Your session has expired. Please sign in again.",
+      );
+    });
+
+    it("validates required fields on empty submit", () => {
+      renderAt("/login");
+
+      fireEvent.click(
+        screen.getByRole("button", { name: /sign in securely/i }),
+      );
+
+      expect(screen.getAllByText("This field is required.")).toHaveLength(2);
+    });
+
+    it("renders form panel with OneCare branding", () => {
+      renderAt("/login");
+
+      expect(screen.getByText("OneCare Family Clinic")).toBeInTheDocument();
+      expect(screen.getByText("Welcome back")).toBeInTheDocument();
+      expect(screen.getByText("Sign in to OneCare")).toBeInTheDocument();
+    });
   });
 });
