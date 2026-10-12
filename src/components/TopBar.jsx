@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import Button from "./Button";
 import Icon from "./Icon";
 import Logo from "./Logo";
-import LanguageSwitcher from "./LanguageSwitcher";
 import {
   clearSession,
   selectRole,
@@ -45,7 +44,6 @@ const TopBar = () => {
         </button>
 
         <div className="flex flex-wrap items-center gap-3">
-          <LanguageSwitcher />
 
           <span className="hidden text-sm text-neutral-600 sm:inline">
             {displayName}
