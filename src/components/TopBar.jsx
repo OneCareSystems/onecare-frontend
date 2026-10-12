@@ -18,7 +18,7 @@ const TopBar = () => {
   const user = useSelector(selectUser);
   const role = useSelector(selectRole);
 
-  const displayName = user?.name ?? user?.email ?? "Signed in as";
+  const displayName = user ?? user?.email ?? "Signed in as";
 
   const handleLogout = async () => {
     try {

@@ -4,7 +4,6 @@ import Button from "../../components/Button";
 import ErrorMessage from "../../components/ErrorMessage";
 import Input from "../../components/Input";
 import Icon from "../../components/Icon";
-import { dashboardPathForRole } from "../../constants/roles";
 import { login } from "../../services/authService";
 
 const LoginPage = () => {
@@ -29,9 +28,25 @@ const LoginPage = () => {
 
     setSubmitting(true);
     try {
-      const result = await login({ username: username.trim(), password });
-      const { role } = result.data;
-      const target = location.state?.from ?? dashboardPathForRole(role);
+      const result = await login({
+        username: username.trim(),
+        password,
+      });
+
+      const { redirectUrl } = result.data;
+
+      const requestedPath = location.state?.from;
+
+      const target =
+        typeof requestedPath === "string" && requestedPath.startsWith("/")
+          ? requestedPath
+          : redirectUrl;
+
+      if (typeof target !== "string" || !target.startsWith("/") || target.startsWith("//")) {
+        setError("Unable to determine your destination. Please contact support.");
+        return;
+      }
+
       navigate(target, { replace: true });
     } catch (err) {
       const status = err?.response?.status;
@@ -42,7 +57,7 @@ const LoginPage = () => {
       } else if (status === 403 || status === 423) {
         setError(
           message ||
-            "Account locked. Wait for timed unlock, contact Super Admin, or use Forgot Password.",
+          "Account locked. Wait for timed unlock, contact Super Admin, or use Forgot Password.",
         );
       } else if (status === 401) {
         setError("Invalid username or password.");
