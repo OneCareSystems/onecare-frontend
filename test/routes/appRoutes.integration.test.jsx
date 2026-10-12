@@ -92,7 +92,9 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
   it("AC3: an unauthenticated user opening a protected route is sent to /login", () => {
     renderAppAt("/admin/dashboard");
 
-    expect(screen.getByRole("heading", { name: "Login" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Sign in to OneCare" }),
+    ).toBeInTheDocument();
     expectLocation("/login");
   });
 
@@ -160,14 +162,14 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
     expectLocation("/no-such-page");
   });
 
-  const signIn = (email) => {
-    fireEvent.change(screen.getByLabelText(/email/i), {
-      target: { value: email },
+  const signIn = (username) => {
+    fireEvent.change(screen.getByLabelText(/professional id/i), {
+      target: { value: username },
     });
-    fireEvent.change(screen.getByLabelText(/password/i), {
+    fireEvent.change(screen.getByLabelText(/^password$/i), {
       target: { value: "secret" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /sign in/i }));
+    fireEvent.click(screen.getByRole("button", { name: /sign in securely/i }));
   };
 
   it("AC1 (end-to-end): a Doctor signs in on /login and lands on /doctor/dashboard", async () => {
@@ -193,7 +195,9 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
     signIn("admin@onecare.test");
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "QueuePage" })).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "QueuePage" }),
+      ).toBeInTheDocument();
     });
     expectLocation("/queue");
   });
@@ -205,7 +209,9 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
     signIn("doctor@onecare.test");
 
     await waitFor(() => {
-      expect(screen.getByText("Invalid credentials")).toBeInTheDocument();
+      expect(
+        screen.getByText("Invalid username or password."),
+      ).toBeInTheDocument();
     });
     expectLocation("/login");
     expect(
