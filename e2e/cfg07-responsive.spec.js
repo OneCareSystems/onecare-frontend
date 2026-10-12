@@ -36,15 +36,20 @@ const loginThroughUi = async (page, role = "DOCTOR") => {
   await mockLogin(page, role);
   await page.goto("/login");
   // Wait for the login form to be ready - use the input's name attribute
-  await page.locator('input[name="username"]').waitFor({ state: "visible", timeout: 15000 });
+  await page
+    .locator('input[name="username"]')
+    .waitFor({ state: "visible", timeout: 15000 });
   await page.locator('input[name="username"]').fill("e2e@onecare.test");
   await page.locator('input[name="password"]').fill("password123");
-  
+
   // Wait for navigation to start before clicking
-  const navigationPromise = page.waitForURL(/\/(doctor|admin|pharmacist|super-admin)\/dashboard/, { timeout: 15000 });
+  const navigationPromise = page.waitForURL(
+    /\/(doctor|admin|pharmacist|super-admin)\/dashboard/,
+    { timeout: 15000 },
+  );
   await page.getByRole("button", { name: "Sign in securely" }).click();
   await navigationPromise;
-  
+
   // Wait for the staff chrome to mount so the page owns keyboard focus.
   await page.getByRole("button", { name: "Log out" }).waitFor();
 };
@@ -152,6 +157,20 @@ test.describe("AC3 — wide table scrolls inside its own container at 360 px", (
 });
 
 test.describe("AC4 — keyboard-only use of the shared layouts at 360 px", () => {
+
+  /** AC4 helper: the currently focused element must show a visible focus ring. */
+  const hasVisibleFocus = async (page) => {
+    return page.evaluate(() => {
+      const el = document.activeElement;
+      if (!el) return false;
+      const styles = window.getComputedStyle(el);
+      // Treat either an outline or a box-shadow ring as a visible focus state.
+      const hasOutline =
+        styles.outlineStyle !== "none" && parseFloat(styles.outlineWidth) > 0;
+      const hasRing = styles.boxShadow && styles.boxShadow !== "none";
+      return hasOutline || hasRing;
+    });
+  };
 
   test("public layout: every control is tabbable in order with a visible focus state", async ({
     page,
