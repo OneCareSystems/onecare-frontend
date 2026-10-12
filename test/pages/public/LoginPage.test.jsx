@@ -89,7 +89,7 @@ describe("LoginPage", () => {
           initialEntries={[
             {
               pathname: "/login",
-              state: { from: { pathname: "/doctor/patients" } },
+              state: { from: "/doctor/patients" },
             },
           ]}
         >

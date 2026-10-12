@@ -54,7 +54,7 @@ describe("StaffLayout — CFG-07 AC4 keyboard tab order (integration)", () => {
       setSession({
         accessToken: "a",
         role: ROLES.DOCTOR,
-        user: { name: "Dr H" },
+        user: "dr.house",
       }),
     );
     const user = userEvent.setup();

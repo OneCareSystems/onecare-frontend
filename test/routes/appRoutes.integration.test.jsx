@@ -164,9 +164,6 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
     // Wait for the login form to mount
     await screen.findByRole("heading", { name: /sign in to onecare/i });
 
-    // Dump the DOM so we can see the real markup
-    screen.debug(undefined, 200000);
-
     // Now query explicitly (no waitFor wrapper to hide the error)
     const usernameInput = screen.getByRole("textbox", { name: /username/i });
     const passwordInput = screen.getByLabelText(/^password/i);
@@ -197,13 +194,6 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
     expectLocation("/login");
 
     await signIn("admin@onecare.test");
-
-    await new Promise((r) => setTimeout(r, 500));
-    console.log("URL after signIn:", window.location.pathname);
-    console.log(
-      "Alerts on page:",
-      screen.queryAllByRole("alert").map((a) => a.textContent),
-    );
 
     await waitFor(() => {
       expect(

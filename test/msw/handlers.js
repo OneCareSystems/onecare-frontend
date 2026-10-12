@@ -1,5 +1,7 @@
 import { http, HttpResponse } from "msw";
 
+import { ROLE_DASHBOARDS } from "../../src/constants/roles";
+
 export const mswState = {
   tokenValid: true,
   refreshValid: true,
@@ -61,6 +63,8 @@ export const handlers = [
       refreshToken: "login-refresh",
       expiresIn: 1800,
       role: mswState.loginRole,
+      username: body?.username ?? "test-user",
+      redirectUrl: ROLE_DASHBOARDS[mswState.loginRole],
       user: {
         name: "Test User",
         email: body?.username ?? "test@onecare.test",

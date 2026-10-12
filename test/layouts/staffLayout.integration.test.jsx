@@ -36,7 +36,7 @@ describe("StaffLayout — CFG-04 staff chrome (integration)", () => {
     seed({
       accessToken: "a",
       role: ROLES.DOCTOR,
-      user: { name: "Dr House" },
+      user: "dr.house",
     });
 
     renderAppAt("/doctor/dashboard");
@@ -47,7 +47,7 @@ describe("StaffLayout — CFG-04 staff chrome (integration)", () => {
     expect(
       screen.getByRole("button", { name: /log out/i }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Dr House")).toBeInTheDocument();
+    expect(screen.getByText("dr.house")).toBeInTheDocument();
 
     const sidebar = screen.getByRole("navigation", {
       name: "Main navigation",
