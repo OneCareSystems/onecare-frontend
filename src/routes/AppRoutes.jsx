@@ -1,5 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import LoginPage from "../pages/public/LoginPage";
+import ForgotPasswordPage from "../pages/public/ForgotPasswordPage";
+import ResetPasswordPage from "../pages/public/ResetPasswordPage";
 import AdminLayout from "../layouts/AdminLayout";
 import DoctorLayout from "../layouts/DoctorLayout";
 import PharmacistLayout from "../layouts/PharmacistLayout";
@@ -24,8 +26,10 @@ const AppRoutes = () => {
       {/* Site root always lands on the public home page. */}
       <Route path="/" element={<Navigate to="/home" replace />} />
 
-      {/* Login page is full-screen, no PublicLayout */}
+      {/* Auth & Recovery pages are full-screen, no PublicLayout */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       <Route element={<PublicLayout />}>
         <Route path="/home" element={<HomePage />} />
