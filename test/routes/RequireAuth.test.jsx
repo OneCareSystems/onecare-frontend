@@ -32,10 +32,6 @@ const renderGuardedRoute = (
         <Routes>
           <Route path="/login" element={<div data-testid="login-page" />} />
           <Route
-            path="/change-password"
-            element={<div data-testid="change-password-page" />}
-          />
-          <Route
             path="/admin/dashboard"
             element={<div data-testid="admin-page" />}
           />
@@ -123,33 +119,6 @@ describe("RequireAuth — CFG-03 route guard", () => {
 
     expect(screen.getByTestId("pharmacist-page")).toBeInTheDocument();
     expectLocation("/pharmacist/dashboard");
-  });
-
-  it("AC5: redirects a mustChangePassword user to /change-password", () => {
-    seed({
-      accessToken: "a",
-      role: ROLES.DOCTOR,
-      mustChangePassword: true,
-    });
-
-    renderGuardedRoute("/protected", [ROLES.DOCTOR]);
-
-    expect(screen.getByTestId("change-password-page")).toBeInTheDocument();
-    expect(screen.queryByTestId("protected-page")).not.toBeInTheDocument();
-    expectLocation("/change-password");
-  });
-
-  it("AC5: lets a mustChangePassword user stay on /change-password", () => {
-    seed({
-      accessToken: "a",
-      role: ROLES.DOCTOR,
-      mustChangePassword: true,
-    });
-
-    renderGuardedRoute("/change-password", [ROLES.DOCTOR]);
-
-    expect(screen.getByTestId("change-password-page")).toBeInTheDocument();
-    expectLocation("/change-password");
   });
 
   it("treats a missing allowedRoles list as open to any authenticated role", () => {

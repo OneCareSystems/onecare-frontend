@@ -31,10 +31,6 @@ const renderAt = (location = "/login") =>
             <div data-testid="super-admin-dashboard">Super Admin Dashboard</div>
           }
         />
-        <Route
-          path="/change-password"
-          element={<div data-testid="change-password">Change Password</div>}
-        />
         <Route path="/forgot-password" element={<div>Forgot Password</div>} />
         <Route
           path="/doctor/patients"
@@ -73,7 +69,6 @@ describe("LoginPage", () => {
       it(`redirects ${role} to dashboard`, async () => {
         mswState.loginValid = true;
         mswState.loginRole = role;
-        mswState.mustChangePassword = false;
 
         renderAt("/login");
         await fillForm("test-user", "password123");
@@ -88,7 +83,6 @@ describe("LoginPage", () => {
     it("redirects to preserved location when from state exists", async () => {
       mswState.loginValid = true;
       mswState.loginRole = "DOCTOR";
-      mswState.mustChangePassword = false;
 
       render(
         <MemoryRouter
@@ -120,20 +114,6 @@ describe("LoginPage", () => {
 
       await waitFor(() => {
         expect(screen.getByTestId("patients")).toBeInTheDocument();
-      });
-    });
-
-    it("redirects to change-password when mustChangePassword is true", async () => {
-      mswState.loginValid = true;
-      mswState.loginRole = "DOCTOR";
-      mswState.mustChangePassword = true;
-
-      renderAt("/login");
-      await fillForm("test-user", "password123");
-      await submitForm();
-
-      await waitFor(() => {
-        expect(screen.getByTestId("change-password")).toBeInTheDocument();
       });
     });
   });

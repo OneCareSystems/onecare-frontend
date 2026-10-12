@@ -32,13 +32,9 @@ const LoginPage = () => {
     setSubmitting(true);
     try {
       const result = await login({ username: username.trim(), password });
-      const { role, mustChangePassword } = result.data;
-      if (mustChangePassword) {
-        navigate("/change-password", { replace: true });
-      } else {
-        const target = location.state?.from ?? dashboardPathForRole(role);
-        navigate(target, { replace: true });
-      }
+      const { role } = result.data;
+      const target = location.state?.from ?? dashboardPathForRole(role);
+      navigate(target, { replace: true });
     } catch (err) {
       const status = err?.response?.status;
       const message = err?.response?.data?.message;
@@ -116,7 +112,7 @@ const LoginPage = () => {
                   Connected care. Simplified.
                 </div>
 
-                <h1 className="text-3xl font-extrabold leading-tight tracking-tight xl:text-4xl">
+                <h1 className="text-3xl font-extrabold leading-tight tracking-tight xl:text-4xl text-warning-50">
                   Better care
                   <br />
                   starts with

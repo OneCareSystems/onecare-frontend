@@ -26,7 +26,6 @@ const mockLogin = async (page, role = "DOCTOR") => {
           expiresIn: 1800,
           role,
           user: { name: "Dr E2E", email: "e2e@onecare.test" },
-          mustChangePassword: false,
         },
       },
     });
