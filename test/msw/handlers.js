@@ -9,6 +9,7 @@ export const mswState = {
   loginValid: true,
   loginRole: "ADMIN",
   loginErrorMode: null,
+  mustChangePassword: false,
 };
 
 export const resetMswState = () => {
@@ -20,6 +21,7 @@ export const resetMswState = () => {
   mswState.loginValid = true;
   mswState.loginRole = "ADMIN";
   mswState.loginErrorMode = null;
+  mswState.mustChangePassword = false;
 };
 
 const ok = (data, message = "ok") =>

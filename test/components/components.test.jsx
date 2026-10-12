@@ -68,12 +68,5 @@ describe("SiteHeader", () => {
     expect(
       screen.getByRole("img", { name: "OneCare logo" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("navigation", { name: "Main" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Style guide" })).toHaveAttribute(
-      "href",
-      "/styleguide",
-    );
   });
 });

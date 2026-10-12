@@ -227,13 +227,6 @@ const LoginPage = () => {
 
                 <div>
                   <div className="mb-1.5 flex items-center justify-between gap-3">
-                    <label
-                      htmlFor="professional-password"
-                      className="block text-xs font-semibold text-slate-700 xl:text-sm"
-                    >
-                      Password
-                    </label>
-
                     <a
                       href="/forgot-password"
                       className="text-xs font-semibold text-teal-700 transition hover:text-teal-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2"
@@ -247,7 +240,7 @@ const LoginPage = () => {
                       id="professional-password"
                       name="password"
                       type={showPassword ? "text" : "password"}
-                      label=""
+                      label="Password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       autoComplete="current-password"

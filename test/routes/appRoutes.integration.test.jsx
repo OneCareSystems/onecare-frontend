@@ -37,6 +37,7 @@ const expectLocation = (path) =>
 
 beforeEach(() => {
   store.dispatch(clearSession());
+  resetMswState(); // ensure MSW state is clean before each test too
 });
 
 afterEach(() => {
@@ -162,8 +163,27 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
     expectLocation("/no-such-page");
   });
 
-  const signIn = (username) => {
-    fireEvent.change(screen.getByLabelText(/professional id/i), {
+  // ---------------------------------------------------------------------------
+  // End-to-end login flows
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Fills the login form and submits it.
+   *
+   * NOTE on queries:
+   *  - The username field is `<input type="text">`, so `getByRole("textbox", ...)` works.
+   *  - The password field is `<input type="password">`, which has **no implicit ARIA role**.
+   *    It must be queried via `getByLabelText`, NOT `getByRole("textbox", ...)`.
+   */
+  const signIn = async (username) => {
+    await waitFor(() => {
+      expect(
+        screen.getByRole("textbox", { name: /username/i }),
+      ).toBeInTheDocument();
+      expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByRole("textbox", { name: /username/i }), {
       target: { value: username },
     });
     fireEvent.change(screen.getByLabelText(/^password$/i), {
@@ -176,7 +196,7 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
     mswState.loginRole = ROLES.DOCTOR;
 
     renderAppAt("/login");
-    signIn("doctor@onecare.test");
+    await signIn("doctor@onecare.test");
 
     await waitFor(() => {
       expect(
@@ -192,7 +212,7 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
     renderAppAt("/queue");
     expectLocation("/login");
 
-    signIn("admin@onecare.test");
+    await signIn("admin@onecare.test");
 
     await waitFor(() => {
       expect(
@@ -206,7 +226,7 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
     mswState.loginValid = false;
 
     renderAppAt("/login");
-    signIn("doctor@onecare.test");
+    await signIn("doctor@onecare.test");
 
     await waitFor(() => {
       expect(
