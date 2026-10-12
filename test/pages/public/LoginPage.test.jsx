@@ -237,18 +237,31 @@ describe("LoginPage", () => {
     it("shows a reset success message from navigation state and consumes it", async () => {
       const user = userEvent.setup();
       render(
-        <MemoryRouter initialEntries={[{
-          pathname: "/login",
-          state: { passwordResetSuccess: "Your password has been reset. You can now sign in." },
-        }]}>
-          <Routes><Route path="/login" element={<LoginPage />} /></Routes>
+        <MemoryRouter
+          initialEntries={[
+            {
+              pathname: "/login",
+              state: {
+                passwordResetSuccess:
+                  "Your password has been reset. You can now sign in.",
+              },
+            },
+          ]}
+        >
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+          </Routes>
         </MemoryRouter>,
       );
-      expect(await screen.findByRole("status")).toHaveTextContent("Your password has been reset.");
+      expect(await screen.findByRole("status")).toHaveTextContent(
+        "Your password has been reset.",
+      );
       await user.type(screen.getByLabelText(/^username/i), "user");
       await user.type(screen.getByLabelText(/^password/i), "password");
       await submitForm();
-      await waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument());
+      await waitFor(() =>
+        expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+      );
     });
 
     it("validates required fields on empty submit", () => {

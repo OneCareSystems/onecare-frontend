@@ -8,19 +8,38 @@ import { mswState, resetMswState } from "../../msw/handlers";
 
 const LocationDisplay = () => {
   const location = useLocation();
-  return <output data-testid="location">{`${location.pathname}${location.search}${location.hash}`}</output>;
+  return (
+    <output data-testid="location">{`${location.pathname}${location.search}${location.hash}`}</output>
+  );
 };
 
 const renderAt = (location = "/reset-password", state = null) =>
   render(
-    <MemoryRouter initialEntries={[{ pathname: location.split(/[?#]/)[0], search: location.includes("?") ? `?${location.split("?")[1].split("#")[0]}` : "", hash: location.includes("#") ? `#${location.split("#").at(-1)}` : "", state }]}>
+    <MemoryRouter
+      initialEntries={[
+        {
+          pathname: location.split(/[?#]/)[0],
+          search: location.includes("?")
+            ? `?${location.split("?")[1].split("#")[0]}`
+            : "",
+          hash: location.includes("#") ? `#${location.split("#").at(-1)}` : "",
+          state,
+        },
+      ]}
+    >
       <Routes>
         <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/login" element={<div data-testid="login-page">Login Page</div>} />
-        <Route path="/forgot-password" element={<div data-testid="forgot-page">Forgot Page</div>} />
+        <Route
+          path="/login"
+          element={<div data-testid="login-page">Login Page</div>}
+        />
+        <Route
+          path="/forgot-password"
+          element={<div data-testid="forgot-page">Forgot Page</div>}
+        />
       </Routes>
       <LocationDisplay />
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 
 afterEach(() => {
@@ -32,7 +51,7 @@ describe("ResetPasswordPage", () => {
   it("renders the reset password form with manual token field when no token in URL", () => {
     renderAt("/reset-password");
     expect(
-      screen.getByRole("heading", { name: /reset your password/i })
+      screen.getByRole("heading", { name: /reset your password/i }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText(/reset token/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^new password/i)).toBeInTheDocument();
@@ -49,15 +68,25 @@ describe("ResetPasswordPage", () => {
   it("removes only the token from the URL and still submits the captured token", async () => {
     const user = userEvent.setup();
     renderAt("/reset-password?keep=yes&token=still-secret#form");
-    await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent(
-      "/reset-password?keep=yes#form",
-    ));
-    await user.type(screen.getByLabelText(/^new password/i), "BrandNewPass888!");
-    await user.type(screen.getByLabelText(/confirm new password/i), "BrandNewPass888!");
+    await waitFor(() =>
+      expect(screen.getByTestId("location")).toHaveTextContent(
+        "/reset-password?keep=yes#form",
+      ),
+    );
+    await user.type(
+      screen.getByLabelText(/^new password/i),
+      "BrandNewPass888!",
+    );
+    await user.type(
+      screen.getByLabelText(/confirm new password/i),
+      "BrandNewPass888!",
+    );
     await user.click(screen.getByRole("button", { name: /reset password/i }));
-    await waitFor(() => expect(mswState.resetPasswordHits).toEqual([
-      { token: "still-secret", newPassword: "BrandNewPass888!" },
-    ]));
+    await waitFor(() =>
+      expect(mswState.resetPasswordHits).toEqual([
+        { token: "still-secret", newPassword: "BrandNewPass888!" },
+      ]),
+    );
   });
 
   it("validates empty fields", async () => {
@@ -78,7 +107,9 @@ describe("ResetPasswordPage", () => {
     await user.type(screen.getByLabelText(/confirm new password/i), "short");
     await user.click(screen.getByRole("button", { name: /reset password/i }));
 
-      expect(screen.getByText(/password must be at least 8 characters/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/password must be at least 8 characters/i),
+    ).toBeInTheDocument();
     expect(mswState.resetPasswordHits.length).toBe(0);
   });
 
@@ -86,8 +117,14 @@ describe("ResetPasswordPage", () => {
     const user = userEvent.setup();
     renderAt("/reset-password?token=valid-token");
 
-    await user.type(screen.getByLabelText(/^new password/i), "SecurePassword123!");
-    await user.type(screen.getByLabelText(/confirm new password/i), "Different123!");
+    await user.type(
+      screen.getByLabelText(/^new password/i),
+      "SecurePassword123!",
+    );
+    await user.type(
+      screen.getByLabelText(/confirm new password/i),
+      "Different123!",
+    );
     await user.click(screen.getByRole("button", { name: /reset password/i }));
 
     expect(screen.getByText(/passwords do not match/i)).toBeInTheDocument();
@@ -98,11 +135,19 @@ describe("ResetPasswordPage", () => {
     const user = userEvent.setup();
     renderAt("/reset-password?token=token-abc-123");
 
-    await user.type(screen.getByLabelText(/^new password/i), "BrandNewPass888!");
-    await user.type(screen.getByLabelText(/confirm new password/i), "BrandNewPass888!");
+    await user.type(
+      screen.getByLabelText(/^new password/i),
+      "BrandNewPass888!",
+    );
+    await user.type(
+      screen.getByLabelText(/confirm new password/i),
+      "BrandNewPass888!",
+    );
     await user.click(screen.getByRole("button", { name: /reset password/i }));
 
-    await waitFor(() => expect(screen.getByTestId("login-page")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByTestId("login-page")).toBeInTheDocument(),
+    );
 
     expect(mswState.resetPasswordHits).toEqual([
       {
@@ -110,7 +155,6 @@ describe("ResetPasswordPage", () => {
         newPassword: "BrandNewPass888!",
       },
     ]);
-
   });
 
   it("shows error when token is invalid or expired", async () => {
@@ -118,13 +162,23 @@ describe("ResetPasswordPage", () => {
     mswState.resetPasswordErrorMode = "invalid-token";
     renderAt("/reset-password?token=expired-token");
 
-    await user.type(screen.getByLabelText(/^new password/i), "BrandNewPass888!");
-    await user.type(screen.getByLabelText(/confirm new password/i), "BrandNewPass888!");
+    await user.type(
+      screen.getByLabelText(/^new password/i),
+      "BrandNewPass888!",
+    );
+    await user.type(
+      screen.getByLabelText(/confirm new password/i),
+      "BrandNewPass888!",
+    );
     await user.click(screen.getByRole("button", { name: /reset password/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: /this reset link is invalid/i })).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: /reset password/i })).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: /this reset link is invalid/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /reset password/i }),
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -132,10 +186,18 @@ describe("ResetPasswordPage", () => {
     const user = userEvent.setup();
     mswState.resetPasswordErrorMode = "invalid-token";
     renderAt("/reset-password?token=expired");
-    await user.type(screen.getByLabelText(/^new password/i), "BrandNewPass888!");
-    await user.type(screen.getByLabelText(/confirm new password/i), "BrandNewPass888!");
+    await user.type(
+      screen.getByLabelText(/^new password/i),
+      "BrandNewPass888!",
+    );
+    await user.type(
+      screen.getByLabelText(/confirm new password/i),
+      "BrandNewPass888!",
+    );
     await user.click(screen.getByRole("button", { name: /reset password/i }));
-    await user.click(await screen.findByRole("link", { name: /request a new link/i }));
+    await user.click(
+      await screen.findByRole("link", { name: /request a new link/i }),
+    );
     expect(screen.getByTestId("forgot-page")).toBeInTheDocument();
   });
 

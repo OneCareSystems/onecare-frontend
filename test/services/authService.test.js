@@ -62,10 +62,7 @@ describe("authService", () => {
   it("login accepts camelCase payloads", async () => {
     mock
       .onPost("/auth/login")
-      .reply(
-        200,
-        ok({ accessToken: "a", refreshToken: "r", expiresIn: 1800 }),
-      );
+      .reply(200, ok({ accessToken: "a", refreshToken: "r", expiresIn: 1800 }));
 
     await login({ email: "a@b.c", password: "secret" });
 
@@ -246,4 +243,3 @@ describe("authService", () => {
     expect(logged.join("\n")).not.toContain("SecretPassword123!");
   });
 });
-

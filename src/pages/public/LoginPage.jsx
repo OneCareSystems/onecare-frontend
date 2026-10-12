@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useLocation, useSearchParams, Link } from "react-router-dom";
+import {
+  useNavigate,
+  useLocation,
+  useSearchParams,
+  Link,
+} from "react-router-dom";
 import Button from "../../components/Button";
 import ErrorMessage from "../../components/ErrorMessage";
 import Input from "../../components/Input";
@@ -11,7 +16,9 @@ const LoginPage = () => {
   const sessionExpired = searchParams.get("reason") === "session-expired";
   const navigate = useNavigate();
   const location = useLocation();
-  const [passwordResetSuccess] = useState(() => location.state?.passwordResetSuccess || "");
+  const [passwordResetSuccess] = useState(
+    () => location.state?.passwordResetSuccess || "",
+  );
 
   useEffect(() => {
     if (!passwordResetSuccess) return;
@@ -19,7 +26,13 @@ const LoginPage = () => {
       replace: true,
       state: null,
     });
-  }, [location.hash, location.pathname, location.search, navigate, passwordResetSuccess]);
+  }, [
+    location.hash,
+    location.pathname,
+    location.search,
+    navigate,
+    passwordResetSuccess,
+  ]);
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -50,8 +63,14 @@ const LoginPage = () => {
           ? requestedPath
           : redirectUrl;
 
-      if (typeof target !== "string" || !target.startsWith("/") || target.startsWith("//")) {
-        setError("Unable to determine your destination. Please contact support.");
+      if (
+        typeof target !== "string" ||
+        !target.startsWith("/") ||
+        target.startsWith("//")
+      ) {
+        setError(
+          "Unable to determine your destination. Please contact support.",
+        );
         return;
       }
 
@@ -65,7 +84,7 @@ const LoginPage = () => {
       } else if (status === 403 || status === 423) {
         setError(
           message ||
-          "Account locked. Wait for timed unlock, contact Super Admin, or use Forgot Password.",
+            "Account locked. Wait for timed unlock, contact Super Admin, or use Forgot Password.",
         );
       } else if (status === 401) {
         setError("Invalid username or password.");
@@ -219,7 +238,11 @@ const LoginPage = () => {
               )}
 
               {passwordResetSuccess && (
-                <p role="status" aria-live="polite" className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 p-2.5 text-xs text-emerald-900">
+                <p
+                  role="status"
+                  aria-live="polite"
+                  className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 p-2.5 text-xs text-emerald-900"
+                >
                   {passwordResetSuccess}
                 </p>
               )}

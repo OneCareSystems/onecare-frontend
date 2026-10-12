@@ -11,9 +11,12 @@ const renderAt = (location = "/forgot-password") =>
     <MemoryRouter initialEntries={[location]}>
       <Routes>
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/login" element={<div data-testid="login-page">Login Page</div>} />
+        <Route
+          path="/login"
+          element={<div data-testid="login-page">Login Page</div>}
+        />
       </Routes>
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 
 afterEach(() => {
@@ -25,11 +28,11 @@ describe("ForgotPasswordPage", () => {
   it("renders the forgot password form correctly", () => {
     renderAt();
     expect(
-      screen.getByRole("heading", { name: /forgot password\?/i })
+      screen.getByRole("heading", { name: /forgot password\?/i }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText(/registered email/i)).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /send reset instructions/i })
+      screen.getByRole("button", { name: /send reset instructions/i }),
     ).toBeInTheDocument();
   });
 
@@ -37,7 +40,9 @@ describe("ForgotPasswordPage", () => {
     const user = userEvent.setup();
     renderAt();
 
-    await user.click(screen.getByRole("button", { name: /send reset instructions/i }));
+    await user.click(
+      screen.getByRole("button", { name: /send reset instructions/i }),
+    );
 
     expect(screen.getByText(/this field is required/i)).toBeInTheDocument();
     expect(mswState.forgotPasswordHits.length).toBe(0);
@@ -48,9 +53,13 @@ describe("ForgotPasswordPage", () => {
     renderAt();
 
     await user.type(screen.getByLabelText(/registered email/i), "notanemail");
-    await user.click(screen.getByRole("button", { name: /send reset instructions/i }));
+    await user.click(
+      screen.getByRole("button", { name: /send reset instructions/i }),
+    );
 
-    expect(screen.getByText(/please enter a valid email address/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/please enter a valid email address/i),
+    ).toBeInTheDocument();
     expect(mswState.forgotPasswordHits.length).toBe(0);
   });
 
@@ -60,27 +69,44 @@ describe("ForgotPasswordPage", () => {
 
     await user.type(
       screen.getByLabelText(/registered email/i),
-      "doctor@onecare.com"
+      "doctor@onecare.com",
     );
-    await user.click(screen.getByRole("button", { name: /send reset instructions/i }));
+    await user.click(
+      screen.getByRole("button", { name: /send reset instructions/i }),
+    );
 
-    await waitFor(() => expect(screen.getByText(
-      "If an account exists for this email, a reset link has been sent.",
-    )).toBeInTheDocument());
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          "If an account exists for this email, a reset link has been sent.",
+        ),
+      ).toBeInTheDocument(),
+    );
 
-    expect(mswState.forgotPasswordHits).toEqual([{ email: "doctor@onecare.com" }]);
+    expect(mswState.forgotPasswordHits).toEqual([
+      { email: "doctor@onecare.com" },
+    ]);
     expect(screen.queryByText(/doctor@onecare.com/i)).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /return to login/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /return to login/i }),
+    ).toBeInTheDocument();
   });
 
   it("uses the same neutral confirmation for an address with no matching account", async () => {
     const user = userEvent.setup();
     renderAt();
-    await user.type(screen.getByLabelText(/registered email/i), "unknown@example.com");
-    await user.click(screen.getByRole("button", { name: /send reset instructions/i }));
-    expect(await screen.findByText(
-      "If an account exists for this email, a reset link has been sent.",
-    )).toBeInTheDocument();
+    await user.type(
+      screen.getByLabelText(/registered email/i),
+      "unknown@example.com",
+    );
+    await user.click(
+      screen.getByRole("button", { name: /send reset instructions/i }),
+    );
+    expect(
+      await screen.findByText(
+        "If an account exists for this email, a reset link has been sent.",
+      ),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/unknown@example.com/i)).not.toBeInTheDocument();
   });
 
@@ -89,8 +115,13 @@ describe("ForgotPasswordPage", () => {
     mswState.forgotPasswordErrorMode = "rate-limit";
     renderAt();
 
-    await user.type(screen.getByLabelText(/registered email/i), "doctor@onecare.com");
-    await user.click(screen.getByRole("button", { name: /send reset instructions/i }));
+    await user.type(
+      screen.getByLabelText(/registered email/i),
+      "doctor@onecare.com",
+    );
+    await user.click(
+      screen.getByRole("button", { name: /send reset instructions/i }),
+    );
 
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent(/too many attempts/i);
@@ -101,12 +132,19 @@ describe("ForgotPasswordPage", () => {
     const user = userEvent.setup();
     mswState.forgotPasswordErrorMode = "network-error";
     renderAt();
-    await user.type(screen.getByLabelText(/registered email/i), "any@example.com");
-    await user.click(screen.getByRole("button", { name: /send reset instructions/i }));
+    await user.type(
+      screen.getByLabelText(/registered email/i),
+      "any@example.com",
+    );
+    await user.click(
+      screen.getByRole("button", { name: /send reset instructions/i }),
+    );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Something went wrong. Please try again shortly.",
     );
-    expect(screen.queryByText(/internal server error/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/internal server error/i),
+    ).not.toBeInTheDocument();
   });
 
   it("displays server error message on 500 status", async () => {
@@ -114,12 +152,19 @@ describe("ForgotPasswordPage", () => {
     mswState.forgotPasswordErrorMode = "server-error";
     renderAt();
 
-    await user.type(screen.getByLabelText(/registered email/i), "doctor@onecare.com");
-    await user.click(screen.getByRole("button", { name: /send reset instructions/i }));
+    await user.type(
+      screen.getByLabelText(/registered email/i),
+      "doctor@onecare.com",
+    );
+    await user.click(
+      screen.getByRole("button", { name: /send reset instructions/i }),
+    );
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Something went wrong. Please try again shortly.",
     );
-    expect(screen.queryByText(/internal server error/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/internal server error/i),
+    ).not.toBeInTheDocument();
   });
 });

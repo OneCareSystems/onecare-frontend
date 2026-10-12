@@ -1,5 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 import Button from "../../components/Button";
 import ErrorMessage from "../../components/ErrorMessage";
 import Input from "../../components/Input";
@@ -77,7 +82,10 @@ const ResetPasswordPage = () => {
       await resetPassword(token, newPassword);
       navigate("/login", {
         replace: true,
-        state: { passwordResetSuccess: "Your password has been reset. You can now sign in." },
+        state: {
+          passwordResetSuccess:
+            "Your password has been reset. You can now sign in.",
+        },
       });
     } catch (err) {
       const status = err?.response?.status;
@@ -133,7 +141,8 @@ const ResetPasswordPage = () => {
               Reset your password
             </h1>
             <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
-              Choose a strong, unique password between 8 and 64 characters to secure your account.
+              Choose a strong, unique password between 8 and 64 characters to
+              secure your account.
             </p>
           </div>
 
@@ -146,12 +155,28 @@ const ResetPasswordPage = () => {
           )}
 
           {invalidLink ? (
-            <section aria-labelledby="invalid-link-heading" role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
-              <h2 id="invalid-link-heading" className="text-sm font-bold">This reset link is invalid</h2>
-              <p className="mt-1 text-xs leading-relaxed">The link may have expired or already been used. Request a new reset link to continue.</p>
+            <section
+              aria-labelledby="invalid-link-heading"
+              role="alert"
+              className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950"
+            >
+              <h2 id="invalid-link-heading" className="text-sm font-bold">
+                This reset link is invalid
+              </h2>
+              <p className="mt-1 text-xs leading-relaxed">
+                The link may have expired or already been used. Request a new
+                reset link to continue.
+              </p>
               <div className="mt-4 flex justify-between text-xs font-semibold">
-                <Link to="/forgot-password" className="text-blue-700 hover:underline">Request a new link</Link>
-                <Link to="/login" className="text-blue-700 hover:underline">Go to login</Link>
+                <Link
+                  to="/forgot-password"
+                  className="text-blue-700 hover:underline"
+                >
+                  Request a new link
+                </Link>
+                <Link to="/login" className="text-blue-700 hover:underline">
+                  Go to login
+                </Link>
               </div>
             </section>
           ) : (
@@ -172,7 +197,10 @@ const ResetPasswordPage = () => {
                     placeholder="Paste your reset token"
                     hint="The token provided in your reset email"
                     leftIcon={
-                      <Icon name="key-round" className="h-4 w-4 text-slate-400" />
+                      <Icon
+                        name="key-round"
+                        className="h-4 w-4 text-slate-400"
+                      />
                     }
                   />
                 </div>
@@ -199,7 +227,9 @@ const ResetPasswordPage = () => {
                     <button
                       type="button"
                       onClick={() => setShowPassword((v) => !v)}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
                       aria-pressed={showPassword}
                       className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
                     >
@@ -218,11 +248,24 @@ const ResetPasswordPage = () => {
                   <ul className="space-y-1">
                     <li className="flex items-center gap-1.5">
                       <Icon
-                        name={passwordCriteria.minLength ? "circle-check" : "circle-help"}
-                        className={`h-3.5 w-3.5 ${passwordCriteria.minLength ? "text-emerald-600" : "text-slate-400"
-                          }`}
+                        name={
+                          passwordCriteria.minLength
+                            ? "circle-check"
+                            : "circle-help"
+                        }
+                        className={`h-3.5 w-3.5 ${
+                          passwordCriteria.minLength
+                            ? "text-emerald-600"
+                            : "text-slate-400"
+                        }`}
                       />
-                      <span className={passwordCriteria.minLength ? "text-slate-900 font-medium" : ""}>
+                      <span
+                        className={
+                          passwordCriteria.minLength
+                            ? "text-slate-900 font-medium"
+                            : ""
+                        }
+                      >
                         Between 8 and 64 characters
                       </span>
                     </li>

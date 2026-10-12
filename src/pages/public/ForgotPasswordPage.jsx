@@ -89,7 +89,8 @@ const ForgotPasswordPage = () => {
               Forgot password?
             </h1>
             <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
-              Enter your registered email address and we will send you instructions to reset your password.
+              Enter your registered email address and we will send you
+              instructions to reset your password.
             </p>
           </div>
 
@@ -116,7 +117,8 @@ const ForgotPasswordPage = () => {
                     Check your email
                   </h2>
                   <p className="mt-1 text-xs leading-relaxed text-emerald-800">
-                    If an account exists for this email, a reset link has been sent.
+                    If an account exists for this email, a reset link has been
+                    sent.
                   </p>
                 </div>
               </div>
@@ -171,7 +173,8 @@ const ForgotPasswordPage = () => {
                   to="/login"
                   className="text-xs font-medium text-slate-600 hover:text-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded"
                 >
-                  Remember your password? <span className="font-semibold text-blue-600">Sign in</span>
+                  Remember your password?{" "}
+                  <span className="font-semibold text-blue-600">Sign in</span>
                 </Link>
               </div>
             </form>
