@@ -1,5 +1,6 @@
 import {
   LuActivity,
+  LuArrowLeft,
   LuArrowRight,
   LuArrowUpRight,
   LuBaby,
@@ -26,6 +27,7 @@ import {
   LuListChecks,
   LuLogOut,
   LuLock,
+  LuMail,
   LuMicroscope,
   LuPackageCheck,
   LuPencil,
@@ -109,13 +111,15 @@ const ICONS = {
   "user-check": LuUserCheck,
   "arrow-up-right": LuArrowUpRight,
   print: LuPrinter,
-  // Login page icons
+  // Login & Auth icons
   shield: LuShield,
   "key-round": LuKeyRound,
   sparkles: LuSparkles,
   "arrow-right": LuArrowRight,
+  "arrow-left": LuArrowLeft,
   lock: LuLock,
   user: LuUser,
+  mail: LuMail,
 };
 
 const FALLBACK_ICON = LuCircleHelp;

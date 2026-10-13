@@ -11,6 +11,10 @@ export const mswState = {
   loginValid: true,
   loginRole: "ADMIN",
   loginErrorMode: null,
+  forgotPasswordHits: [],
+  forgotPasswordErrorMode: null,
+  resetPasswordHits: [],
+  resetPasswordErrorMode: null,
 };
 
 export const resetMswState = () => {
@@ -22,6 +26,10 @@ export const resetMswState = () => {
   mswState.loginValid = true;
   mswState.loginRole = "ADMIN";
   mswState.loginErrorMode = null;
+  mswState.forgotPasswordHits = [];
+  mswState.forgotPasswordErrorMode = null;
+  mswState.resetPasswordHits = [];
+  mswState.resetPasswordErrorMode = null;
 };
 
 const ok = (data, message = "ok") =>
@@ -70,6 +78,38 @@ export const handlers = [
         email: body?.username ?? "test@onecare.test",
       },
     });
+  }),
+  http.post("*/auth/forgot-password", async ({ request }) => {
+    const body = await request.json().catch(() => ({}));
+    mswState.forgotPasswordHits.push(body);
+
+    if (mswState.forgotPasswordErrorMode === "rate-limit") {
+      return fail(429, "Too many requests. Please slow down.");
+    }
+    if (mswState.forgotPasswordErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    if (mswState.forgotPasswordErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+
+    return ok(null, "Password reset instructions sent");
+  }),
+  http.post("*/auth/reset-password", async ({ request }) => {
+    const body = await request.json().catch(() => ({}));
+    mswState.resetPasswordHits.push(body);
+
+    if (mswState.resetPasswordErrorMode === "rate-limit") {
+      return fail(429, "Too many requests. Please slow down.");
+    }
+    if (mswState.resetPasswordErrorMode === "invalid-token") {
+      return fail(400, "Invalid or expired token");
+    }
+    if (mswState.resetPasswordErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+
+    return ok(null, "Password has been reset successfully");
   }),
   http.get("*/patients/:id", protectedReply),
   http.get("*/reports/:id", protectedReply),

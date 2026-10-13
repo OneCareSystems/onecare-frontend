@@ -62,10 +62,7 @@ describe("authService", () => {
   it("login accepts camelCase payloads", async () => {
     mock
       .onPost("/auth/login")
-      .reply(
-        200,
-        ok({ accessToken: "a", refreshToken: "r", expiresIn: 1800 }),
-      );
+      .reply(200, ok({ accessToken: "a", refreshToken: "r", expiresIn: 1800 }));
 
     await login({ email: "a@b.c", password: "secret" });
 
@@ -190,12 +187,39 @@ describe("authService", () => {
 
   it("exposes the service surface", () => {
     expect(Object.keys(authService).sort()).toEqual([
+      "forgotPassword",
       "getCurrentUser",
       "isAuthenticated",
       "login",
       "logout",
       "refresh",
+      "resetPassword",
     ]);
+  });
+
+  it("forgotPassword sends post to /auth/forgot-password with email and skipAuth", async () => {
+    mock.onPost("/auth/forgot-password").reply(200, ok(null));
+
+    const res = await authService.forgotPassword("user@example.com");
+
+    expect(res.success).toBe(true);
+    expect(JSON.parse(mock.history.post[0].data)).toEqual({
+      email: "user@example.com",
+    });
+    expect(header(mock.history.post[0], "Authorization")).toBeUndefined();
+  });
+
+  it("resetPassword sends post to /auth/reset-password with token, newPassword and skipAuth", async () => {
+    mock.onPost("/auth/reset-password").reply(200, ok(null));
+
+    const res = await authService.resetPassword("tok-123", "newPass12345");
+
+    expect(res.success).toBe(true);
+    expect(JSON.parse(mock.history.post[0].data)).toEqual({
+      token: "tok-123",
+      newPassword: "newPass12345",
+    });
+    expect(header(mock.history.post[0], "Authorization")).toBeUndefined();
   });
 
   it("never logs the password it sends", async () => {
@@ -208,5 +232,14 @@ describe("authService", () => {
 
     const logged = spy.mock.calls.flat().map((value) => JSON.stringify(value));
     expect(logged.join("\n")).not.toContain("super-secret");
+  });
+
+  it("never logs reset credentials or token", async () => {
+    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+    mock.onPost("/auth/reset-password").reply(200, ok(null));
+    await authService.resetPassword("secret-reset-token", "SecretPassword123!");
+    const logged = spy.mock.calls.flat().map((value) => JSON.stringify(value));
+    expect(logged.join("\n")).not.toContain("secret-reset-token");
+    expect(logged.join("\n")).not.toContain("SecretPassword123!");
   });
 });
