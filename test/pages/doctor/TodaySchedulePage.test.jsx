@@ -124,7 +124,7 @@ describe("TodaySchedulePage — doctor's consultation queue", () => {
 
     expect(
       await screen.findByRole("heading", {
-        name: "Consultation for appointment 101",
+        name: "Consultation Room",
       }),
     ).toBeInTheDocument();
   });
