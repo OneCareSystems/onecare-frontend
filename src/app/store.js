@@ -1,13 +1,13 @@
 import { configureStore, combineReducers } from "@reduxjs/toolkit";
-import { 
-  persistStore, 
-  persistReducer, 
-  FLUSH, 
-  REHYDRATE, 
-  PAUSE, 
-  PERSIST, 
-  PURGE, 
-  REGISTER 
+import {
+  persistStore,
+  persistReducer,
+  FLUSH,
+  REHYDRATE,
+  PAUSE,
+  PERSIST,
+  PURGE,
+  REGISTER,
 } from "redux-persist";
 import storageModule from "redux-persist/lib/storage";
 const storage = storageModule.default || storageModule;

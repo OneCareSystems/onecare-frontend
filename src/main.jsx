@@ -10,7 +10,10 @@ import "./i18n";
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <Provider store={store}>
-      <PersistGate loading={<div>Loading Session...</div>} persistor={persistor}>
+      <PersistGate
+        loading={<div>Loading Session...</div>}
+        persistor={persistor}
+      >
         <App />
       </PersistGate>
     </Provider>

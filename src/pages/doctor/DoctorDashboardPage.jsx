@@ -19,7 +19,7 @@ const DoctorDashboardPage = () => {
   const dispatch = useDispatch();
   const queue = useSelector(selectQueueRecords);
   const queueStatus = useSelector(selectQueueStatus);
-  
+
   const loading = queueStatus === "idle" || queueStatus === "loading";
   const error = queueStatus === "failed";
 
@@ -41,7 +41,9 @@ const DoctorDashboardPage = () => {
       {/* Header */}
       <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-primary-700">Doctor workspace</p>
+          <p className="text-sm font-semibold text-primary-700">
+            Doctor workspace
+          </p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-neutral-950 sm:text-3xl">
             Today’s appointments
           </h1>
@@ -57,7 +59,10 @@ const DoctorDashboardPage = () => {
             disabled={loading}
             className="inline-flex items-center gap-2"
           >
-            <Icon name="refresh" className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            <Icon
+              name="refresh"
+              className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
           <Link
@@ -72,7 +77,10 @@ const DoctorDashboardPage = () => {
 
       {/* Queue Summary Section */}
       <section aria-labelledby="queue-summary-heading" className="mb-8">
-        <h2 id="queue-summary-heading" className="mb-3 text-lg font-semibold text-neutral-900">
+        <h2
+          id="queue-summary-heading"
+          className="mb-3 text-lg font-semibold text-neutral-900"
+        >
           Queue summary
         </h2>
         {loading && queue.length === 0 ? (
@@ -94,13 +102,20 @@ const DoctorDashboardPage = () => {
           <div className="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <article className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
               <p className="text-sm text-neutral-600">Appointments today</p>
-              <p className="mt-1 text-2xl font-bold tabular-nums text-neutral-950">{queue.length}</p>
+              <p className="mt-1 text-2xl font-bold tabular-nums text-neutral-950">
+                {queue.length}
+              </p>
             </article>
             {statusCounts.map(({ status, count }) => (
-              <article key={status} className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+              <article
+                key={status}
+                className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm"
+              >
                 <p className="mb-2 text-sm text-neutral-600">By status</p>
                 <StatusBadge status={status}>{status}</StatusBadge>
-                <p className="mt-2 text-xl font-bold tabular-nums text-neutral-950">{count}</p>
+                <p className="mt-2 text-xl font-bold tabular-nums text-neutral-950">
+                  {count}
+                </p>
               </article>
             ))}
           </div>
@@ -111,12 +126,16 @@ const DoctorDashboardPage = () => {
       <section aria-labelledby="today-queue-heading">
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
-            <h2 id="today-queue-heading" className="text-lg font-semibold text-neutral-900">
+            <h2
+              id="today-queue-heading"
+              className="text-lg font-semibold text-neutral-900"
+            >
               Today’s queue
             </h2>
             {!loading && !error && queue.length > 0 && (
               <p className="mt-1 text-sm text-neutral-600">
-                {queue.length} {queue.length === 1 ? "appointment" : "appointments"}
+                {queue.length}{" "}
+                {queue.length === 1 ? "appointment" : "appointments"}
               </p>
             )}
           </div>
@@ -140,13 +159,18 @@ const DoctorDashboardPage = () => {
         ) : (
           <ul className="divide-y divide-neutral-200 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
             {queue.map((record) => (
-              <li key={record.appointmentId} className="flex flex-wrap items-center justify-between gap-3 p-4 transition-colors hover:bg-neutral-50 sm:px-5">
+              <li
+                key={record.appointmentId}
+                className="flex flex-wrap items-center justify-between gap-3 p-4 transition-colors hover:bg-neutral-50 sm:px-5"
+              >
                 <div>
                   <p className="font-semibold text-neutral-900">
                     Appointment {record.appointmentId}
                   </p>
                 </div>
-                <StatusBadge status={record.status}>{record.status}</StatusBadge>
+                <StatusBadge status={record.status}>
+                  {record.status}
+                </StatusBadge>
               </li>
             ))}
           </ul>

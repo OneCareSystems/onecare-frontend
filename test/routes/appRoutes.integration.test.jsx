@@ -72,7 +72,10 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
 
       expect(
         screen.getByRole("heading", {
-          name: heading === "DoctorDashboardPage" ? "Today’s appointments" : heading,
+          name:
+            heading === "DoctorDashboardPage"
+              ? "Today’s appointments"
+              : heading,
         }),
       ).toBeInTheDocument();
       expectLocation(path);

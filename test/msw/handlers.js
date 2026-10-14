@@ -122,7 +122,8 @@ export const handlers = [
       url: request.url,
       authorization: request.headers.get("Authorization"),
     });
-    if (mswState.queueErrorMode === "network-error") return HttpResponse.error();
+    if (mswState.queueErrorMode === "network-error")
+      return HttpResponse.error();
     if (mswState.queueErrorMode === "server-error") {
       return fail(500, "Internal server error");
     }
