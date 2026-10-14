@@ -14,30 +14,67 @@ export const NAV_ITEMS = Object.freeze({
       id: "dashboard",
       to: "/super-admin/dashboard",
       label: "Dashboard",
+      icon: "dashboard",
     }),
-    Object.freeze({ id: "queue", to: "/queue", label: "Queue" }),
+    Object.freeze({
+      id: "queue",
+      to: "/queue",
+      label: "Queue",
+      icon: "list-checks",
+    }),
   ]),
   [ROLES.ADMIN]: Object.freeze([
     Object.freeze({
       id: "dashboard",
       to: "/admin/dashboard",
       label: "Dashboard",
+      icon: "dashboard",
     }),
-    Object.freeze({ id: "queue", to: "/queue", label: "Queue" }),
+    Object.freeze({
+      id: "queue",
+      to: "/queue",
+      label: "Queue",
+      icon: "list-checks",
+    }),
   ]),
   [ROLES.DOCTOR]: Object.freeze([
     Object.freeze({
       id: "dashboard",
       to: "/doctor/dashboard",
       label: "Dashboard",
+      icon: "dashboard",
     }),
-    Object.freeze({ id: "queue", to: "/queue", label: "Queue" }),
+    Object.freeze({
+      id: "today-schedule",
+      to: "/doctor/today-schedule",
+      label: "Today’s schedule",
+      icon: "calendar-clock",
+    }),
+    Object.freeze({
+      id: "patient-records",
+      to: "/doctor/patient-records",
+      label: "Patients Records",
+      icon: "users",
+    }),
+    Object.freeze({
+      id: "knowledge-base",
+      to: "/doctor/knowledge-base",
+      label: "Knowledge Base",
+      icon: "brain",
+    }),
+    Object.freeze({
+      id: "queue",
+      to: "/queue",
+      label: "Queue",
+      icon: "list-checks",
+    }),
   ]),
   [ROLES.PHARMACIST]: Object.freeze([
     Object.freeze({
       id: "dashboard",
       to: "/pharmacist/dashboard",
       label: "Dashboard",
+      icon: "dashboard",
     }),
   ]),
 });
