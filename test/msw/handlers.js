@@ -27,6 +27,17 @@ export const mswState = {
   appointmentsHits: [],
   appointmentsResponses: [],
   appointmentsErrorMode: null,
+  appointmentUpdateHits: [],
+  appointmentUpdateErrorMode: null,
+  clinicalNotesHits: [],
+  clinicalNotesResponses: [],
+  clinicalNotesErrorMode: null,
+  historyHits: [],
+  historyResponses: [],
+  historyErrorMode: null,
+  prescriptionCreateHits: [],
+  prescriptionCreateResponses: [],
+  prescriptionCreateErrorMode: null,
 };
 
 export const resetMswState = () => {
@@ -54,6 +65,17 @@ export const resetMswState = () => {
   mswState.appointmentsHits = [];
   mswState.appointmentsResponses = [];
   mswState.appointmentsErrorMode = null;
+  mswState.appointmentUpdateHits = [];
+  mswState.appointmentUpdateErrorMode = null;
+  mswState.clinicalNotesHits = [];
+  mswState.clinicalNotesResponses = [];
+  mswState.clinicalNotesErrorMode = null;
+  mswState.historyHits = [];
+  mswState.historyResponses = [];
+  mswState.historyErrorMode = null;
+  mswState.prescriptionCreateHits = [];
+  mswState.prescriptionCreateResponses = [];
+  mswState.prescriptionCreateErrorMode = null;
 };
 
 const ok = (data, message = "ok") =>
@@ -235,6 +257,103 @@ export const handlers = [
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
     return ok(mswState.appointmentsResponses.shift() ?? []);
+  }),
+  // Clinical notes live on the appointment (unmerged backend branch
+  // `fix/44/align-clinical-notes`): PUT accepts only { clinicalNotes }.
+  http.put("*/appointments/:id", async ({ request, params }) => {
+    const body = await request.json().catch(() => ({}));
+    mswState.appointmentUpdateHits.push({
+      id: params.id,
+      body,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.appointmentUpdateErrorMode === "cancelled") {
+      return fail(
+        400,
+        "Clinical notes cannot be added to a cancelled appointment",
+      );
+    }
+    if (mswState.appointmentUpdateErrorMode === "forbidden") {
+      return fail(403, "Access denied");
+    }
+    if (mswState.appointmentUpdateErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    if (mswState.appointmentUpdateErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    return ok({
+      appointmentId: Number(params.id),
+      status: "SCHEDULED",
+      clinicalNotes: body?.clinicalNotes ?? null,
+    });
+  }),
+  http.get("*/appointments/:id/clinical-notes", async ({ params }) => {
+    mswState.clinicalNotesHits.push({ id: params.id });
+    if (mswState.clinicalNotesErrorMode === "not-found") {
+      return fail(404, "Appointment not found");
+    }
+    if (mswState.clinicalNotesErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    if (mswState.clinicalNotesErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    return ok(
+      mswState.clinicalNotesResponses.shift() ?? {
+        appointmentId: Number(params.id),
+        patientId: null,
+        doctorId: null,
+        clinicalNotes: "",
+      },
+    );
+  }),
+  http.get("*/appointments/patient/:patientId/history", async ({ params }) => {
+    mswState.historyHits.push({ patientId: params.patientId });
+    if (mswState.historyErrorMode === "not-found") {
+      return fail(404, "Patient not found");
+    }
+    if (mswState.historyErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    if (mswState.historyErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    return ok(
+      mswState.historyResponses.shift() ?? {
+        patientId: Number(params.patientId),
+        appointments: [],
+        prescriptions: [],
+      },
+    );
+  }),
+  http.post("*/prescriptions", async ({ request }) => {
+    const body = await request.json().catch(() => ({}));
+    mswState.prescriptionCreateHits.push({
+      body,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.prescriptionCreateErrorMode === "validation") {
+      return fail(400, "Invalid prescription");
+    }
+    if (mswState.prescriptionCreateErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    if (mswState.prescriptionCreateErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    return ok(
+      mswState.prescriptionCreateResponses.shift() ?? {
+        prescriptionId: 9001,
+        patientId: body?.patientId ?? null,
+        doctorId: 3,
+        appointmentId: body?.appointmentId ?? null,
+        date: "2026-10-14",
+        status: "ISSUED",
+        items: body?.items ?? [],
+        createdAt: "2026-10-14T09:00:00",
+      },
+    );
   }),
   http.get("*/reports/:id", protectedReply),
   http.get("*", ({ request }) => {

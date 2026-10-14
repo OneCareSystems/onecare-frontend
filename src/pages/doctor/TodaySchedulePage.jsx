@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
@@ -8,7 +8,6 @@ import ErrorMessage from "../../components/ErrorMessage";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import StatusBadge from "../../components/StatusBadge";
 import Table from "../../components/Table";
-import Toast from "../../components/Toast";
 import {
   fetchQueue,
   selectQueueRecords,
@@ -16,21 +15,7 @@ import {
 } from "../../features/queue/queueSlice";
 import useQueuePolling from "../../hooks/useQueuePolling";
 import { getPatients } from "../../services/patientService";
-import { completeAppointment } from "../../services/queueService";
 import { formatDisplayDate, toLocalDateString } from "../../utils/dateUtils";
-
-/**
- * Shown when the appointment changed status between render and the Complete
- * request (another staff member acted on it). Both 409 (per ticket) and 400
- * (what this backend actually returns for conflicting transitions) map here.
- */
-export const CONCURRENT_CHANGE_MESSAGE =
-  "This appointment's status has changed. The queue has been refreshed.";
-
-const COMPLETE_FAILED_MESSAGE =
-  "Unable to complete the consultation. Please try again.";
-
-const COMPLETED_TOAST_MESSAGE = "Consultation marked as completed.";
 
 /** `09:00:00` → `09:00`; echoes anything unexpected. */
 const formatTimeSlot = (timeSlot) => {
@@ -43,10 +28,13 @@ const formatTimeSlot = (timeSlot) => {
  *
  * Shows the signed-in doctor's queue in server-authoritative order
  * (`queuePosition` from the backend), filtered to the locally selected
- * calendar date, refreshing every ~2s. Doctors can start a consultation
- * (DOC-04) or mark one completed — admin-only actions such as Check In /
+ * calendar date, refreshing every ~2s.
+ *
+ * The queue itself is read-only here: "Start Consultation" opens DOC-04,
+ * where the whole consultation workflow — clinical notes, prescriptions
+ * and completion — takes place. Admin-only actions such as Check In /
  * No Show are deliberately absent, and the queue never changes
- * optimistically: it is re-fetched after every mutation.
+ * optimistically: it is re-fetched on every tick.
  */
 const TodaySchedulePage = () => {
   const dispatch = useDispatch();
@@ -56,10 +44,6 @@ const TodaySchedulePage = () => {
 
   const [selectedDate, setSelectedDate] = useState(() => toLocalDateString());
   const [patientNames, setPatientNames] = useState({});
-  const [toast, setToast] = useState(null);
-  const [completingId, setCompletingId] = useState(null);
-  // Request-level duplicate-click guard: appointment ids currently PATCHing.
-  const completingRef = useRef(new Set());
 
   const loading = queueStatus === "loading";
   const firstLoad = loading && records.length === 0;
@@ -97,33 +81,6 @@ const TodaySchedulePage = () => {
   // ~2s polling keeps the queue fresh without any manual refresh.
   useQueuePolling({ enabled: true, onTick: refresh });
 
-  const handleComplete = useCallback(
-    async (record) => {
-      // Duplicate-click protection at the request level.
-      if (completingRef.current.has(record.appointmentId)) return;
-      completingRef.current.add(record.appointmentId);
-      setCompletingId(record.appointmentId);
-
-      try {
-        await completeAppointment(record.appointmentId);
-        setToast({ type: "success", message: COMPLETED_TOAST_MESSAGE });
-      } catch (error) {
-        const status = error?.response?.status;
-        if (status === 409 || status === 400) {
-          setToast({ type: "warning", message: CONCURRENT_CHANGE_MESSAGE });
-        } else {
-          setToast({ type: "error", message: COMPLETE_FAILED_MESSAGE });
-        }
-      } finally {
-        completingRef.current.delete(record.appointmentId);
-        setCompletingId(null);
-        // Server-authoritative refresh — no optimistic queue changes.
-        dispatch(fetchQueue({ date: selectedDate }));
-      }
-    },
-    [dispatch, selectedDate],
-  );
-
   const handleDateChange = useCallback((event) => {
     setSelectedDate(event.target.value || toLocalDateString());
   }, []);
@@ -155,32 +112,22 @@ const TodaySchedulePage = () => {
         key: "actions",
         header: "Actions",
         render: (row) => {
-          const actionable = row.status === "SCHEDULED";
-          if (!actionable) return "—";
+          if (row.status !== "SCHEDULED") return "—";
           return (
-            <div className="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  navigate(`/doctor/consultation/${row.appointmentId}`)
-                }
-              >
-                Start Consultation
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => handleComplete(row)}
-                loading={completingId === row.appointmentId}
-              >
-                Complete
-              </Button>
-            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                navigate(`/doctor/consultation/${row.appointmentId}`)
+              }
+            >
+              Start Consultation
+            </Button>
           );
         },
       },
     ],
-    [patientNames, completingId, handleComplete, navigate],
+    [patientNames, navigate],
   );
 
   return (
@@ -194,8 +141,8 @@ const TodaySchedulePage = () => {
             Today’s schedule
           </h1>
           <p className="mt-2 text-sm text-neutral-600">
-            Review appointments for the selected date, start consultations and
-            mark them completed.
+            Review appointments for the selected date and open the consultation
+            screen to treat patients and complete appointments.
           </p>
           <p className="mt-1 text-sm font-medium text-neutral-800">
             {formatDisplayDate(selectedDate)}
@@ -220,16 +167,6 @@ const TodaySchedulePage = () => {
           </Button>
         </div>
       </header>
-
-      {toast && (
-        <div className="mb-4">
-          <Toast
-            message={toast.message}
-            type={toast.type}
-            onClose={() => setToast(null)}
-          />
-        </div>
-      )}
 
       <section aria-labelledby="schedule-queue-heading">
         <h2

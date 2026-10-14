@@ -10,9 +10,7 @@ import userEvent from "@testing-library/user-event";
 import { Provider } from "react-redux";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
-import TodaySchedulePage, {
-  CONCURRENT_CHANGE_MESSAGE,
-} from "../../../src/pages/doctor/TodaySchedulePage";
+import TodaySchedulePage from "../../../src/pages/doctor/TodaySchedulePage";
 import ConsultationPage from "../../../src/pages/doctor/ConsultationPage";
 import { setupStore } from "../../../src/app/store";
 import { QUEUE_POLL_INTERVAL_MS } from "../../../src/hooks/useQueuePolling";
@@ -131,30 +129,6 @@ describe("TodaySchedulePage — doctor's consultation queue", () => {
     ).toBeInTheDocument();
   });
 
-  it("AC1: Complete marks the appointment and refreshes from the server (no optimistic change)", async () => {
-    const user = userEvent.setup();
-    mswState.queueResponses = [
-      [scheduled()],
-      // The refetched queue reflects the server's view after completion.
-      [scheduled({ status: "COMPLETED" })],
-    ];
-    renderPage();
-
-    await screen.findByRole("table");
-    await user.click(screen.getByRole("button", { name: "Complete" }));
-
-    expect(mswState.queueCompleteHits).toHaveLength(1);
-    expect(mswState.queueCompleteHits[0]).toMatchObject({
-      id: "101",
-      body: { status: "COMPLETED" },
-    });
-    expect(
-      await screen.findByText("Consultation marked as completed."),
-    ).toBeInTheDocument();
-    await waitFor(() => expect(mswState.queueHits).toHaveLength(2));
-    expect(await screen.findByText("Completed")).toBeInTheDocument();
-  });
-
   it("AC3: shows the exact empty-state text when the date has no appointments", async () => {
     mswState.queueResponses = [[]];
     renderPage();
@@ -212,77 +186,7 @@ describe("TodaySchedulePage — doctor's consultation queue", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("AC2: a failed Complete shows an error toast and keeps the queue server-driven", async () => {
-    const user = userEvent.setup();
-    mswState.queueCompleteErrorMode = "server-error";
-    mswState.queueResponses = [[scheduled()], [scheduled()]];
-    renderPage();
-
-    await screen.findByRole("table");
-    await user.click(screen.getByRole("button", { name: "Complete" }));
-
-    expect(
-      await screen.findByText(
-        "Unable to complete the consultation. Please try again.",
-      ),
-    ).toBeInTheDocument();
-    // The queue was still re-fetched, never mutated optimistically.
-    await waitFor(() => expect(mswState.queueHits).toHaveLength(2));
-    expect(screen.getByText("Scheduled")).toBeInTheDocument();
-  });
-
-  it("AC4: shows the concurrent-change message on 409 and refreshes the queue", async () => {
-    const user = userEvent.setup();
-    mswState.queueCompleteErrorMode = "conflict";
-    mswState.queueResponses = [[scheduled()], []];
-    renderPage();
-
-    await screen.findByRole("table");
-    await user.click(screen.getByRole("button", { name: "Complete" }));
-
-    expect(
-      await screen.findByText(CONCURRENT_CHANGE_MESSAGE),
-    ).toBeInTheDocument();
-    // "The queue has been refreshed" — a refetch follows the conflict.
-    await waitFor(() => expect(mswState.queueHits).toHaveLength(2));
-    expect(
-      await screen.findByText(
-        "No appointments scheduled for the selected date.",
-      ),
-    ).toBeInTheDocument();
-  });
-
-  it("AC4: treats this backend's 400 conflict reports the same way", async () => {
-    const user = userEvent.setup();
-    mswState.queueCompleteErrorMode = "bad-request";
-    mswState.queueResponses = [[scheduled()], [scheduled()]];
-    renderPage();
-
-    await screen.findByRole("table");
-    await user.click(screen.getByRole("button", { name: "Complete" }));
-
-    expect(
-      await screen.findByText(CONCURRENT_CHANGE_MESSAGE),
-    ).toBeInTheDocument();
-    await waitFor(() => expect(mswState.queueHits).toHaveLength(2));
-  });
-
-  it("ignores duplicate Complete clicks while the request is in flight", async () => {
-    mswState.queueResponses = [[scheduled()], [scheduled()]];
-    const { container } = renderPage();
-
-    await screen.findByRole("table");
-    const completeButton = screen.getByRole("button", { name: "Complete" });
-    // Back-to-back clicks: the request-level guard must deduplicate.
-    fireEvent.click(completeButton);
-    fireEvent.click(completeButton);
-
-    await waitFor(() => expect(mswState.queueCompleteHits).toHaveLength(1));
-    await waitFor(() => expect(mswState.queueHits).toHaveLength(2));
-    expect(container).toBeTruthy();
-  });
-
-  it("never offers admin-only queue actions (Check In / No Show)", async () => {
+  it("never offers queue mutations or admin-only actions on the schedule page", async () => {
     mswState.queueResponses = [[scheduled()]];
     renderPage();
 
@@ -293,8 +197,12 @@ describe("TodaySchedulePage — doctor's consultation queue", () => {
     expect(
       screen.queryByRole("button", { name: /no\s*show/i }),
     ).not.toBeInTheDocument();
-    // Only the two doctor actions exist for a scheduled row.
-    expect(screen.getAllByRole("button")).toHaveLength(3); // + Refresh
+    // Completion happens on the consultation page only.
+    expect(
+      screen.queryByRole("button", { name: /complete/i }),
+    ).not.toBeInTheDocument();
+    // A scheduled row offers only Start Consultation; plus the header Refresh.
+    expect(screen.getAllByRole("button")).toHaveLength(2);
   });
 
   it("polls the queue about every 2 seconds", async () => {

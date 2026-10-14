@@ -2,8 +2,13 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   adaptAppointmentsResponse,
+  adaptClinicalNotesResponse,
+  adaptPatientHistoryResponse,
   findAppointment,
   getAppointments,
+  getClinicalNotes,
+  getPatientHistory,
+  saveClinicalNotes,
 } from "../../src/services/appointmentService";
 import { store } from "../../src/app/store";
 import { clearSession, setSession } from "../../src/features/auth/authSlice";
@@ -82,5 +87,88 @@ describe("appointmentService", () => {
     await expect(getAppointments()).rejects.toMatchObject({
       response: { status: 500 },
     });
+  });
+});
+
+describe("appointmentService — clinical notes (fix/44 contract)", () => {
+  it("adapts the clinical-notes response and rejects malformed payloads", () => {
+    expect(
+      adaptClinicalNotesResponse({
+        success: true,
+        message: "Clinical notes retrieved successfully",
+        data: {
+          appointmentId: 101,
+          patientId: 7,
+          doctorId: 3,
+          clinicalNotes: "Note",
+        },
+      }),
+    ).toEqual({
+      appointmentId: 101,
+      patientId: 7,
+      doctorId: 3,
+      clinicalNotes: "Note",
+    });
+
+    // Null notes come back as an empty string, not null.
+    expect(
+      adaptClinicalNotesResponse({
+        success: true,
+        data: { appointmentId: 1, clinicalNotes: null },
+      }).clinicalNotes,
+    ).toBe("");
+
+    expect(() =>
+      adaptClinicalNotesResponse({ success: true, data: {} }),
+    ).toThrow(/response format/i);
+  });
+
+  it("reads notes via GET /appointments/{id}/clinical-notes", async () => {
+    mswState.clinicalNotesResponses = [
+      { appointmentId: 101, patientId: 7, doctorId: 3, clinicalNotes: "A" },
+    ];
+    const notes = await getClinicalNotes(101);
+    expect(notes.clinicalNotes).toBe("A");
+    expect(mswState.clinicalNotesHits[0].id).toBe("101");
+  });
+
+  it("saves notes via PUT /appointments/{id} with only clinicalNotes", async () => {
+    store.dispatch(setSession({ accessToken: "a-access", role: "DOCTOR" }));
+    await saveClinicalNotes(101, "Started antibiotics.");
+
+    expect(mswState.appointmentUpdateHits).toHaveLength(1);
+    expect(mswState.appointmentUpdateHits[0]).toMatchObject({
+      id: "101",
+      body: { clinicalNotes: "Started antibiotics." },
+      authorization: "Bearer a-access",
+    });
+  });
+
+  it("surfaces the backend's cancelled-appointment rejection", async () => {
+    mswState.appointmentUpdateErrorMode = "cancelled";
+    await expect(saveClinicalNotes(101, "x")).rejects.toMatchObject({
+      response: { status: 400 },
+    });
+  });
+
+  it("adapts and fetches the patient history", () => {
+    expect(
+      adaptPatientHistoryResponse({
+        success: true,
+        data: { patientId: 7, appointments: null, prescriptions: null },
+      }),
+    ).toEqual({ patientId: 7, appointments: [], prescriptions: [] });
+    expect(() =>
+      adaptPatientHistoryResponse({ success: true, data: {} }),
+    ).toThrow(/response format/i);
+  });
+
+  it("fetches history via GET /appointments/patient/{id}/history", async () => {
+    mswState.historyResponses = [
+      { patientId: 7, appointments: [], prescriptions: [] },
+    ];
+    const history = await getPatientHistory(7);
+    expect(history.patientId).toBe(7);
+    expect(mswState.historyHits[0].patientId).toBe("7");
   });
 });
