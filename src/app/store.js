@@ -1,5 +1,6 @@
 import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "../features/auth/authSlice";
+import queueReducer from "../features/queue/queueSlice";
 
 /**
  * Single application store (Step 8 — never create more than one).
@@ -8,5 +9,6 @@ import authReducer from "../features/auth/authSlice";
 export const store = configureStore({
   reducer: {
     auth: authReducer,
+    queue: queueReducer,
   },
 });

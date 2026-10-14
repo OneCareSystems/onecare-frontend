@@ -15,6 +15,9 @@ export const mswState = {
   forgotPasswordErrorMode: null,
   resetPasswordHits: [],
   resetPasswordErrorMode: null,
+  queueHits: [],
+  queueErrorMode: null,
+  queueResponses: [],
 };
 
 export const resetMswState = () => {
@@ -30,6 +33,9 @@ export const resetMswState = () => {
   mswState.forgotPasswordErrorMode = null;
   mswState.resetPasswordHits = [];
   mswState.resetPasswordErrorMode = null;
+  mswState.queueHits = [];
+  mswState.queueErrorMode = null;
+  mswState.queueResponses = [];
 };
 
 const ok = (data, message = "ok") =>
@@ -110,6 +116,21 @@ export const handlers = [
     }
 
     return ok(null, "Password has been reset successfully");
+  }),
+  http.get("*/queue/today", async ({ request }) => {
+    mswState.queueHits.push({
+      url: request.url,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.queueErrorMode === "network-error") return HttpResponse.error();
+    if (mswState.queueErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    if (mswState.queueErrorMode === "delay") {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    const data = mswState.queueResponses.shift() ?? [];
+    return ok(data);
   }),
   http.get("*/patients/:id", protectedReply),
   http.get("*/reports/:id", protectedReply),
