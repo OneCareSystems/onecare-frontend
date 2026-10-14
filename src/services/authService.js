@@ -10,11 +10,6 @@ import {
   setSession,
 } from "../features/auth/authSlice";
 
-/**
- * CFG-02 — auth service (API Standards §7: /auth endpoints).
- * All calls go through the central client so interceptors apply.
- */
-
 export const login = async (credentials) => {
   const response = await apiClient.post("/auth/login", credentials, {
     skipAuth: true,

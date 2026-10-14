@@ -1,3 +1,4 @@
+
 import {
   LuActivity,
   LuArrowLeft,
@@ -53,20 +54,19 @@ import {
 } from "react-icons/lu";
 
 /**
- * CFG-07 — shared icon component (SDS §2.4.10; client feedback #4:
- * medical symbols). One registry so every screen draws icons from the
- * same set: medical glyphs (stethoscope, pill, calendar, …) plus the
- * UI glyphs shared chrome already needs.
+ * CFG-07 — Shared icon registry.
  *
- * Accessibility contract (AC2):
- * - Decorative by default: `aria-hidden="true"` + `focusable="false"`,
- *   so a labelled parent (link, button, heading) owns the accessible
- *   name and screen readers never announce the glyph twice.
- * - Meaningful standalone icons pass `label`, which renders
- *   `role="img"` + `aria-label` so the icon itself is announced.
+ * Centralizes medical and UI icons for consistent use throughout
+ * the application.
+ *
+ * Accessibility:
+ * - Decorative icons are hidden from screen readers by default.
+ * - Icons with a label are exposed as accessible images.
+ * - Accessibility props take precedence over forwarded props.
  */
-const ICONS = {
-  // Medical set (client feedback #4)
+
+// Medical icons
+const MEDICAL_ICONS = {
   stethoscope: LuStethoscope,
   pill: LuPill,
   calendar: LuCalendar,
@@ -89,7 +89,10 @@ const ICONS = {
   "eye-off": LuEyeOff,
   scan: LuScanLine,
   "shield-plus": LuShieldPlus,
-  // Shared UI set
+};
+
+// Shared UI icons
+const UI_ICONS = {
   dashboard: LuLayoutDashboard,
   "list-checks": LuListChecks,
   "log-out": LuLogOut,
@@ -111,7 +114,10 @@ const ICONS = {
   "user-check": LuUserCheck,
   "arrow-up-right": LuArrowUpRight,
   print: LuPrinter,
-  // Login & Auth icons
+};
+
+// Authentication icons
+const AUTH_ICONS = {
   shield: LuShield,
   "key-round": LuKeyRound,
   sparkles: LuSparkles,
@@ -122,21 +128,49 @@ const ICONS = {
   mail: LuMail,
 };
 
+// Combined registry preserves all existing icon names.
+const ICONS = {
+  ...MEDICAL_ICONS,
+  ...UI_ICONS,
+  ...AUTH_ICONS,
+};
+
 const FALLBACK_ICON = LuCircleHelp;
 
-const Icon = ({ name, label, size = "1em", className = "", ...rest }) => {
+/**
+ * Shared icon component.
+ *
+ * @param {object} props
+ * @param {string} props.name - Registry key.
+ * @param {string} [props.label] - Accessible name for meaningful icons.
+ * @param {string|number} [props.size="1em"] - Icon dimensions.
+ * @param {string} [props.className=""] - CSS classes.
+ */
+const Icon = ({
+  name,
+  label,
+  size = "1em",
+  className = "",
+  ...rest
+}) => {
   const Glyph = ICONS[name] ?? FALLBACK_ICON;
 
   const accessibilityProps = label
-    ? { role: "img", "aria-label": label }
-    : { "aria-hidden": "true", focusable: "false" };
+    ? {
+        role: "img",
+        "aria-label": label,
+      }
+    : {
+        "aria-hidden": true,
+        focusable: false,
+      };
 
   return (
     <Glyph
+      {...rest}
+      {...accessibilityProps}
       size={size}
       className={className}
-      {...accessibilityProps}
-      {...rest}
     />
   );
 };

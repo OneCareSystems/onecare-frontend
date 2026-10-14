@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   adaptQueueResponse,
+  completeAppointment,
   getTodayQueue,
 } from "../../src/services/queueService";
 import { store } from "../../src/app/store";
@@ -53,6 +54,38 @@ describe("queueService", () => {
     expect(new URL(mswState.queueHits[0].url, 'http://localhost').pathname).toMatch(
       /\/(api\/)?queue\/today$/,
     );
-    expect(mswState.queueHits[0].authorization).toBe("Bearer queue-access");
+    expect(new URL(mswState.queueHits[0].url).search).toBe("");
+  });
+
+  it("marks an appointment COMPLETED via PATCH /queue/{id}/status", async () => {
+    store.dispatch(setSession({ accessToken: "queue-access", role: "DOCTOR" }));
+    const data = await completeAppointment(42);
+    expect(data).toEqual({ appointmentId: 42, status: "COMPLETED" });
+    expect(mswState.queueCompleteHits).toHaveLength(1);
+    expect(mswState.queueCompleteHits[0]).toMatchObject({
+      id: "42",
+      body: { status: "COMPLETED" },
+      authorization: "Bearer queue-access",
+    });
+  });
+
+  it("surfaces conflicting status transitions as HTTP errors (409 and 400)", async () => {
+    mswState.queueCompleteErrorMode = "conflict";
+    await expect(completeAppointment(1)).rejects.toMatchObject({
+      response: { status: 409 },
+    });
+
+    // This backend actually reports invalid transitions as 400.
+    mswState.queueCompleteErrorMode = "bad-request";
+    await expect(completeAppointment(1)).rejects.toMatchObject({
+      response: { status: 400 },
+    });
+  });
+
+  it("rejects malformed completion payloads", async () => {
+    mswState.queueCompleteErrorMode = "server-error";
+    await expect(completeAppointment(1)).rejects.toMatchObject({
+      response: { status: 500 },
+    });
   });
 });
