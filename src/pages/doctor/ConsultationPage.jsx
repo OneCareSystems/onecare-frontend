@@ -18,7 +18,7 @@ import { getPatient } from "../../services/patientService";
 import { createPrescription } from "../../services/prescriptionService";
 import { completeAppointment } from "../../services/queueService";
 import { formatDisplayDate } from "../../utils/dateUtils";
-
+import Icon from "../../components/Icon";
 /** Backend limit: clinical notes are capped at 2000 characters. */
 export const CLINICAL_NOTES_MAX_LENGTH = 2000;
 
@@ -58,14 +58,6 @@ const EMPTY_ITEM = {
  * 2. record this encounter's clinical notes (stored on the appointment),
  * 3. issue a prescription if needed,
  * 4. mark the appointment COMPLETED.
- *
- * Completion only ever happens here — the schedule page links into this
- * screen and no longer mutates statuses. Everything shown comes from the
- * verified backend; nothing clinical is invented.
- *
- * Clinical notes / history endpoints depend on the unmerged backend branch
- * `fix/44/align-clinical-notes` (notes moved onto the appointment entity);
- * read failures degrade to "no notes available".
  */
 const ConsultationPage = () => {
   const { appointmentId } = useParams();
@@ -88,18 +80,29 @@ const ConsultationPage = () => {
   const [createdPrescriptions, setCreatedPrescriptions] = useState([]);
 
   const [completing, setCompleting] = useState(false);
-  // Request-level duplicate-click guard: ignores a second click while the
-  // completion PATCH is still in flight (state alone cannot guard two
-  // same-tick clicks).
   const completingRef = useRef(false);
   const [toast, setToast] = useState(null);
+
+  // Active duration timer (UI display)
+  const [timerSeconds, setTimerSeconds] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimerSeconds((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatTimer = (sec) => {
+    const mins = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${mins.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
 
   const isClosed =
     appointment?.status === "COMPLETED" || appointment?.status === "CANCELLED";
   const canComplete = appointment?.status === "SCHEDULED";
 
-  // Promise callbacks keep setState out of the synchronous effect body
-  // (react-hooks/set-state-in-effect) while staying retryable.
   const load = useCallback(() => {
     findAppointment(appointmentId)
       .then((found) => {
@@ -112,7 +115,6 @@ const ConsultationPage = () => {
         setAppointment(found);
         setLoadStatus("succeeded");
 
-        // Enrichment is best-effort: booking data must render regardless.
         const patientLoad =
           found.patientId === null || found.patientId === undefined
             ? Promise.resolve(null)
@@ -214,7 +216,6 @@ const ConsultationPage = () => {
   }, [appointment, creatingPrescription, items]);
 
   const handleComplete = useCallback(() => {
-    // Duplicate-click protection at the request level.
     if (completingRef.current) return;
     completingRef.current = true;
     setCompleting(true);
@@ -230,8 +231,6 @@ const ConsultationPage = () => {
         const status = error?.response?.status;
         if (status === 409 || status === 400) {
           setToast({ type: "warning", message: CONCURRENT_CHANGE_MESSAGE });
-          // The queue has been refreshed elsewhere — reload this screen
-          // so the doctor sees the current state.
           load();
         } else {
           setToast({ type: "error", message: COMPLETE_FAILED_MESSAGE });
@@ -252,16 +251,58 @@ const ConsultationPage = () => {
     ) ?? [];
 
   return (
-    <div className="mx-auto max-w-3xl py-4 sm:py-6">
-      <header>
-        <p className="text-sm font-semibold text-primary-700">Consultation</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-neutral-950 sm:text-3xl">
-          Consultation for appointment {appointmentId}
-        </h1>
-      </header>
+    <div className="max-w-7xl mx-auto space-y-6 px-4 py-6 sm:px-6">
+      {/* Top Banner with Active Timer */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-neutral-200 rounded-3xl p-5 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-primary-600 text-white flex items-center justify-center shadow-md shadow-primary-600/20">
+            <Icon name="stethoscope" className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-primary-700">
+                ACTIVE CONSULTATION
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">
+                Appt #{appointmentId}
+              </span>
+            </div>
+            <h1 className="text-base font-bold text-neutral-900">
+              Consultation Room
+            </h1>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 font-mono font-bold text-xs">
+            <Icon name="clock" className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+            <span>{formatTimer(timerSeconds)}</span>
+          </div>
+
+          {canComplete ? (
+            <Button
+              onClick={handleComplete}
+              loading={completing}
+              disabled={completing}
+              size="sm"
+            >
+              <Icon name="circle-check" className="w-4 h-4 mr-1.5" />
+              Complete Consultation
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/doctor/today-schedule")}
+            >
+              Back to Schedule
+            </Button>
+          )}
+        </div>
+      </div>
 
       {toast && (
-        <div className="mt-4">
+        <div className="my-2">
           <Toast
             message={toast.message}
             type={toast.type}
@@ -271,11 +312,11 @@ const ConsultationPage = () => {
       )}
 
       {loadStatus === "loading" ? (
-        <div className="mt-6 rounded-xl border border-neutral-200 bg-white p-6">
+        <div className="flex justify-center rounded-3xl border border-neutral-200 bg-white p-12 shadow-xs">
           <LoadingSpinner label="Loading consultation details" />
         </div>
       ) : loadStatus === "not-found" ? (
-        <div className="mt-6 space-y-3">
+        <div className="space-y-4 rounded-3xl border border-neutral-200 bg-white p-6 shadow-xs">
           <ErrorMessage
             title="Appointment not available"
             message="This appointment is not part of your schedule. It may have been removed or assigned to another doctor."
@@ -288,7 +329,7 @@ const ConsultationPage = () => {
           </Button>
         </div>
       ) : loadStatus === "failed" ? (
-        <div className="mt-6 space-y-3">
+        <div className="space-y-4 rounded-3xl border border-neutral-200 bg-white p-6 shadow-xs">
           <ErrorMessage
             title="Unable to load the consultation"
             message="Please check your connection and try again."
@@ -303,174 +344,186 @@ const ConsultationPage = () => {
           </Button>
         </div>
       ) : (
-        <>
-          {/* Booking summary — only what the backend actually stores. */}
-          <section
-            aria-label="Consultation details"
-            className="mt-6 rounded-xl border border-neutral-200 bg-white p-5 shadow-sm"
-          >
-            <dl className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <dt className="text-sm text-neutral-600">Patient</dt>
-                <dd className="mt-1 font-semibold text-neutral-900">
-                  {patientName ?? `Patient ${appointment.patientId ?? "—"}`}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-neutral-600">Status</dt>
-                <dd className="mt-1">
-                  <StatusBadge status={appointment.status} />
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-neutral-600">Date</dt>
-                <dd className="mt-1 font-medium text-neutral-900">
-                  {formatDisplayDate(
-                    String(appointment.appointmentDate ?? "").slice(0, 10),
-                  )}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-neutral-600">Time slot</dt>
-                <dd className="mt-1 font-medium text-neutral-900">
-                  {formatTimeSlot(appointment.timeSlot)}
-                </dd>
-              </div>
-              {appointment.reason ? (
-                <div className="sm:col-span-2">
-                  <dt className="text-sm text-neutral-600">Reason</dt>
-                  <dd className="mt-1 text-neutral-900">
-                    {appointment.reason}
-                  </dd>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left Column: Patient Profile & Clinical Notes */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* Patient Card */}
+            <div className="bg-white border border-neutral-200 rounded-3xl p-5 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <Icon name="user" className="w-4 h-4 text-primary-600" />
+                  <h2 className="text-sm font-bold text-neutral-900">Patient Details</h2>
                 </div>
-              ) : null}
-            </dl>
-          </section>
-
-          {/* Clinical notes for this encounter (fix/44 contract). */}
-          <section
-            aria-label="Clinical notes"
-            className="mt-6 rounded-xl border border-neutral-200 bg-white p-5 shadow-sm"
-          >
-            <h2 className="text-lg font-semibold text-neutral-900">
-              Clinical notes
-            </h2>
-            {isClosed ? (
-              <p className="mt-2 text-sm text-neutral-600">
-                {appointment.status === "CANCELLED"
-                  ? "Clinical notes cannot be added to a cancelled appointment."
-                  : "This consultation is completed; its clinical notes are read-only."}
-              </p>
-            ) : (
-              <>
-                <label
-                  htmlFor="clinical-notes"
-                  className="mt-3 block text-sm font-medium text-neutral-800"
-                >
-                  Notes for this encounter
-                </label>
-                <textarea
-                  id="clinical-notes"
-                  rows={5}
-                  maxLength={CLINICAL_NOTES_MAX_LENGTH}
-                  value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
-                  className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="Diagnosis, advice, follow-up…"
-                />
-                <div className="mt-2 flex items-center justify-between gap-3">
-                  <p className="text-xs text-neutral-500">
-                    {notes.length}/{CLINICAL_NOTES_MAX_LENGTH} characters
-                  </p>
-                  <Button
-                    onClick={handleSaveNotes}
-                    loading={notesSaving}
-                    disabled={notesSaving}
-                  >
-                    Save notes
-                  </Button>
-                </div>
-              </>
-            )}
-            {notesError && (
-              <div className="mt-3">
-                <ErrorMessage message={notesError} />
+                <StatusBadge status={appointment.status} />
               </div>
-            )}
-          </section>
 
-          {/* Previous encounters — clinical continuity (fix/44 contract). */}
-          <section
-            aria-label="Previous clinical notes"
-            className="mt-6 rounded-xl border border-neutral-200 bg-white p-5 shadow-sm"
-          >
-            <h2 className="text-lg font-semibold text-neutral-900">
-              Previous clinical notes
-            </h2>
-            {previousNotes.length === 0 ? (
-              <p className="mt-2 text-sm text-neutral-600">
-                No previous clinical notes for this patient.
-              </p>
-            ) : (
-              <ul className="mt-3 space-y-3">
-                {previousNotes.map((record) => (
-                  <li
-                    key={record.appointmentId}
-                    className="rounded-md border border-neutral-200 p-3"
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-semibold text-neutral-900">
-                        {formatDisplayDate(
-                          String(record.appointmentDate ?? "").slice(0, 10),
-                        )}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="p-3 rounded-2xl bg-neutral-50 border border-neutral-100">
+                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">
+                    Patient Name
+                  </span>
+                  <span className="text-xs font-bold text-neutral-900 truncate block mt-0.5">
+                    {patientName ?? `Patient ${appointment.patientId ?? "—"}`}
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-neutral-50 border border-neutral-100">
+                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">
+                    Date & Time
+                  </span>
+                  <span className="text-xs font-bold text-neutral-900 block mt-0.5">
+                    {formatDisplayDate(
+                      String(appointment.appointmentDate ?? "").slice(0, 10)
+                    )}{" "}
+                    • {formatTimeSlot(appointment.timeSlot)}
+                  </span>
+                </div>
+
+                <div className="col-span-2 sm:col-span-1 p-3 rounded-2xl bg-neutral-50 border border-neutral-100">
+                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">
+                    Reason
+                  </span>
+                  <span className="text-xs font-bold text-neutral-900 truncate block mt-0.5">
+                    {appointment.reason || "None specified"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Encounter Clinical Notes */}
+            <div className="bg-white border border-neutral-200 rounded-3xl p-5 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Icon name="clipboard" className="w-4 h-4 text-primary-600" />
+                  <h2 className="text-sm font-bold text-neutral-900">
+                    Clinical Examination & Notes
+                  </h2>
+                </div>
+                <span className="text-[10px] font-semibold text-neutral-400">
+                  {notes.length}/{CLINICAL_NOTES_MAX_LENGTH}
+                </span>
+              </div>
+
+              {isClosed ? (
+                <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 text-xs text-neutral-600">
+                  {appointment.status === "CANCELLED"
+                    ? "Clinical notes cannot be added to a cancelled appointment."
+                    : "This consultation is completed; its clinical notes are read-only."}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <textarea
+                    id="clinical-notes"
+                    rows={6}
+                    maxLength={CLINICAL_NOTES_MAX_LENGTH}
+                    value={notes}
+                    onChange={(event) => setNotes(event.target.value)}
+                    className="w-full p-4 text-xs bg-neutral-50/50 border border-neutral-200 rounded-2xl text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 leading-relaxed transition-all"
+                    placeholder="Diagnosis, advice, follow-up..."
+                  />
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={handleSaveNotes}
+                      loading={notesSaving}
+                      disabled={notesSaving}
+                      size="sm"
+                    >
+                      Save Notes
+                    </Button>
+                  </div>
+                </div>
+              )}
+              {notesError && <ErrorMessage message={notesError} />}
+            </div>
+
+            {/* Previous Encounter History */}
+            <div className="bg-white border border-neutral-200 rounded-3xl p-5 shadow-xs space-y-3">
+              <div className="flex items-center gap-2 border-b border-neutral-100 pb-3">
+                <Icon name="history" className="w-4 h-4 text-neutral-600" />
+                <h2 className="text-sm font-bold text-neutral-900">
+                  Previous Clinical Notes
+                </h2>
+              </div>
+
+              {previousNotes.length === 0 ? (
+                <p className="text-xs text-neutral-500">
+                  No previous clinical notes for this patient.
+                </p>
+              ) : (
+                <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                  {previousNotes.map((record) => (
+                    <div
+                      key={record.appointmentId}
+                      className="p-3.5 rounded-2xl bg-neutral-50 border border-neutral-200 text-xs space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-neutral-800">
+                          {formatDisplayDate(
+                            String(record.appointmentDate ?? "").slice(0, 10)
+                          )}
+                        </span>
+                        <StatusBadge status={record.status} />
+                      </div>
+                      <p className="text-neutral-700 whitespace-pre-wrap leading-relaxed">
+                        {record.clinicalNotes}
                       </p>
-                      <StatusBadge status={record.status} />
                     </div>
-                    <p className="mt-2 whitespace-pre-wrap text-sm text-neutral-800">
-                      {record.clinicalNotes}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
 
-          {/* Prescription (optional step before completing). */}
-          <section
-            aria-label="Prescriptions"
-            className="mt-6 rounded-xl border border-neutral-200 bg-white p-5 shadow-sm"
-          >
-            <h2 className="text-lg font-semibold text-neutral-900">
-              Prescriptions
-            </h2>
+          {/* Right Column: E-Prescription Builder */}
+          <div className="lg:col-span-5 space-y-6">
+            <div className="bg-white border border-neutral-200 rounded-3xl p-5 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <Icon name="pill" className="w-4 h-4 text-purple-600" />
+                  <h2 className="text-sm font-bold text-neutral-900">
+                    E-Prescription Builder
+                  </h2>
+                </div>
+                <span className="text-[10px] font-bold text-secondary bg-secondary/10 px-2.5 py-0.5 rounded-full">
+                  Pharmacy Queue
+                </span>
+              </div>
 
-            {createdPrescriptions.length > 0 && (
-              <ul className="mt-3 space-y-2">
-                {createdPrescriptions.map((prescription) => (
-                  <li
-                    key={prescription.prescriptionId}
-                    className="rounded-md border border-neutral-200 p-3 text-sm text-neutral-800"
-                  >
-                    Prescription #{prescription.prescriptionId} —{" "}
-                    {prescription.items.length}{" "}
-                    {prescription.items.length === 1 ? "item" : "items"} (
-                    {prescription.status})
-                  </li>
-                ))}
-              </ul>
-            )}
+              {createdPrescriptions.length > 0 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
+                    Issued Prescriptions
+                  </span>
+                  {createdPrescriptions.map((prescription) => (
+                    <div
+                      key={prescription.prescriptionId}
+                      className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center justify-between"
+                    >
+                      <span className="font-medium">
+                        Prescription #{prescription.prescriptionId} —{" "}
+                        {prescription.items.length}{" "}
+                        {prescription.items.length === 1 ? "item" : "items"}
+                      </span>
+                      <span className="font-bold text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full uppercase">
+                        {prescription.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-            {isClosed ? (
-              <p className="mt-2 text-sm text-neutral-600">
-                This consultation is closed; no further prescriptions can be
-                issued here.
-              </p>
-            ) : (
-              <>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {isClosed ? (
+                <p className="text-xs text-neutral-500">
+                  This consultation is closed; no further prescriptions can be issued here.
+                </p>
+              ) : (
+                <div className="space-y-3 bg-neutral-50 p-4 rounded-2xl border border-neutral-200">
+                  <span className="text-xs font-bold text-neutral-800 uppercase tracking-wider block">
+                    Add Medication Item
+                  </span>
                   <Input
                     id="rx-medicine"
-                    label="Medicine name"
+                    label="Medicine Name"
                     value={itemDraft.medicineName}
                     onChange={(event) =>
                       setItemDraft((draft) => ({
@@ -479,142 +532,130 @@ const ConsultationPage = () => {
                       }))
                     }
                   />
-                  <Input
-                    id="rx-dosage"
-                    label="Dosage"
-                    placeholder="1 tablet"
-                    value={itemDraft.dosage}
-                    onChange={(event) =>
-                      setItemDraft((draft) => ({
-                        ...draft,
-                        dosage: event.target.value,
-                      }))
-                    }
-                  />
-                  <Input
-                    id="rx-frequency"
-                    label="Frequency"
-                    placeholder="Twice daily"
-                    value={itemDraft.frequency}
-                    onChange={(event) =>
-                      setItemDraft((draft) => ({
-                        ...draft,
-                        frequency: event.target.value,
-                      }))
-                    }
-                  />
-                  <Input
-                    id="rx-duration"
-                    label="Duration (days)"
-                    type="number"
-                    min="1"
-                    value={itemDraft.durationDays}
-                    onChange={(event) =>
-                      setItemDraft((draft) => ({
-                        ...draft,
-                        durationDays: event.target.value,
-                      }))
-                    }
-                  />
-                  <Input
-                    id="rx-quantity"
-                    label="Quantity"
-                    type="number"
-                    min="1"
-                    value={itemDraft.quantity}
-                    onChange={(event) =>
-                      setItemDraft((draft) => ({
-                        ...draft,
-                        quantity: event.target.value,
-                      }))
-                    }
-                  />
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Button variant="outline" onClick={handleAddItem}>
-                    Add medicine
-                  </Button>
-                  <Button
-                    onClick={handleCreatePrescription}
-                    loading={creatingPrescription}
-                    disabled={items.length === 0 || creatingPrescription}
-                  >
-                    Create prescription
-                  </Button>
-                </div>
-              </>
-            )}
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      id="rx-dosage"
+                      label="Dosage"
+                      placeholder="1 tablet"
+                      value={itemDraft.dosage}
+                      onChange={(event) =>
+                        setItemDraft((draft) => ({
+                          ...draft,
+                          dosage: event.target.value,
+                        }))
+                      }
+                    />
+                    <Input
+                      id="rx-frequency"
+                      label="Frequency"
+                      placeholder="Twice daily"
+                      value={itemDraft.frequency}
+                      onChange={(event) =>
+                        setItemDraft((draft) => ({
+                          ...draft,
+                          frequency: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      id="rx-duration"
+                      label="Duration (days)"
+                      type="number"
+                      min="1"
+                      value={itemDraft.durationDays}
+                      onChange={(event) =>
+                        setItemDraft((draft) => ({
+                          ...draft,
+                          durationDays: event.target.value,
+                        }))
+                      }
+                    />
+                    <Input
+                      id="rx-quantity"
+                      label="Quantity"
+                      type="number"
+                      min="1"
+                      value={itemDraft.quantity}
+                      onChange={(event) =>
+                        setItemDraft((draft) => ({
+                          ...draft,
+                          quantity: event.target.value,
+                        }))
+                      }
+                    />
+                  </div>
 
-            {items.length === 0 ? (
-              <div className="mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddItem}
+                    className="w-full mt-1"
+                  >
+                    <Icon name="plus" className="w-3.5 h-3.5 mr-1" /> Add Medication
+                  </Button>
+                </div>
+              )}
+
+              {/* Added Medicines List */}
+              {items.length === 0 ? (
                 <EmptyState
                   title="No medicines added yet."
                   message="Add a medicine above to build this prescription."
                 />
-              </div>
-            ) : (
-              <ul className="mt-3 divide-y divide-neutral-200 rounded-md border border-neutral-200">
-                {items.map((item, index) => (
-                  <li
-                    key={`${item.medicineName}-${index}`}
-                    className="flex items-center justify-between gap-3 p-3 text-sm text-neutral-800"
-                  >
-                    <span>
-                      {item.medicineName} — {item.dosage}, {item.frequency},{" "}
-                      {item.durationDays} day
-                      {item.durationDays === 1 ? "" : "s"}, qty {item.quantity}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setItems((current) =>
-                          current.filter((_, i) => i !== index),
-                        )
-                      }
-                      className="rounded px-2 py-1 text-sm font-medium text-neutral-600 hover:bg-neutral-100"
+              ) : (
+                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                  {items.map((item, index) => (
+                    <div
+                      key={`${item.medicineName}-${index}`}
+                      className="p-3 rounded-2xl bg-neutral-50 border border-neutral-200 flex items-center justify-between text-xs"
                     >
-                      Remove
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+                      <div>
+                        <h4 className="font-bold text-neutral-900">
+                          {item.medicineName}{" "}
+                          <span className="font-mono text-primary-600 font-medium">
+                            ({item.dosage})
+                          </span>
+                        </h4>
+                        <p className="text-[10px] text-neutral-500 mt-0.5">
+                          {item.frequency} • {item.durationDays} day
+                          {item.durationDays === 1 ? "" : "s"} • Qty: {item.quantity}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setItems((current) =>
+                            current.filter((_, i) => i !== index)
+                          )
+                        }
+                        className="p-1 text-neutral-400 hover:text-rose-600 transition-colors"
+                      >
+                        <Icon name="trash" className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-            {prescriptionError && (
-              <div className="mt-3">
-                <ErrorMessage message={prescriptionError} />
-              </div>
-            )}
-          </section>
+              {!isClosed && items.length > 0 && (
+                <Button
+                  onClick={handleCreatePrescription}
+                  loading={creatingPrescription}
+                  disabled={creatingPrescription}
+                  className="w-full"
+                  size="sm"
+                >
+                  <Icon name="trash" className="w-3.5 h-3.5 mr-1.5" />
+                  Transmit Prescription
+                </Button>
+              )}
 
-          {/* Completion — happens here and only here. */}
-          <section
-            aria-label="Complete consultation"
-            className="mt-6 flex flex-wrap items-center gap-3"
-          >
-            {canComplete ? (
-              <Button
-                onClick={handleComplete}
-                loading={completing}
-                disabled={completing}
-              >
-                Complete consultation
-              </Button>
-            ) : (
-              <p className="text-sm text-neutral-600">
-                {appointment.status === "COMPLETED"
-                  ? "This consultation has been completed."
-                  : "This appointment is cancelled; it cannot be completed."}
-              </p>
-            )}
-            <Button
-              variant="outline"
-              onClick={() => navigate("/doctor/today-schedule")}
-            >
-              Back to today’s schedule
-            </Button>
-          </section>
-        </>
+              {prescriptionError && <ErrorMessage message={prescriptionError} />}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

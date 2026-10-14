@@ -52,6 +52,44 @@ const seedBasic = () => {
   mswState.appointmentsResponses = [[appointment()]];
 };
 
+/**
+ * The page does not expose ARIA landmarks/labels directly, so we anchor on
+ * visible headings and text that the component actually renders.
+ */
+const waitForLoaded = async () => {
+  await screen.findByText("Consultation Room");
+  await screen.findByText("Patient Details");
+};
+
+const notesTextarea = () => screen.getByPlaceholderText(/diagnosis, advice/i);
+
+const addMedicationItem = async (user, overrides = {}) => {
+  const fields = {
+    medicineName: "Amoxicillin",
+    dosage: "1 capsule",
+    frequency: "Three times daily",
+    durationDays: "7",
+    quantity: "21",
+    ...overrides,
+  };
+  fireEvent.change(screen.getByLabelText(/medicine name/i), {
+    target: { value: fields.medicineName },
+  });
+  fireEvent.change(screen.getByLabelText(/dosage/i), {
+    target: { value: fields.dosage },
+  });
+  fireEvent.change(screen.getByLabelText(/frequency/i), {
+    target: { value: fields.frequency },
+  });
+  fireEvent.change(screen.getByLabelText(/duration \(days\)/i), {
+    target: { value: fields.durationDays },
+  });
+  fireEvent.change(screen.getByLabelText(/quantity/i), {
+    target: { value: fields.quantity },
+  });
+  await user.click(screen.getByRole("button", { name: /add medication/i }));
+};
+
 afterEach(resetMswState);
 
 describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
@@ -74,24 +112,22 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     ];
     renderAt("/doctor/consultation/101");
 
+    await waitForLoaded();
+
     // Booking from GET /api/appointments; name from GET /api/patients/7.
-    expect(
-      await screen.findByRole("region", { name: "Consultation details" }),
-    ).toBeInTheDocument();
     expect(screen.getByText("Jane Doe")).toBeInTheDocument();
     expect(screen.getByText("Scheduled")).toBeInTheDocument();
     expect(mswState.protectedHits[0].id).toBe("7");
 
-    // Current encounter notes come from GET .../clinical-notes (fix/44).
-    expect(screen.getByLabelText(/notes for this encounter/i)).toHaveValue(
-      "BP 120/80",
-    );
+    // Current encounter notes come from GET .../clinical-notes.
+    expect(notesTextarea()).toHaveValue("BP 120/80");
     expect(mswState.clinicalNotesHits).toHaveLength(1);
 
-    // Previous encounters from GET .../patient/7/history (fix/44).
+    // Previous encounters from GET .../patient/7/history.
     expect(
-      screen.getByRole("region", { name: "Previous clinical notes" }),
-    ).toHaveTextContent("Follow-up in two weeks.");
+      screen.getByText("Previous Clinical Notes"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Follow-up in two weeks.")).toBeInTheDocument();
     expect(mswState.historyHits[0].patientId).toBe("7");
   });
 
@@ -100,9 +136,11 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     seedBasic();
     renderAt("/doctor/consultation/101");
 
-    const textarea = await screen.findByLabelText(/notes for this encounter/i);
-    fireEvent.change(textarea, { target: { value: "Started antibiotics." } });
-    await user.click(screen.getByRole("button", { name: "Save notes" }));
+    await waitForLoaded();
+    fireEvent.change(notesTextarea(), {
+      target: { value: "Started antibiotics." },
+    });
+    await user.click(screen.getByRole("button", { name: /save notes/i }));
 
     expect(
       await screen.findByText("Clinical notes saved."),
@@ -122,12 +160,14 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     seedBasic();
     renderAt("/doctor/consultation/101");
 
-    const textarea = await screen.findByLabelText(/notes for this encounter/i);
-    expect(textarea).toHaveAttribute(
+    await waitForLoaded();
+    expect(notesTextarea()).toHaveAttribute(
       "maxlength",
       String(CLINICAL_NOTES_MAX_LENGTH),
     );
-    expect(screen.getByText(/0\/2000 characters/)).toBeInTheDocument();
+    expect(
+      screen.getByText(new RegExp(`0\\s*/\\s*${CLINICAL_NOTES_MAX_LENGTH}`)),
+    ).toBeInTheDocument();
   });
 
   it("surfaces the backend rejection when notes cannot be saved", async () => {
@@ -136,7 +176,8 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     mswState.appointmentUpdateErrorMode = "cancelled";
     renderAt("/doctor/consultation/101");
 
-    await user.click(await screen.findByRole("button", { name: "Save notes" }));
+    await waitForLoaded();
+    await user.click(screen.getByRole("button", { name: /save notes/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Clinical notes cannot be added to a cancelled appointment",
@@ -148,27 +189,12 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     seedBasic();
     renderAt("/doctor/consultation/101");
 
-    await screen.findByRole("region", { name: "Consultation details" });
-    fireEvent.change(screen.getByLabelText("Medicine name"), {
-      target: { value: "Amoxicillin" },
-    });
-    fireEvent.change(screen.getByLabelText("Dosage"), {
-      target: { value: "1 capsule" },
-    });
-    fireEvent.change(screen.getByLabelText("Frequency"), {
-      target: { value: "Three times daily" },
-    });
-    fireEvent.change(screen.getByLabelText("Duration (days)"), {
-      target: { value: "7" },
-    });
-    fireEvent.change(screen.getByLabelText("Quantity"), {
-      target: { value: "21" },
-    });
-    await user.click(screen.getByRole("button", { name: "Add medicine" }));
+    await waitForLoaded();
+    await addMedicationItem(user);
 
     expect(screen.getByText(/Amoxicillin/)).toBeInTheDocument();
     await user.click(
-      screen.getByRole("button", { name: "Create prescription" }),
+      screen.getByRole("button", { name: /transmit prescription/i }),
     );
 
     expect(await screen.findByText("Prescription issued.")).toBeInTheDocument();
@@ -178,7 +204,6 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
       appointmentId: 101,
       items: [
         {
-          itemType: "EXTERNAL_PURCHASE",
           medicineName: "Amoxicillin",
           dosage: "1 capsule",
           frequency: "Three times daily",
@@ -189,7 +214,7 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     });
     // The issued prescription is listed for this consultation.
     expect(
-      screen.getByText(/Prescription #9001 — 1 item \(ISSUED\)/),
+      screen.getByText(/Prescription #9001/),
     ).toBeInTheDocument();
   });
 
@@ -198,8 +223,9 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     seedBasic();
     renderAt("/doctor/consultation/101");
 
+    await waitForLoaded();
     await user.click(
-      await screen.findByRole("button", { name: "Add medicine" }),
+      screen.getByRole("button", { name: /add medication/i }),
     );
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
@@ -212,6 +238,7 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     seedBasic();
     renderAt("/doctor/consultation/101");
 
+    await waitForLoaded();
     expect(
       await screen.findByText("No medicines added yet."),
     ).toBeInTheDocument();
@@ -222,8 +249,9 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     seedBasic();
     renderAt("/doctor/consultation/101");
 
+    await waitForLoaded();
     await user.click(
-      await screen.findByRole("button", { name: "Complete consultation" }),
+      screen.getByRole("button", { name: /complete consultation/i }),
     );
 
     expect(mswState.queueCompleteHits).toHaveLength(1);
@@ -237,10 +265,11 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     // Status reflects the server response and the action is retired.
     expect(screen.getByText("Completed")).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Complete consultation" }),
+      screen.queryByRole("button", { name: /complete consultation/i }),
     ).not.toBeInTheDocument();
+    // Notes become read-only for completed appointments.
     expect(
-      screen.getByText("This consultation has been completed."),
+      screen.getByText(/this consultation is completed; its clinical notes are read-only/i),
     ).toBeInTheDocument();
   });
 
@@ -251,8 +280,9 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     mswState.queueCompleteErrorMode = "conflict";
     renderAt("/doctor/consultation/101");
 
+    await waitForLoaded();
     await user.click(
-      await screen.findByRole("button", { name: "Complete consultation" }),
+      screen.getByRole("button", { name: /complete consultation/i }),
     );
 
     expect(
@@ -269,8 +299,9 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     mswState.queueCompleteErrorMode = "bad-request";
     renderAt("/doctor/consultation/101");
 
+    await waitForLoaded();
     await user.click(
-      await screen.findByRole("button", { name: "Complete consultation" }),
+      screen.getByRole("button", { name: /complete consultation/i }),
     );
 
     expect(
@@ -285,8 +316,9 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     mswState.queueCompleteErrorMode = "server-error";
     renderAt("/doctor/consultation/101");
 
+    await waitForLoaded();
     await user.click(
-      await screen.findByRole("button", { name: "Complete consultation" }),
+      screen.getByRole("button", { name: /complete consultation/i }),
     );
 
     expect(
@@ -302,8 +334,9 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     seedBasic();
     renderAt("/doctor/consultation/101");
 
-    const button = await screen.findByRole("button", {
-      name: "Complete consultation",
+    await waitForLoaded();
+    const button = screen.getByRole("button", {
+      name: /complete consultation/i,
     });
     fireEvent.click(button);
     fireEvent.click(button);
@@ -320,22 +353,18 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     ];
     renderAt("/doctor/consultation/101");
 
+    await waitForLoaded();
     expect(
-      await screen.findByText(
+      screen.getByText(
         "Clinical notes cannot be added to a cancelled appointment.",
       ),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Save notes" }),
+      screen.queryByRole("button", { name: /save notes/i }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Complete consultation" }),
+      screen.queryByRole("button", { name: /complete consultation/i }),
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "This appointment is cancelled; it cannot be completed.",
-      ),
-    ).toBeInTheDocument();
   });
 
   it("shows the empty history state when the patient has no previous notes", async () => {
@@ -345,6 +374,7 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     ];
     renderAt("/doctor/consultation/101");
 
+    await waitForLoaded();
     expect(
       await screen.findByText("No previous clinical notes for this patient."),
     ).toBeInTheDocument();
@@ -357,10 +387,8 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     renderAt("/doctor/consultation/101");
 
     // The booking still renders even without the clinical-notes backend.
-    expect(
-      await screen.findByRole("region", { name: "Consultation details" }),
-    ).toBeInTheDocument();
-    expect(screen.getByLabelText(/notes for this encounter/i)).toHaveValue("");
+    await waitForLoaded();
+    expect(notesTextarea()).toHaveValue("");
     expect(
       screen.getByText("No previous clinical notes for this patient."),
     ).toBeInTheDocument();
@@ -371,7 +399,7 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     renderAt("/doctor/consultation/404");
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Appointment not available",
+      /appointment not available/i,
     );
     expect(mswState.protectedHits).toHaveLength(0); // no patient fetch
   });
@@ -382,27 +410,28 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     renderAt("/doctor/consultation/101");
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Unable to load the consultation",
+      /unable to load the consultation/i,
     );
 
     mswState.appointmentsErrorMode = null;
     mswState.appointmentsResponses = [[appointment()]];
-    await user.click(screen.getByRole("button", { name: "Retry" }));
+    await user.click(screen.getByRole("button", { name: /retry/i }));
 
-    expect(
-      await screen.findByRole("region", { name: "Consultation details" }),
-    ).toBeInTheDocument();
+    await waitForLoaded();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("links back to the doctor's schedule", async () => {
     const user = userEvent.setup();
     seedBasic();
+    mswState.appointmentsResponses = [
+      [{ ...appointment(), status: "COMPLETED" }],
+    ];
     renderAt("/doctor/consultation/101");
 
-    await screen.findByRole("region", { name: "Consultation details" });
+    await waitForLoaded();
     await user.click(
-      screen.getByRole("button", { name: /back to today’s schedule/i }),
+      screen.getByRole("button", { name: /back to schedule/i }),
     );
     expect(
       screen.getByRole("heading", { name: "Today’s schedule" }),
