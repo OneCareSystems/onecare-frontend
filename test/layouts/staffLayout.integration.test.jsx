@@ -42,7 +42,7 @@ describe("StaffLayout — CFG-04 staff chrome (integration)", () => {
     renderAppAt("/doctor/dashboard");
 
     expect(
-      screen.getByRole("heading", { name: "DoctorDashboardPage" }),
+      screen.getByRole("heading", { name: "Today’s appointments" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /log out/i }),

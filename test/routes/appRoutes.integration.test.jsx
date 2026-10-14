@@ -51,7 +51,7 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
     renderAppAt("/doctor/dashboard");
 
     expect(
-      screen.getByRole("heading", { name: "DoctorDashboardPage" }),
+      screen.getByRole("heading", { name: "Today’s appointments" }),
     ).toBeInTheDocument();
     expectLocation("/doctor/dashboard");
   });
@@ -71,7 +71,9 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
       const { unmount } = renderAppAt(path);
 
       expect(
-        screen.getByRole("heading", { name: heading }),
+        screen.getByRole("heading", {
+          name: heading === "DoctorDashboardPage" ? "Today’s appointments" : heading,
+        }),
       ).toBeInTheDocument();
       expectLocation(path);
       unmount();
@@ -181,7 +183,7 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("heading", { name: "DoctorDashboardPage" }),
+        screen.getByRole("heading", { name: "Today’s appointments" }),
       ).toBeInTheDocument();
     });
     expectLocation("/doctor/dashboard");
