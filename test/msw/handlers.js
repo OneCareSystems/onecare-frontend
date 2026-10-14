@@ -18,6 +18,11 @@ export const mswState = {
   queueHits: [],
   queueErrorMode: null,
   queueResponses: [],
+  queueCompleteHits: [],
+  queueCompleteErrorMode: null,
+  patientsHits: [],
+  patientsResponses: [],
+  patientsErrorMode: null,
 };
 
 export const resetMswState = () => {
@@ -36,6 +41,11 @@ export const resetMswState = () => {
   mswState.queueHits = [];
   mswState.queueErrorMode = null;
   mswState.queueResponses = [];
+  mswState.queueCompleteHits = [];
+  mswState.queueCompleteErrorMode = null;
+  mswState.patientsHits = [];
+  mswState.patientsResponses = [];
+  mswState.patientsErrorMode = null;
 };
 
 const ok = (data, message = "ok") =>
@@ -132,6 +142,48 @@ export const handlers = [
     }
     const data = mswState.queueResponses.shift() ?? [];
     return ok(data);
+  }),
+  // DOC-04 Complete action — verified backend contract:
+  // PATCH /api/queue/{appointmentId}/status with { status: "COMPLETED" }.
+  http.patch("*/queue/:id/status", async ({ request, params }) => {
+    const body = await request.json().catch(() => ({}));
+    mswState.queueCompleteHits.push({
+      id: params.id,
+      body,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.queueCompleteErrorMode === "conflict") {
+      return fail(409, "Appointment status changed");
+    }
+    // The backend reports conflicting transitions as 400
+    // (InvalidAppointmentStatusException), not 409.
+    if (mswState.queueCompleteErrorMode === "bad-request") {
+      return fail(400, "Invalid appointment status transition");
+    }
+    if (mswState.queueCompleteErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    if (mswState.queueCompleteErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    return ok({
+      appointmentId: Number(params.id),
+      status: body?.status ?? "COMPLETED",
+    });
+  }),
+  // Patient directory (doctor holds PATIENT_READ) used only to label rows.
+  http.get("*/patients", ({ request }) => {
+    mswState.patientsHits.push({
+      url: request.url,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.patientsErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    if (mswState.patientsErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    return ok(mswState.patientsResponses.shift() ?? []);
   }),
   http.get("*/patients/:id", protectedReply),
   http.get("*/reports/:id", protectedReply),
