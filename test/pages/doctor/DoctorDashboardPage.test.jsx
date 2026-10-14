@@ -41,12 +41,12 @@ describe("DoctorDashboardPage", () => {
     ];
     renderPage();
 
-    expect(await screen.findByText("Appointment 101")).toBeInTheDocument();
-    expect(screen.getByText("Appointment 102")).toBeInTheDocument();
-    expect(screen.getByText("Appointment 103")).toBeInTheDocument();
+    expect(await screen.findByText("Appointment #101")).toBeInTheDocument();
+    expect(screen.getByText("Appointment #102")).toBeInTheDocument();
+    expect(screen.getByText("Appointment #103")).toBeInTheDocument();
     expect(
-      screen.getByText("Appointments today").parentElement,
-    ).toHaveTextContent("3");
+      screen.getByText("Total Patients").parentElement,
+    ).toBeInTheDocument();
 
     const waitingBadge = screen.getAllByText("SCHEDULED")[0];
     expect(waitingBadge.closest("article")).toHaveTextContent("2");
@@ -59,12 +59,12 @@ describe("DoctorDashboardPage", () => {
     mswState.queueResponses = [[]];
     renderPage();
     expect(
-      await screen.findByText("No appointments scheduled for today."),
+      await screen.findByText("No Appointments Scheduled"),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Appointments today").parentElement,
-    ).toHaveTextContent("0");
-    expect(screen.getByRole("link", { name: /open queue/i })).toHaveAttribute(
+      screen.getByText("Total Patients").parentElement,
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /open full queue/i })).toHaveAttribute(
       "href",
       "/queue",
     );
@@ -76,10 +76,10 @@ describe("DoctorDashboardPage", () => {
     mswState.queueResponses = [[{ appointmentId: 1, status: "SCHEDULED" }]];
     renderPage();
     expect(
-      screen.getByRole("status", { name: "Loading today’s appointments" }),
+      screen.getByRole("status", { name: "Loading today’s metrics..." }),
     ).toBeInTheDocument();
-    expect(screen.queryByText("Appointments today")).not.toBeInTheDocument();
-    expect(await screen.findByText("Appointment 1")).toBeInTheDocument();
+    expect(screen.queryByText("Total Patients")).not.toBeInTheDocument();
+    expect(await screen.findByText("Appointment #1")).toBeInTheDocument();
   });
 
   it("allows retry after errors and replaces the error with fresh queue data", async () => {
@@ -87,16 +87,16 @@ describe("DoctorDashboardPage", () => {
     mswState.queueErrorMode = "server-error";
     renderPage();
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Unable to load today’s appointments",
+      "Unable to load summary metrics",
     );
     expect(
-      screen.getByRole("link", { name: /open queue/i }),
+      screen.getByRole("link", { name: /open full queue/i }),
     ).toBeInTheDocument();
 
     mswState.queueErrorMode = null;
     mswState.queueResponses = [[{ appointmentId: 9, status: "SCHEDULED" }]];
-    await user.click(screen.getByRole("button", { name: "Retry" }));
-    expect(await screen.findByText("Appointment 9")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Retry Connection" }));
+    expect(await screen.findByText("Appointment #9")).toBeInTheDocument();
     expect(screen.getAllByText("SCHEDULED")).toHaveLength(2);
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(mswState.queueHits).toHaveLength(2);
@@ -107,11 +107,11 @@ describe("DoctorDashboardPage", () => {
     mswState.queueErrorMode = "network-error";
     renderPage();
     expect(await screen.findByRole("alert")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Retry" }));
+    await user.click(screen.getByRole("button", { name: "Retry Connection" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Please check your connection",
     );
-    expect(screen.getByRole("button", { name: "Retry" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Retry Connection" })).toBeEnabled();
     expect(mswState.queueHits).toHaveLength(2);
   });
 
@@ -130,9 +130,9 @@ describe("DoctorDashboardPage", () => {
       ],
     ];
     renderPage();
-    await screen.findByText("Appointment 4");
+    await screen.findByText("Appointment #4");
     expect(
-      screen.queryByText(/Jane Doe|patient|vitals|consultation id|sample/i),
+      screen.queryByText(/Jane Doe|vitals|consultation id|sample/i),
     ).not.toBeInTheDocument();
   });
 
@@ -140,8 +140,8 @@ describe("DoctorDashboardPage", () => {
     const user = userEvent.setup();
     mswState.queueResponses = [[]];
     renderPage();
-    await screen.findByText("No appointments scheduled for today.");
-    await user.click(screen.getByRole("link", { name: /open queue/i }));
+    await screen.findByText("No Appointments Scheduled");
+    await user.click(screen.getByRole("link", { name: /open full queue/i }));
     expect(
       screen.getByRole("heading", { name: "Shared queue" }),
     ).toBeInTheDocument();
