@@ -2,13 +2,11 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   adaptQueueResponse,
   completeAppointment,
-  getQueue,
   getTodayQueue,
 } from "../../src/services/queueService";
 import { store } from "../../src/app/store";
 import { clearSession, setSession } from "../../src/features/auth/authSlice";
 import { mswState, resetMswState } from "../msw/handlers";
-import { toLocalDateString } from "../../src/utils/dateUtils";
 
 afterEach(() => {
   store.dispatch(clearSession());
