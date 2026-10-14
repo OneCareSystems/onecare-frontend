@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useCallback } from "react";
+import { useEffect, useMemo, useCallback, memo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 
@@ -14,6 +14,30 @@ import {
   selectQueueStatus,
 } from "../../features/queue/queueSlice";
 import { calculateQueueStatusCounts } from "../../utils/queueStatusCounts";
+
+// Memoized individual queue row for high-performance re-renders
+const QueueItem = memo(({ record }) => (
+  <li className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 sm:px-6 transition-all duration-150 hover:bg-neutral-50/80">
+    <div className="flex items-center gap-3.5">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-700 font-semibold text-sm">
+        #{record.appointmentId}
+      </div>
+      <div>
+        <p className="font-semibold text-neutral-900">
+          {record.patientName || `Appointment #${record.appointmentId}`}
+        </p>
+        <p className="text-xs text-neutral-500 mt-0.5">
+          {record.appointmentTime || "Scheduled today"}
+        </p>
+      </div>
+    </div>
+    <div className="flex items-center justify-between sm:justify-end gap-3">
+      <StatusBadge status={record.status}>{record.status}</StatusBadge>
+    </div>
+  </li>
+));
+
+QueueItem.displayName = "QueueItem";
 
 const DoctorDashboardPage = () => {
   const dispatch = useDispatch();
@@ -37,18 +61,19 @@ const DoctorDashboardPage = () => {
   );
 
   return (
-    <div className="mx-auto max-w-6xl py-4 sm:py-6">
+    <div className="mx-auto max-w-7xl py-6 px-4 sm:px-6 lg:px-8">
       {/* Header */}
-      <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
+      <header className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-neutral-200 pb-6">
         <div>
-          <p className="text-sm font-semibold text-primary-700">
-            Doctor workspace
-          </p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-neutral-950 sm:text-3xl">
-            Today’s appointments
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary-50 text-primary-700 text-xs font-medium mb-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary-600 animate-pulse"></span>
+            Doctor Workspace
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-neutral-950 sm:text-3xl">
+            Today’s Appointments
           </h1>
-          <p className="mt-2 text-sm text-neutral-600">
-            Your current appointment queue and status overview.
+          <p className="mt-1 text-sm text-neutral-600">
+            Monitor and manage your active clinical queue in real time.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -57,20 +82,20 @@ const DoctorDashboardPage = () => {
             size="sm"
             onClick={handleRefresh}
             disabled={loading}
-            className="inline-flex items-center gap-2"
+            className="inline-flex items-center gap-2 bg-white shadow-sm"
           >
             <Icon
               name="refresh"
-              className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+              className={`h-4 w-4 ${loading ? "animate-spin text-primary-600" : ""}`}
             />
-            Refresh
+            Refresh Queue
           </Button>
           <Link
             to="/queue"
-            className="inline-flex items-center gap-2 rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-800 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+            className="inline-flex items-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-800 shadow-sm hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 transition-colors"
           >
-            <Icon name="list-checks" className="h-4 w-4" />
-            Open queue
+            <Icon name="list-checks" className="h-4 w-4 text-neutral-600" />
+            Open Full Queue
           </Link>
         </div>
       </header>
@@ -79,41 +104,48 @@ const DoctorDashboardPage = () => {
       <section aria-labelledby="queue-summary-heading" className="mb-8">
         <h2
           id="queue-summary-heading"
-          className="mb-3 text-lg font-semibold text-neutral-900"
+          className="mb-4 text-base font-semibold text-neutral-900"
         >
-          Queue summary
+          Overview Statistics
         </h2>
         {loading && queue.length === 0 ? (
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <LoadingSpinner label="Loading today’s appointments" />
+          <div className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-xs">
+            <LoadingSpinner label="Loading today’s metrics..." />
           </div>
         ) : error ? (
           <div className="space-y-3">
             <ErrorMessage
-              title="Unable to load today’s appointments"
-              message="Please check your connection and try again."
+              title="Unable to load summary metrics"
+              message="Please check your connection and try refreshing."
             />
             <Button onClick={handleRefresh} loading={loading}>
               <Icon name="refresh" className="h-4 w-4" />
-              Retry
+              Retry Connection
             </Button>
           </div>
         ) : (
-          <div className="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <article className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-              <p className="text-sm text-neutral-600">Appointments today</p>
-              <p className="mt-1 text-2xl font-bold tabular-nums text-neutral-950">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <article className="relative overflow-hidden rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-xs transition-all hover:shadow-md">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-neutral-500">Total Patients</p>
+                <div className="rounded-xl bg-neutral-100 p-2.5 text-neutral-700">
+                  <Icon name="users" className="h-4 w-4" />
+                </div>
+              </div>
+              <p className="mt-4 text-3xl font-extrabold tabular-nums tracking-tight text-neutral-950">
                 {queue.length}
               </p>
             </article>
             {statusCounts.map(({ status, count }) => (
               <article
                 key={status}
-                className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm"
+                className="relative overflow-hidden rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-xs transition-all hover:shadow-md"
               >
-                <p className="mb-2 text-sm text-neutral-600">By status</p>
-                <StatusBadge status={status}>{status}</StatusBadge>
-                <p className="mt-2 text-xl font-bold tabular-nums text-neutral-950">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium text-neutral-500">Status</span>
+                  <StatusBadge status={status}>{status}</StatusBadge>
+                </div>
+                <p className="mt-2 text-3xl font-extrabold tabular-nums tracking-tight text-neutral-950">
                   {count}
                 </p>
               </article>
@@ -124,56 +156,45 @@ const DoctorDashboardPage = () => {
 
       {/* Today's Queue Section */}
       <section aria-labelledby="today-queue-heading">
-        <div className="mb-3 flex items-end justify-between gap-3">
+        <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <h2
               id="today-queue-heading"
-              className="text-lg font-semibold text-neutral-900"
+              className="text-base font-semibold text-neutral-900"
             >
-              Today’s queue
+              Active Patient Queue
             </h2>
             {!loading && !error && queue.length > 0 && (
-              <p className="mt-1 text-sm text-neutral-600">
-                {queue.length}{" "}
-                {queue.length === 1 ? "appointment" : "appointments"}
+              <p className="text-xs text-neutral-500 mt-0.5">
+                Showing all {queue.length} scheduled {queue.length === 1 ? "consultation" : "consultations"} for today
               </p>
             )}
           </div>
         </div>
 
         {loading && queue.length === 0 ? (
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <LoadingSpinner label="Loading today’s queue" />
+          <div className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-xs">
+            <LoadingSpinner label="Loading active queue records..." />
           </div>
         ) : error ? (
-          <p className="rounded-xl border border-neutral-200 bg-white p-5 text-sm text-neutral-600">
-            Queue details will appear here when the service is available.
+          <p className="rounded-2xl border border-neutral-200 bg-white p-6 text-sm text-neutral-600 shadow-xs">
+            Queue records will appear here once the connection is restored.
           </p>
         ) : queue.length === 0 ? (
-          <div className="rounded-xl border border-neutral-200 bg-white">
+          <div className="rounded-2xl border border-neutral-200 bg-white shadow-xs">
             <EmptyState
-              title="No appointments scheduled for today."
-              message="Your queue is empty. You can still open the shared queue from the navigation above."
+              title="No Appointments Scheduled"
+              message="Your queue is currently clear for today. You can open the full shared queue via the button above."
             />
           </div>
         ) : (
-          <ul className="divide-y divide-neutral-200 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
-            {queue.map((record) => (
-              <li
-                key={record.appointmentId}
-                className="flex flex-wrap items-center justify-between gap-3 p-4 transition-colors hover:bg-neutral-50 sm:px-5"
-              >
-                <div>
-                  <p className="font-semibold text-neutral-900">
-                    Appointment {record.appointmentId}
-                  </p>
-                </div>
-                <StatusBadge status={record.status}>
-                  {record.status}
-                </StatusBadge>
-              </li>
-            ))}
-          </ul>
+          <div className="overflow-hidden rounded-2xl border border-neutral-200/80 bg-white shadow-xs">
+            <ul className="divide-y divide-neutral-100">
+              {queue.map((record) => (
+                <QueueItem key={record.appointmentId} record={record} />
+              ))}
+            </ul>
+          </div>
         )}
       </section>
     </div>

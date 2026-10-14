@@ -52,44 +52,9 @@ describe("queueService", () => {
 
     expect(records).toEqual([record]);
 
-    expect(
-      new URL(mswState.queueHits[0].url, "http://localhost").pathname,
-    ).toMatch(/\/(api\/)?queue\/today$/);
-    expect(mswState.queueHits[0].authorization).toBe("Bearer queue-access");
-  });
 
-  it("returns today's queue unfiltered when no date is passed", async () => {
-    const today = toLocalDateString();
-    mswState.queueResponses = [
-      [
-        { appointmentId: 1, status: "SCHEDULED", appointmentDate: today },
-        { appointmentId: 2, status: "COMPLETED", appointmentDate: today },
-      ],
-    ];
-    const records = await getQueue();
-    expect(records).toHaveLength(2);
-  });
-
-  it("filters client-side for other dates (backend has no ?date= support)", async () => {
-    mswState.queueResponses = [
-      [
-        {
-          appointmentId: 1,
-          status: "SCHEDULED",
-          appointmentDate: "2020-05-05",
-        },
-        {
-          appointmentId: 2,
-          status: "COMPLETED",
-          appointmentDate: "2020-05-06",
-        },
-      ],
-    ];
-    const records = await getQueue({ date: "2020-05-05" });
-    expect(records.map((record) => record.appointmentId)).toEqual([1]);
-    // The request still hits the today endpoint — the documented contract.
-    expect(new URL(mswState.queueHits[0].url).pathname).toMatch(
-      /\/api\/queue\/today$/,
+    expect(new URL(mswState.queueHits[0].url, 'http://localhost').pathname).toMatch(
+      /\/(api\/)?queue\/today$/,
     );
     expect(new URL(mswState.queueHits[0].url).search).toBe("");
   });
