@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Provider } from "react-redux";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -62,8 +68,8 @@ describe("TodaySchedulePage — doctor's consultation queue", () => {
   it("AC1: renders the queue in server order with names, times and statuses", async () => {
     mswState.patientsResponses = [
       [
-        { id: 1, name: "Jane Doe" },
-        { id: 2, name: "Sam Lee" },
+        { patientId: 1, fullName: "Jane Doe" },
+        { patientId: 2, fullName: "Sam Lee" },
       ],
     ];
     mswState.queueResponses = [
@@ -85,9 +91,7 @@ describe("TodaySchedulePage — doctor's consultation queue", () => {
     ];
     renderPage();
 
-    expect(
-      await screen.findByRole("table"),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("table")).toBeInTheDocument();
 
     const rows = screen.getAllByRole("row").slice(1); // drop header row
     expect(rows).toHaveLength(3);
@@ -236,7 +240,9 @@ describe("TodaySchedulePage — doctor's consultation queue", () => {
     await screen.findByRole("table");
     await user.click(screen.getByRole("button", { name: "Complete" }));
 
-    expect(await screen.findByText(CONCURRENT_CHANGE_MESSAGE)).toBeInTheDocument();
+    expect(
+      await screen.findByText(CONCURRENT_CHANGE_MESSAGE),
+    ).toBeInTheDocument();
     // "The queue has been refreshed" — a refetch follows the conflict.
     await waitFor(() => expect(mswState.queueHits).toHaveLength(2));
     expect(
@@ -255,7 +261,9 @@ describe("TodaySchedulePage — doctor's consultation queue", () => {
     await screen.findByRole("table");
     await user.click(screen.getByRole("button", { name: "Complete" }));
 
-    expect(await screen.findByText(CONCURRENT_CHANGE_MESSAGE)).toBeInTheDocument();
+    expect(
+      await screen.findByText(CONCURRENT_CHANGE_MESSAGE),
+    ).toBeInTheDocument();
     await waitFor(() => expect(mswState.queueHits).toHaveLength(2));
   });
 

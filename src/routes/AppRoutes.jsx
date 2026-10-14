@@ -63,8 +63,11 @@ const AppRoutes = () => {
             path="consultation/:appointmentId"
             element={<ConsultationPage />}
           />
-          <Route path="/doctor/patient-records" elements={<PatientDetails/>} />
-          <Route path="/doctor/knowledge-base" elements={<KnowledgeBasePage/>}/>
+          <Route path="/doctor/patient-records" element={<PatientDetails />} />
+          <Route
+            path="/doctor/knowledge-base"
+            element={<KnowledgeBasePage />}
+          />
         </Route>
       </Route>
 

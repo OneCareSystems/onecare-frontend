@@ -62,12 +62,12 @@ export const NAV_ITEMS = Object.freeze({
       label: "Knowledge Base",
       icon: "brain",
     }),
-    Object.freeze({
-      id: "queue",
-      to: "/queue",
-      label: "Queue",
-      icon: "list-checks",
-    }),
+    // Object.freeze({
+    //   id: "queue",
+    //   to: "/queue",
+    //   label: "Queue",
+    //   icon: "list-checks",
+    // }),
   ]),
   [ROLES.PHARMACIST]: Object.freeze([
     Object.freeze({

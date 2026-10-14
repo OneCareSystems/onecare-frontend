@@ -60,9 +60,7 @@ describe("useQueuePolling", () => {
     const onTick = vi.fn();
     renderHook(() => useQueuePolling({ onTick, intervalMs: 50 }));
 
-    const hidden = vi
-      .spyOn(document, "hidden", "get")
-      .mockReturnValue(true);
+    const hidden = vi.spyOn(document, "hidden", "get").mockReturnValue(true);
     act(() => vi.advanceTimersByTime(100));
     expect(onTick).not.toHaveBeenCalled();
 

@@ -23,6 +23,10 @@ export const mswState = {
   patientsHits: [],
   patientsResponses: [],
   patientsErrorMode: null,
+  patientErrorMode: null,
+  appointmentsHits: [],
+  appointmentsResponses: [],
+  appointmentsErrorMode: null,
 };
 
 export const resetMswState = () => {
@@ -46,6 +50,10 @@ export const resetMswState = () => {
   mswState.patientsHits = [];
   mswState.patientsResponses = [];
   mswState.patientsErrorMode = null;
+  mswState.patientErrorMode = null;
+  mswState.appointmentsHits = [];
+  mswState.appointmentsResponses = [];
+  mswState.appointmentsErrorMode = null;
 };
 
 const ok = (data, message = "ok") =>
@@ -185,7 +193,49 @@ export const handlers = [
     }
     return ok(mswState.patientsResponses.shift() ?? []);
   }),
-  http.get("*/patients/:id", protectedReply),
+  // Single patient (doctor holds PATIENT_READ). Verified `PatientResponse`
+  // shape is `patientId`/`fullName`; the legacy `id`/`name` fields are kept
+  // for the apiClient integration probe that reads `data.name`.
+  http.get("*/patients/:id", ({ request, params }) => {
+    mswState.protectedHits.push({
+      id: params.id,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (!mswState.tokenValid) return fail(401, "Access token expired");
+    // Optional failure mode so callers can test best-effort enrichment
+    // without tripping the 401 refresh flow.
+    if (mswState.patientErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    if (mswState.patientErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    return ok({
+      id: params.id,
+      name: "Jane Doe",
+      patientId: Number(params.id),
+      fullName: "Jane Doe",
+    });
+  }),
+  // Verified backend contract: `GET /api/appointments` is the only read —
+  // there is no `GET /api/appointments/{id}`, so the consultation page
+  // resolves a single appointment with a client-side lookup.
+  http.get("*/appointments", async ({ request }) => {
+    mswState.appointmentsHits.push({
+      url: request.url,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.appointmentsErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    if (mswState.appointmentsErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    if (mswState.appointmentsErrorMode === "delay") {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    return ok(mswState.appointmentsResponses.shift() ?? []);
+  }),
   http.get("*/reports/:id", protectedReply),
   http.get("*", ({ request }) => {
     const path = new URL(request.url).pathname;

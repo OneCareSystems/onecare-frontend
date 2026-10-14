@@ -44,9 +44,7 @@ describe("queueSlice — date-aware doctor queue", () => {
     expect(state.status).toBe("succeeded");
     expect(state.requestDate).toBeNull();
     // Server-authoritative order — no client-side re-sorting.
-    expect(state.records.map((record) => record.appointmentId)).toEqual([
-      2, 1,
-    ]);
+    expect(state.records.map((record) => record.appointmentId)).toEqual([2, 1]);
   });
 
   it("records the requested date on the state", async () => {
@@ -58,7 +56,13 @@ describe("queueSlice — date-aware doctor queue", () => {
 
   it("keeps previous rows visible while a refresh is pending (non-destructive)", async () => {
     mswState.queueResponses = [
-      [{ appointmentId: 5, status: "SCHEDULED", appointmentDate: "2020-05-05" }],
+      [
+        {
+          appointmentId: 5,
+          status: "SCHEDULED",
+          appointmentDate: "2020-05-05",
+        },
+      ],
     ];
     const store = setupStore(authState);
     await store.dispatch(fetchQueue({ date: "2020-05-05" }));
@@ -87,10 +91,18 @@ describe("queueSlice — date-aware doctor queue", () => {
 
     mswState.queueErrorMode = null;
     mswState.queueResponses = [
-      [{ appointmentId: 9, status: "SCHEDULED", appointmentDate: "2020-05-06" }],
+      [
+        {
+          appointmentId: 9,
+          status: "SCHEDULED",
+          appointmentDate: "2020-05-06",
+        },
+      ],
     ];
     await store.dispatch(fetchQueue({ date: "2020-05-06" }));
-    expect(queueState(store).records.map((record) => record.appointmentId)).toEqual([9]);
+    expect(
+      queueState(store).records.map((record) => record.appointmentId),
+    ).toEqual([9]);
 
     // The old date's response arrives later and must be discarded.
     mswState.queueResponses = [];

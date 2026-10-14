@@ -16,6 +16,7 @@ const requestedDateOf = (arg) => arg?.date ?? null;
 export const fetchQueue = createAsyncThunk(
   "queue/fetchQueue",
   async ({ date } = {}, { signal }) => {
+    // Dynamic import keeps the apiClient ↔ store ↔ slice cycle lazy.
     const { getQueue } = await import("../../services/queueService");
     const records = await getQueue({ date, signal });
     return { date: requestedDateOf({ date }), records };
@@ -27,8 +28,7 @@ export const fetchQueue = createAsyncThunk(
     condition: (arg, { getState }) => {
       const queue = getState().queue;
       return !(
-        queue.status === "loading" &&
-        queue.requestDate === requestedDateOf(arg)
+        queue.status === "loading" && queue.requestDate === requestedDateOf(arg)
       );
     },
   },

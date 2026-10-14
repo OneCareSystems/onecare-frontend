@@ -82,7 +82,7 @@ const TodaySchedulePage = () => {
         if (cancelled) return;
         setPatientNames(
           Object.fromEntries(
-            patients.map((patient) => [patient.id, patient.name]),
+            patients.map((patient) => [patient.patientId, patient.fullName]),
           ),
         );
       })
@@ -138,7 +138,8 @@ const TodaySchedulePage = () => {
       {
         key: "patientId",
         header: "Patient",
-        render: (row) => patientNames[row.patientId] ?? `Patient ${row.patientId}`,
+        render: (row) =>
+          patientNames[row.patientId] ?? `Patient ${row.patientId}`,
       },
       {
         key: "timeSlot",

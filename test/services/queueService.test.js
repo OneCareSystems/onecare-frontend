@@ -52,10 +52,9 @@ describe("queueService", () => {
 
     expect(records).toEqual([record]);
 
-    
-    expect(new URL(mswState.queueHits[0].url, 'http://localhost').pathname).toMatch(
-      /\/(api\/)?queue\/today$/,
-    );
+    expect(
+      new URL(mswState.queueHits[0].url, "http://localhost").pathname,
+    ).toMatch(/\/(api\/)?queue\/today$/);
     expect(mswState.queueHits[0].authorization).toBe("Bearer queue-access");
   });
 
