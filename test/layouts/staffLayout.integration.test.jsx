@@ -42,7 +42,7 @@ describe("StaffLayout — CFG-04 staff chrome (integration)", () => {
     renderAppAt("/doctor/dashboard");
 
     expect(
-      screen.getByRole("heading", { name: "DoctorDashboardPage" }),
+      screen.getByRole("heading", { name: /today.s appointments/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /log out/i }),
@@ -53,8 +53,8 @@ describe("StaffLayout — CFG-04 staff chrome (integration)", () => {
       name: "Main navigation",
     });
     expect(
-      within(sidebar).getByRole("link", { name: "Queue" }),
-    ).toHaveAttribute("href", "/queue");
+      within(sidebar).getByRole("link", { name: "Today’s schedule" }),
+    ).toHaveAttribute("href", "/doctor/today-schedule");
 
     const crumbs = screen.getByRole("navigation", { name: "Breadcrumb" });
     expect(within(crumbs).getByText("Dashboard")).toHaveAttribute(

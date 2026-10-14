@@ -28,14 +28,18 @@ describe("Sidebar — CFG-04 role-driven navigation", () => {
 
     renderSidebar();
 
+    // Data-driven over whatever entries the role currently has enabled.
     const items = NAV_ITEMS[ROLES.DOCTOR];
+    expect(items.length).toBeGreaterThan(0);
+    for (const item of items) {
+      expect(screen.getByRole("link", { name: item.label })).toHaveAttribute(
+        "href",
+        item.to,
+      );
+    }
     expect(screen.getByRole("link", { name: /dashboard/i })).toHaveAttribute(
       "href",
       items.find((item) => item.id === "dashboard").to,
-    );
-    expect(screen.getByRole("link", { name: /queue/i })).toHaveAttribute(
-      "href",
-      items.find((item) => item.id === "queue").to,
     );
   });
 

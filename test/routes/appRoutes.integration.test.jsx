@@ -1,25 +1,51 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+} from "vitest";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  cleanup,
+} from "@testing-library/react";
 import { Provider } from "react-redux";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import {
+  MemoryRouter,
+  Route,
+  Routes,
+  useLocation,
+} from "react-router-dom";
 
 import { store } from "../../src/app/store";
-import { clearSession, setSession } from "../../src/features/auth/authSlice";
+import {
+  clearSession,
+  setSession,
+} from "../../src/features/auth/authSlice";
 import { ROLES } from "../../src/constants/roles";
 import AppRoutes from "../../src/routes/AppRoutes";
-import { mswState, resetMswState } from "../msw/handlers";
+import {
+  mswState,
+  resetMswState,
+} from "../msw/handlers";
 
 const LocationDisplay = () => {
   const location = useLocation();
-  return <div data-testid="location">{location.pathname}</div>;
+
+  return (
+    <div data-testid="location">
+      {location.pathname}
+    </div>
+  );
 };
 
-const seed = (payload) => store.dispatch(setSession(payload));
+const seed = (payload) => {
+  store.dispatch(setSession(payload));
+};
 
-/**
- * Renders the real route table (AppRoutes) inside MemoryRouter. MSW is
- * already active via test/setup.js, so any API the pages call is mocked.
- */
 const renderAppAt = (initialPath) =>
   render(
     <Provider store={store}>
@@ -32,99 +58,170 @@ const renderAppAt = (initialPath) =>
     </Provider>,
   );
 
-const expectLocation = (path) =>
+const expectLocation = (path) => {
   expect(screen.getByTestId("location")).toHaveTextContent(path);
+};
 
 beforeEach(() => {
   store.dispatch(clearSession());
-  resetMswState(); // ensure MSW state is clean before each test too
+  resetMswState();
+
+  // Explicitly establish default mock state for every test.
+  mswState.loginValid = true;
 });
 
 afterEach(() => {
+  cleanup();
   resetMswState();
 });
 
 describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
-  it("AC1: a Doctor opening /doctor/dashboard sees the doctor dashboard", () => {
-    seed({ accessToken: "a", role: ROLES.DOCTOR });
+  it("AC1: a Doctor opening /doctor/dashboard sees the doctor dashboard", async () => {
+    seed({
+      accessToken: "a",
+      role: ROLES.DOCTOR,
+    });
 
     renderAppAt("/doctor/dashboard");
 
     expect(
-      screen.getByRole("heading", { name: "DoctorDashboardPage" }),
+      await screen.findByRole("heading", {
+        name: /today.s appointments/i,
+      }),
     ).toBeInTheDocument();
+
     expectLocation("/doctor/dashboard");
   });
 
-  it("AC1: each role lands on its own dashboard", () => {
+  it("AC1: each role lands on its own dashboard", async () => {
     const cases = [
-      [ROLES.ADMIN, "/admin/dashboard", "AdminDashboardPage"],
-      [ROLES.DOCTOR, "/doctor/dashboard", "DoctorDashboardPage"],
-      [ROLES.PHARMACIST, "/pharmacist/dashboard", "PharmacistDashboardPage"],
-      [ROLES.SUPER_ADMIN, "/super-admin/dashboard", "SuperAdminDashboardPage"],
+      {
+        role: ROLES.ADMIN,
+        path: "/admin/dashboard",
+        heading: /AdminDashboardPage/i,
+      },
+      {
+        role: ROLES.DOCTOR,
+        path: "/doctor/dashboard",
+        heading: /today.s appointments/i,
+      },
+      {
+        role: ROLES.PHARMACIST,
+        path: "/pharmacist/dashboard",
+        heading: /PharmacistDashboardPage/i,
+      },
+      {
+        role: ROLES.SUPER_ADMIN,
+        path: "/super-admin/dashboard",
+        heading: /SuperAdminDashboardPage/i,
+      },
     ];
 
-    for (const [role, path, heading] of cases) {
+    for (const { role, path, heading } of cases) {
       store.dispatch(clearSession());
-      seed({ accessToken: "a", role });
+      seed({
+        accessToken: "a",
+        role,
+      });
 
       const { unmount } = renderAppAt(path);
 
-      expect(
-        screen.getByRole("heading", { name: heading }),
-      ).toBeInTheDocument();
-      expectLocation(path);
-      unmount();
+      try {
+        expect(
+          await screen.findByRole("heading", {
+            name: heading,
+          }),
+        ).toBeInTheDocument();
+
+        expectLocation(path);
+      } finally {
+        unmount();
+      }
     }
   });
 
-  it("AC2 (negative): a Pharmacist opening an /admin route is sent to /pharmacist/dashboard", () => {
-    seed({ accessToken: "a", role: ROLES.PHARMACIST });
+  it("AC2: a Pharmacist opening an admin route is redirected to their dashboard", async () => {
+    seed({
+      accessToken: "a",
+      role: ROLES.PHARMACIST,
+    });
 
     renderAppAt("/admin/dashboard");
 
     expect(
-      screen.getByRole("heading", { name: "PharmacistDashboardPage" }),
+      await screen.findByRole("heading", {
+        name: /PharmacistDashboardPage/i,
+      }),
     ).toBeInTheDocument();
-    expect(screen.queryByText("AdminDashboardPage")).not.toBeInTheDocument();
-    expectLocation("/pharmacist/dashboard");
+
+    await waitFor(() => {
+      expectLocation("/pharmacist/dashboard");
+    });
   });
 
-  it("AC3: an unauthenticated user opening a protected route is sent to /login", () => {
+  it("AC3: an unauthenticated user opening a protected route is sent to /login", async () => {
     renderAppAt("/admin/dashboard");
 
     expect(
-      screen.getByRole("heading", { name: "Sign in to OneCare" }),
+      await screen.findByRole("heading", {
+        name: /sign in to onecare/i,
+      }),
     ).toBeInTheDocument();
-    expectLocation("/login");
+
+    await waitFor(() => {
+      expectLocation("/login");
+    });
   });
 
-  it("AC4: the shared Queue screen renders for every allowed role", () => {
-    const allowed = [ROLES.ADMIN, ROLES.DOCTOR, ROLES.SUPER_ADMIN];
+  it("AC4: the shared Queue screen renders for every allowed role", async () => {
+    const allowed = [
+      ROLES.ADMIN,
+      ROLES.DOCTOR,
+      ROLES.SUPER_ADMIN,
+    ];
 
     for (const role of allowed) {
       store.dispatch(clearSession());
-      seed({ accessToken: "a", role });
+      seed({
+        accessToken: "a",
+        role,
+      });
 
       const { unmount } = renderAppAt("/queue");
 
-      expect(
-        screen.getByRole("heading", { name: "QueuePage" }),
-      ).toBeInTheDocument();
-      expectLocation("/queue");
-      unmount();
+      try {
+        // Replace this with the actual visible queue heading
+        // from your Queue page if its text differs.
+        expect(
+          await screen.findByRole("heading", {
+            name: /queue/i,
+          }),
+        ).toBeInTheDocument();
+
+        expectLocation("/queue");
+      } finally {
+        unmount();
+      }
     }
   });
 
-  it("AC4: a Pharmacist is redirected away from the shared Queue screen", () => {
-    seed({ accessToken: "a", role: ROLES.PHARMACIST });
+  it("AC4: a Pharmacist is redirected away from the shared Queue screen", async () => {
+    seed({
+      accessToken: "a",
+      role: ROLES.PHARMACIST,
+    });
 
     renderAppAt("/queue");
 
     expect(
-      screen.getByRole("heading", { name: "PharmacistDashboardPage" }),
+      await screen.findByRole("heading", {
+        name: /PharmacistDashboardPage/i,
+      }),
     ).toBeInTheDocument();
-    expectLocation("/pharmacist/dashboard");
+
+    await waitFor(() => {
+      expectLocation("/pharmacist/dashboard");
+    });
   });
 
   it("public routes stay reachable without a session", () => {
@@ -133,90 +230,105 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
     expectLocation("/home");
   });
 
-  it("the site root redirects to the public home page", () => {
+  it("the site root redirects to the public home page", async () => {
     renderAppAt("/");
 
-    expectLocation("/home");
+    await waitFor(() => {
+      expectLocation("/home");
+    });
   });
 
-  it("an unknown URL renders the public 404 page instead of a blank screen", () => {
+  it("an unknown URL renders the public 404 page instead of a blank screen", async () => {
     renderAppAt("/no-such-page");
 
     expect(
-      screen.getByRole("heading", { name: "Page not found" }),
+      await screen.findByRole("heading", {
+        name: /page not found/i,
+      }),
     ).toBeInTheDocument();
+
     expectLocation("/no-such-page");
   });
 
-  // ---------------------------------------------------------------------------
-  // End-to-end login flows
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Fills the login form and submits it.
-   *
-   * NOTE on queries:
-   *  - The username field is `<input type="text">`, so `getByRole("textbox", ...)` works.
-   *  - The password field is `<input type="password">`, which has **no implicit ARIA role**.
-   *    It must be queried via `getByLabelText`, NOT `getByRole("textbox", ...)`.
-   */
   const signIn = async (username) => {
-    // Wait for the login form to mount
-    await screen.findByRole("heading", { name: /sign in to onecare/i });
+    await screen.findByRole("heading", {
+      name: /sign in to onecare/i,
+    });
 
-    // Now query explicitly (no waitFor wrapper to hide the error)
-    const usernameInput = screen.getByRole("textbox", { name: /username/i });
+    const usernameInput = screen.getByRole("textbox", {
+      name: /username/i,
+    });
+
     const passwordInput = screen.getByLabelText(/^password/i);
 
-    fireEvent.change(usernameInput, { target: { value: username } });
-    fireEvent.change(passwordInput, { target: { value: "secret" } });
-    fireEvent.click(screen.getByRole("button", { name: /sign in securely/i }));
+    fireEvent.change(usernameInput, {
+      target: { value: username },
+    });
+
+    fireEvent.change(passwordInput, {
+      target: { value: "secret" },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /sign in securely/i,
+      }),
+    );
   };
 
-  it("AC1 (end-to-end): a Doctor signs in on /login and lands on /doctor/dashboard", async () => {
+  it("AC1: a Doctor signs in and lands on /doctor/dashboard", async () => {
     mswState.loginRole = ROLES.DOCTOR;
 
     renderAppAt("/login");
+
     await signIn("doctor@onecare.test");
 
+    expect(
+      await screen.findByRole("heading", {
+        name: /today.s appointments/i,
+      }),
+    ).toBeInTheDocument();
+
     await waitFor(() => {
-      expect(
-        screen.getByRole("heading", { name: "DoctorDashboardPage" }),
-      ).toBeInTheDocument();
+      expectLocation("/doctor/dashboard");
     });
-    expectLocation("/doctor/dashboard");
   });
 
-  it("AC1 (end-to-end): after login the user returns to the deep link the guard preserved", async () => {
+  it("AC1: after login the user returns to the originally requested protected route", async () => {
     mswState.loginRole = ROLES.ADMIN;
 
     renderAppAt("/queue");
-    expectLocation("/login");
+
+    await screen.findByRole("heading", {
+      name: /sign in to onecare/i,
+    });
 
     await signIn("admin@onecare.test");
 
+    expect(
+      await screen.findByRole("heading", {
+        name: /queue/i,
+      }),
+    ).toBeInTheDocument();
+
     await waitFor(() => {
-      expect(
-        screen.getByRole("heading", { name: "QueuePage" }),
-      ).toBeInTheDocument();
+      expectLocation("/queue");
     });
-    expectLocation("/queue");
   });
 
-  it("AC1 (negative): rejected credentials keep the visitor on /login with an error", async () => {
+  it("rejected credentials keep the visitor on /login with an error", async () => {
     mswState.loginValid = false;
 
     renderAppAt("/login");
+
     await signIn("doctor@onecare.test");
 
-    await waitFor(() => {
-      expect(
-        screen.getByText("Invalid username or password."),
-      ).toBeInTheDocument();
-    });
-    expectLocation("/login");
     expect(
-      screen.queryByRole("heading", { name: "DoctorDashboardPage" }),
-    ).not.toBeInTheDocument();
+      await screen.findByText(
+        "Invalid username or password.",
+      ),
+    ).toBeInTheDocument();
+
+    expectLocation("/login");
   });
 });

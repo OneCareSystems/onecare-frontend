@@ -5,12 +5,6 @@ import { selectRole } from "../features/auth/authSlice";
 import { NAV_ITEMS } from "../constants/navigation";
 import Icon from "./Icon";
 
-// CFG-07: shared Icon registry (medical icon set, client feedback #4).
-const ITEM_ICONS = {
-  dashboard: "dashboard",
-  queue: "list-checks",
-};
-
 /**
  * CFG-04 role-driven sidebar. Below `lg` it renders as a horizontal
  * strip; CFG-07 gives that strip `overflow-x-auto` so a long menu
@@ -29,8 +23,6 @@ const Sidebar = () => {
     >
       <ul className="flex flex-row gap-1 overflow-x-auto p-3 lg:flex-col lg:overflow-x-visible">
         {items.map((item) => {
-          const iconName = ITEM_ICONS[item.id];
-
           return (
             <li key={item.id} className="shrink-0">
               <NavLink
@@ -44,7 +36,7 @@ const Sidebar = () => {
                   ].join(" ")
                 }
               >
-                {iconName && <Icon name={iconName} className="h-5 w-5" />}
+                {item.icon && <Icon name={item.icon} className="h-5 w-5" />}
                 {item.label}
               </NavLink>
             </li>

@@ -11,6 +11,8 @@ import AdminDashboardPage from "../pages/admin/AdminDashboardPage";
 import SuperAdminDashboardPage from "../pages/superAdmin/SuperAdminDashboardPage";
 import PharmacistDashboardPage from "../pages/pharmacist/PharmacistDashboardPage";
 import DoctorDashboardPage from "../pages/doctor/DoctorDashboardPage";
+import TodaySchedulePage from "../pages/doctor/TodaySchedulePage";
+import ConsultationPage from "../pages/doctor/ConsultationPage";
 import HomePage from "../pages/public/HomePage";
 import NotFoundPage from "../pages/public/NotFoundPage";
 import ThemeReferencePage from "../pages/styleguide/ThemeReferencePage";
@@ -19,6 +21,8 @@ import QueuePage from "../pages/shared/QueuePage";
 import StaffLayout from "../layouts/StaffLayout";
 import RequireAuth from "./RequireAuth";
 import { CHANGE_PASSWORD_PATH, ROUTE_ACCESS } from "../constants/routeAccess";
+import PatientDetails from "../pages/doctor/PatientDetails";
+import KnowledgeBasePage from "../pages/doctor/KnowledgeBasePage";
 
 const AppRoutes = () => {
   return (
@@ -54,6 +58,16 @@ const AppRoutes = () => {
       <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.doctor} />}>
         <Route path="/doctor" element={<DoctorLayout />}>
           <Route path="dashboard" element={<DoctorDashboardPage />} />
+          <Route path="today-schedule" element={<TodaySchedulePage />} />
+          <Route
+            path="consultation/:appointmentId"
+            element={<ConsultationPage />}
+          />
+          <Route path="/doctor/patient-records" element={<PatientDetails />} />
+          <Route
+            path="/doctor/knowledge-base"
+            element={<KnowledgeBasePage />}
+          />
         </Route>
       </Route>
 
