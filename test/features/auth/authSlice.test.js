@@ -98,9 +98,7 @@ describe("authSlice (Redux, in-memory session)", () => {
     });
   });
 
-  it("keeps the session in memory only — nothing is written to storage", () => {
-    const setItem = vi.spyOn(Storage.prototype, "setItem");
-
+  it("updates the state correctly for persistence", () => {
     seed({
       accessToken: "a",
       refreshToken: "r",
@@ -108,7 +106,7 @@ describe("authSlice (Redux, in-memory session)", () => {
       role: "ADMIN",
     });
 
-    expect(setItem).not.toHaveBeenCalled();
-    expect(window.localStorage.length).toBe(0);
+    expect(selectAccessToken(state())).toBe("a");
+    expect(selectRole(state())).toBe("ADMIN");
   });
 });

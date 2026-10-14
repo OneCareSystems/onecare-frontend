@@ -5,19 +5,28 @@ import { Provider } from "react-redux";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 import DoctorDashboardPage from "../../../src/pages/doctor/DoctorDashboardPage";
-import { store } from "../../../src/app/store";
+import { setupStore } from "../../../src/app/store";
 import { mswState, resetMswState } from "../../msw/handlers";
 
-const renderPage = () => render(
-  <Provider store={store}>
-    <MemoryRouter initialEntries={["/doctor/dashboard"]}>
-      <Routes>
-        <Route path="/doctor/dashboard" element={<DoctorDashboardPage />} />
-        <Route path="/queue" element={<h1>Shared queue</h1>} />
-      </Routes>
-    </MemoryRouter>
-  </Provider>,
-);
+const renderPage = () => {
+  const testStore = setupStore({
+    auth: {
+      accessToken: "test-token",
+      role: "DOCTOR",
+      authStatus: "authenticated",
+    },
+  });
+  return render(
+    <Provider store={testStore}>
+      <MemoryRouter initialEntries={["/doctor/dashboard"]}>
+        <Routes>
+          <Route path="/doctor/dashboard" element={<DoctorDashboardPage />} />
+          <Route path="/queue" element={<h1>Shared queue</h1>} />
+        </Routes>
+      </MemoryRouter>
+    </Provider>
+  );
+};
 
 afterEach(resetMswState);
 
@@ -37,8 +46,8 @@ describe("DoctorDashboardPage", () => {
 
     const waitingBadge = screen.getAllByText("SCHEDULED")[0];
     expect(waitingBadge.closest("article")).toHaveTextContent("2");
-    const withDoctorBadge = screen.getAllByText("COMPLETED")[0];
-    expect(withDoctorBadge.closest("article")).toHaveTextContent("1");
+    const completedBadge = screen.getAllByText("COMPLETED")[0];
+    expect(completedBadge.closest("article")).toHaveTextContent("1");
     expect(mswState.queueHits).toHaveLength(1);
   });
 

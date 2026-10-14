@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 
@@ -19,12 +19,17 @@ const DoctorDashboardPage = () => {
   const dispatch = useDispatch();
   const queue = useSelector(selectQueueRecords);
   const queueStatus = useSelector(selectQueueStatus);
+  
   const loading = queueStatus === "idle" || queueStatus === "loading";
   const error = queueStatus === "failed";
 
-  useEffect(() => {
+  const handleRefresh = useCallback(() => {
     dispatch(fetchTodayQueue());
   }, [dispatch]);
+
+  useEffect(() => {
+    handleRefresh();
+  }, [handleRefresh]);
 
   const statusCounts = useMemo(
     () => calculateQueueStatusCounts(queue),
@@ -33,7 +38,8 @@ const DoctorDashboardPage = () => {
 
   return (
     <div className="mx-auto max-w-6xl py-4 sm:py-6">
-      <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
+      {/* Header */}
+      <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-sm font-semibold text-primary-700">Doctor workspace</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-neutral-950 sm:text-3xl">
@@ -43,20 +49,33 @@ const DoctorDashboardPage = () => {
             Your current appointment queue and status overview.
           </p>
         </div>
-        <Link
-          to="/queue"
-          className="inline-flex items-center gap-2 rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-800 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
-        >
-          <Icon name="list-checks" className="h-4 w-4" />
-          Open queue
-        </Link>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={loading}
+            className="inline-flex items-center gap-2"
+          >
+            <Icon name="refresh" className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+          <Link
+            to="/queue"
+            className="inline-flex items-center gap-2 rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-800 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+          >
+            <Icon name="list-checks" className="h-4 w-4" />
+            Open queue
+          </Link>
+        </div>
       </header>
 
+      {/* Queue Summary Section */}
       <section aria-labelledby="queue-summary-heading" className="mb-8">
         <h2 id="queue-summary-heading" className="mb-3 text-lg font-semibold text-neutral-900">
           Queue summary
         </h2>
-        {loading ? (
+        {loading && queue.length === 0 ? (
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <LoadingSpinner label="Loading today’s appointments" />
           </div>
@@ -66,30 +85,29 @@ const DoctorDashboardPage = () => {
               title="Unable to load today’s appointments"
               message="Please check your connection and try again."
             />
-            <Button onClick={() => dispatch(fetchTodayQueue())} loading={loading}>
+            <Button onClick={handleRefresh} loading={loading}>
               <Icon name="refresh" className="h-4 w-4" />
               Retry
             </Button>
           </div>
         ) : (
-          <>
-            <div className="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <article className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-                <p className="text-sm text-neutral-600">Appointments today</p>
-                <p className="mt-1 text-2xl font-bold tabular-nums text-neutral-950">{queue.length}</p>
+          <div className="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <article className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+              <p className="text-sm text-neutral-600">Appointments today</p>
+              <p className="mt-1 text-2xl font-bold tabular-nums text-neutral-950">{queue.length}</p>
+            </article>
+            {statusCounts.map(({ status, count }) => (
+              <article key={status} className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+                <p className="mb-2 text-sm text-neutral-600">By status</p>
+                <StatusBadge status={status}>{status}</StatusBadge>
+                <p className="mt-2 text-xl font-bold tabular-nums text-neutral-950">{count}</p>
               </article>
-              {statusCounts.map(({ status, count }) => (
-                <article key={status} className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-                  <p className="mb-2 text-sm text-neutral-600">By status</p>
-                  <StatusBadge status={status}>{status}</StatusBadge>
-                  <p className="mt-2 text-xl font-bold tabular-nums text-neutral-950">{count}</p>
-                </article>
-              ))}
-            </div>
-          </>
+            ))}
+          </div>
         )}
       </section>
 
+      {/* Today's Queue Section */}
       <section aria-labelledby="today-queue-heading">
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
@@ -104,7 +122,7 @@ const DoctorDashboardPage = () => {
           </div>
         </div>
 
-        {loading ? (
+        {loading && queue.length === 0 ? (
           <div className="rounded-xl border border-neutral-200 bg-white p-6">
             <LoadingSpinner label="Loading today’s queue" />
           </div>
@@ -120,9 +138,9 @@ const DoctorDashboardPage = () => {
             />
           </div>
         ) : (
-          <ul className="divide-y divide-neutral-200 overflow-hidden rounded-xl border border-neutral-200 bg-white">
+          <ul className="divide-y divide-neutral-200 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
             {queue.map((record) => (
-              <li key={record.appointmentId} className="flex flex-wrap items-center justify-between gap-3 p-4 sm:px-5">
+              <li key={record.appointmentId} className="flex flex-wrap items-center justify-between gap-3 p-4 transition-colors hover:bg-neutral-50 sm:px-5">
                 <div>
                   <p className="font-semibold text-neutral-900">
                     Appointment {record.appointmentId}
