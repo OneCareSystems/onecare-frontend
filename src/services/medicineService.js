@@ -12,8 +12,7 @@ export const searchMedicines = async (search, { signal } = {}) => {
   }
   return payload.data.filter(
     (medicine) =>
-      medicine &&
-      typeof (medicine.medicineName ?? medicine.name) === "string",
+      medicine && typeof (medicine.medicineName ?? medicine.name) === "string",
   );
 };
 

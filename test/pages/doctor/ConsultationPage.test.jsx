@@ -427,7 +427,7 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     await waitForLoaded();
     await user.click(screen.getByRole("button", { name: /back to schedule/i }));
     expect(
-      screen.getByRole("heading", {  name: /today.s Schedule/i }),
+      screen.getByRole("heading", { name: /today.s Schedule/i }),
     ).toBeInTheDocument();
   });
 });

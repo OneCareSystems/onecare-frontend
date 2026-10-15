@@ -23,7 +23,9 @@ export const getAppointments = async ({ date, signal } = {}) => {
 
 /** Fetch one appointment, including its clinical details. */
 export const getAppointmentById = async (appointmentId, { signal } = {}) => {
-  const response = await apiClient.get(`/appointments/${appointmentId}`, { signal });
+  const response = await apiClient.get(`/appointments/${appointmentId}`, {
+    signal,
+  });
   const payload = response.data;
   if (
     payload?.success !== true ||

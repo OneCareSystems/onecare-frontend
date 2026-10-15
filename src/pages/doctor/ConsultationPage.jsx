@@ -235,7 +235,9 @@ const ConsultationPage = () => {
         if (isStale()) return;
         setAppointment(found);
         if (!notesDirtyRef.current) {
-          setNotes(typeof found.clinicalNotes === "string" ? found.clinicalNotes : "");
+          setNotes(
+            typeof found.clinicalNotes === "string" ? found.clinicalNotes : "",
+          );
         }
         setLoadStatus("succeeded");
 
@@ -432,16 +434,8 @@ const ConsultationPage = () => {
   return (
     <PageShell>
       <PageHeader
-        eyebrow={
-          isCompleted
-            ? "Completed Appointment"
-            : "Active Consultation"
-        }
-        title={
-          isCompleted
-            ? "Consultation Details"
-            : "Consultation Room"
-        }
+        eyebrow={isCompleted ? "Completed Appointment" : "Active Consultation"}
+        title={isCompleted ? "Consultation Details" : "Consultation Room"}
         description={
           isCompleted
             ? "Review the completed visit, clinical notes and linked prescriptions."
@@ -633,7 +627,9 @@ const ConsultationPage = () => {
                         Prescriptions for this appointment
                       </p>
                       {relatedPrescriptions === null ? (
-                        <p className="text-sm text-neutral-500">Loading prescriptions...</p>
+                        <p className="text-sm text-neutral-500">
+                          Loading prescriptions...
+                        </p>
                       ) : relatedPrescriptions === "failed" ? (
                         <p className="text-sm text-neutral-600">
                           Prescription details are unavailable right now.
@@ -659,12 +655,25 @@ const ConsultationPage = () => {
                               </div>
                               <ul className="mt-2 space-y-1 text-sm text-neutral-700">
                                 {prescription.items.map((item, index) => (
-                                  <li key={item.itemId ?? `${item.medicineName}-${index}`}>
-                                    <span className="font-medium">{item.medicineName}</span>
+                                  <li
+                                    key={
+                                      item.itemId ??
+                                      `${item.medicineName}-${index}`
+                                    }
+                                  >
+                                    <span className="font-medium">
+                                      {item.medicineName}
+                                    </span>
                                     {item.dosage ? ` — ${item.dosage}` : ""}
-                                    {item.frequency ? `, ${item.frequency}` : ""}
-                                    {item.durationDays ? ` for ${item.durationDays} days` : ""}
-                                    {item.quantity ? ` (qty ${item.quantity})` : ""}
+                                    {item.frequency
+                                      ? `, ${item.frequency}`
+                                      : ""}
+                                    {item.durationDays
+                                      ? ` for ${item.durationDays} days`
+                                      : ""}
+                                    {item.quantity
+                                      ? ` (qty ${item.quantity})`
+                                      : ""}
                                   </li>
                                 ))}
                               </ul>
@@ -702,14 +711,25 @@ const ConsultationPage = () => {
                           {medicineSuggestions.map((medicine, index) => {
                             const name = medicine.medicineName ?? medicine.name;
                             return (
-                              <li key={medicine.medicineId ?? medicine.id ?? `${name}-${index}`}>
+                              <li
+                                key={
+                                  medicine.medicineId ??
+                                  medicine.id ??
+                                  `${name}-${index}`
+                                }
+                              >
                                 <button
                                   type="button"
                                   role="option"
                                   aria-selected={false}
-                                  onMouseDown={(event) => event.preventDefault()}
+                                  onMouseDown={(event) =>
+                                    event.preventDefault()
+                                  }
                                   onClick={() => {
-                                    setItemDraft((draft) => ({ ...draft, medicineName: name }));
+                                    setItemDraft((draft) => ({
+                                      ...draft,
+                                      medicineName: name,
+                                    }));
                                     setMedicineSuggestions([]);
                                   }}
                                   className="w-full px-4 py-2.5 text-left text-sm text-neutral-800 hover:bg-primary-50 focus:bg-primary-50 focus:outline-none"
@@ -722,7 +742,9 @@ const ConsultationPage = () => {
                         </ul>
                       )}
                     </div>
-                    {DRAFT_FIELDS.filter((field) => field.key !== "medicineName").map((field) => (
+                    {DRAFT_FIELDS.filter(
+                      (field) => field.key !== "medicineName",
+                    ).map((field) => (
                       <div
                         key={field.key}
                         className={field.wide ? "col-span-2" : ""}

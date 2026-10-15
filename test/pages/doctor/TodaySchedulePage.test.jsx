@@ -161,8 +161,8 @@ describe("TodaySchedulePage — doctor's consultation queue", () => {
     // One request per date, each carrying the selected date.
     expect(mswState.appointmentsHits).toHaveLength(2);
     expect(
-      mswState.appointmentsHits.map(
-        (hit) => new URL(hit.url).searchParams.get("date"),
+      mswState.appointmentsHits.map((hit) =>
+        new URL(hit.url).searchParams.get("date"),
       ),
     ).toEqual([toLocalDateString(), "2020-05-05"]);
     expect(screen.queryByText("Jane Doe")).not.toBeInTheDocument();

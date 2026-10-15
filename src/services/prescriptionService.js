@@ -60,7 +60,9 @@ export const createPrescription = async (
 
 /** Fetch an issued prescription and its medicine items by ID. */
 export const getPrescriptionById = async (prescriptionId, { signal } = {}) => {
-  const response = await apiClient.get(`/prescriptions/${prescriptionId}`, { signal });
+  const response = await apiClient.get(`/prescriptions/${prescriptionId}`, {
+    signal,
+  });
   return adaptPrescriptionResponse(response.data);
 };
 
