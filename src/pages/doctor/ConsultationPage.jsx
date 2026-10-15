@@ -1,13 +1,20 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import Button from "../../components/Button";
 import EmptyState from "../../components/EmptyState";
 import ErrorMessage from "../../components/ErrorMessage";
+import Icon from "../../components/Icon";
 import Input from "../../components/Input";
-import LoadingSpinner from "../../components/LoadingSpinner";
 import StatusBadge from "../../components/StatusBadge";
 import Toast from "../../components/Toast";
+import { PageHeader, PageShell } from "../../components/doctor/PageLayout";
+import {
+  DetailTile,
+  ErrorPanel,
+  Panel,
+  SkeletonBlock,
+} from "../../components/doctor/Panel";
 import {
   findAppointment,
   getClinicalNotes,
@@ -18,7 +25,12 @@ import { getPatient } from "../../services/patientService";
 import { createPrescription } from "../../services/prescriptionService";
 import { completeAppointment } from "../../services/queueService";
 import { formatDisplayDate } from "../../utils/dateUtils";
-import Icon from "../../components/Icon";
+import {
+  formatElapsed,
+  formatTimeSlot,
+  toDateOnly,
+} from "../../utils/timeUtils";
+
 /** Backend limit: clinical notes are capped at 2000 characters. */
 export const CLINICAL_NOTES_MAX_LENGTH = 2000;
 
@@ -36,12 +48,6 @@ const COMPLETE_FAILED_MESSAGE =
   "Unable to complete the consultation. Please try again.";
 const PRESCRIPTION_CREATED_MESSAGE = "Prescription issued.";
 
-/** `09:00:00` → `09:00`; echoes anything unexpected. */
-const formatTimeSlot = (timeSlot) => {
-  const value = String(timeSlot ?? "");
-  return /^\d{2}:\d{2}/.test(value) ? value.slice(0, 5) : value || "—";
-};
-
 const EMPTY_ITEM = {
   medicineName: "",
   dosage: "",
@@ -50,10 +56,89 @@ const EMPTY_ITEM = {
   quantity: "1",
 };
 
+const DRAFT_FIELDS = [
+  { key: "medicineName", id: "rx-medicine", label: "Medicine Name", wide: true },
+  { key: "dosage", id: "rx-dosage", label: "Dosage", placeholder: "1 tablet" },
+  { key: "frequency", id: "rx-frequency", label: "Frequency", placeholder: "Twice daily" },
+  { key: "durationDays", id: "rx-duration", label: "Duration (days)", type: "number", min: "1" },
+  { key: "quantity", id: "rx-quantity", label: "Quantity", type: "number", min: "1" },
+];
+
 /**
- * DOC-04 — Consultation screen.
+ * The elapsed-time clock lives in its own component so its once-a-second
+ * state update re-renders only this badge, never the whole consultation form.
+ * It runs only while the appointment is still open.
+ */
+const ConsultationTimer = memo(function ConsultationTimer({ running }) {
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    if (!running) return undefined;
+    const id = setInterval(() => setSeconds((value) => value + 1), 1000);
+    return () => clearInterval(id);
+  }, [running]);
+
+  return (
+    <span
+      role="timer"
+      aria-label="Elapsed time"
+      className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 font-mono text-xs font-semibold tabular-nums text-amber-900"
+    >
+      <Icon
+        name="clock"
+        className={`h-3.5 w-3.5 text-amber-600 ${running ? "motion-safe:animate-pulse" : ""}`}
+      />
+      {formatElapsed(seconds)}
+    </span>
+  );
+});
+
+const MedicationRow = memo(function MedicationRow({ item, index, onRemove }) {
+  return (
+    <li className="flex items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-neutral-900">
+          {item.medicineName}{" "}
+          <span className="font-mono font-medium text-primary-600">
+            ({item.dosage})
+          </span>
+        </p>
+        <p className="mt-0.5 text-xs text-neutral-500">
+          {item.frequency}, {item.durationDays} day
+          {item.durationDays === 1 ? "" : "s"}, quantity {item.quantity}
+        </p>
+      </div>
+      <button
+        type="button"
+        aria-label={`Remove ${item.medicineName}`}
+        onClick={() => onRemove(index)}
+        className="rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-2 focus-visible:outline-primary-600"
+      >
+        <Icon name="trash" className="h-4 w-4" />
+      </button>
+    </li>
+  );
+});
+
+const PreviousNote = memo(function PreviousNote({ record }) {
+  return (
+    <li className="space-y-2 rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm">
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-semibold text-neutral-800">
+          {formatDisplayDate(toDateOnly(record.appointmentDate))}
+        </span>
+        <StatusBadge status={record.status} />
+      </div>
+      <p className="whitespace-pre-wrap leading-relaxed text-neutral-700">
+        {record.clinicalNotes}
+      </p>
+    </li>
+  );
+});
+
+/**
+ * DOC-04 - Consultation screen.
  *
- * The doctor's consultation workflow in one place:
  * 1. review the booking and the patient's previous clinical notes,
  * 2. record this encounter's clinical notes (stored on the appointment),
  * 3. issue a prescription if needed,
@@ -70,6 +155,7 @@ const ConsultationPage = () => {
   const [notes, setNotes] = useState("");
   const [notesSaving, setNotesSaving] = useState(false);
   const [notesError, setNotesError] = useState(null);
+  const notesDirtyRef = useRef(false);
 
   const [history, setHistory] = useState(null); // null = not loaded / unavailable
 
@@ -83,75 +169,76 @@ const ConsultationPage = () => {
   const completingRef = useRef(false);
   const [toast, setToast] = useState(null);
 
-  // Active duration timer (UI display)
-  const [timerSeconds, setTimerSeconds] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTimerSeconds((prev) => prev + 1);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const formatTimer = (sec) => {
-    const mins = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${mins.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-  };
+  const loadIdRef = useRef(0);
 
   const isClosed =
     appointment?.status === "COMPLETED" || appointment?.status === "CANCELLED";
   const canComplete = appointment?.status === "SCHEDULED";
 
   const load = useCallback(() => {
+    const loadId = ++loadIdRef.current;
+    const isStale = () => loadId !== loadIdRef.current;
+
+    // Clinical notes only need the appointment id, so they load in parallel
+    // with the booking instead of waiting for it.
+    const notesLoad = getClinicalNotes(appointmentId)
+      .then((response) => response?.clinicalNotes ?? "")
+      .catch(() => null); // no notes yet, or backend without fix/44
+
     findAppointment(appointmentId)
       .then((found) => {
+        if (isStale()) return;
         if (!found) {
           setAppointment(null);
           setPatientName(null);
           setLoadStatus("not-found");
-          return null;
+          return;
         }
         setAppointment(found);
         setLoadStatus("succeeded");
 
-        const patientLoad =
-          found.patientId === null || found.patientId === undefined
-            ? Promise.resolve(null)
-            : getPatient(found.patientId)
-                .then((patient) => setPatientName(patient.fullName))
-                .catch(() => setPatientName(null));
+        notesLoad.then((text) => {
+          // Never overwrite what the doctor has already typed (e.g. on reload).
+          if (isStale() || text === null || notesDirtyRef.current) return;
+          setNotes(text);
+        });
 
-        const notesLoad = getClinicalNotes(appointmentId)
-          .then((response) => setNotes(response.clinicalNotes))
-          .catch(() => {
-            /* no notes yet, or backend without fix/44 — leave empty */
-          });
-
-        const historyLoad =
-          found.patientId === null || found.patientId === undefined
-            ? Promise.resolve(null)
-            : getPatientHistory(found.patientId)
-                .then((response) => setHistory(response))
-                .catch(() => setHistory(null));
-
-        return Promise.all([patientLoad, notesLoad, historyLoad]);
+        if (found.patientId === null || found.patientId === undefined) {
+          setPatientName(null);
+          setHistory(null);
+          return;
+        }
+        getPatient(found.patientId)
+          .then((patient) => !isStale() && setPatientName(patient.fullName))
+          .catch(() => !isStale() && setPatientName(null));
+        getPatientHistory(found.patientId)
+          .then((response) => !isStale() && setHistory(response))
+          .catch(() => !isStale() && setHistory(null));
       })
-      .catch(() => setLoadStatus("failed"));
+      .catch(() => {
+        if (!isStale()) setLoadStatus("failed");
+      });
   }, [appointmentId]);
 
   useEffect(() => {
     load();
+    return () => {
+      loadIdRef.current += 1; // ignore responses that arrive after unmount
+    };
   }, [load]);
+
+  const handleNotesChange = useCallback((event) => {
+    notesDirtyRef.current = true;
+    setNotes(event.target.value);
+    setNotesError(null);
+  }, []);
 
   const handleSaveNotes = useCallback(() => {
     if (notesSaving) return;
     setNotesSaving(true);
     setNotesError(null);
     saveClinicalNotes(appointmentId, notes)
-      .then(() => {
-        setToast({ type: "success", message: SAVED_NOTES_MESSAGE });
-      })
+      .then(() => setToast({ type: "success", message: SAVED_NOTES_MESSAGE }))
       .catch((error) => {
         const status = error?.response?.status;
         setNotesError(
@@ -163,6 +250,12 @@ const ConsultationPage = () => {
       })
       .finally(() => setNotesSaving(false));
   }, [appointmentId, notes, notesSaving]);
+
+  const handleDraftChange = useCallback(
+    (key) => (event) =>
+      setItemDraft((draft) => ({ ...draft, [key]: event.target.value })),
+    [],
+  );
 
   const handleAddItem = useCallback(() => {
     const draft = itemDraft;
@@ -191,6 +284,10 @@ const ConsultationPage = () => {
     ]);
     setItemDraft(EMPTY_ITEM);
   }, [itemDraft]);
+
+  const handleRemoveItem = useCallback((index) => {
+    setItems((current) => current.filter((_, i) => i !== index));
+  }, []);
 
   const handleCreatePrescription = useCallback(() => {
     if (creatingPrescription || items.length === 0) return;
@@ -242,183 +339,139 @@ const ConsultationPage = () => {
       });
   }, [appointmentId, load]);
 
-  const previousNotes =
-    history?.appointments?.filter(
-      (record) =>
-        String(record.appointmentId) !== String(appointmentId) &&
-        typeof record.clinicalNotes === "string" &&
-        record.clinicalNotes.trim().length > 0,
-    ) ?? [];
+  const goToSchedule = useCallback(
+    () => navigate("/doctor/today-schedule"),
+    [navigate],
+  );
+
+  const retryLoad = useCallback(() => {
+    setLoadStatus("loading");
+    load();
+  }, [load]);
+
+  const previousNotes = useMemo(
+    () =>
+      history?.appointments?.filter(
+        (record) =>
+          String(record.appointmentId) !== String(appointmentId) &&
+          typeof record.clinicalNotes === "string" &&
+          record.clinicalNotes.trim().length > 0,
+      ) ?? [],
+    [history, appointmentId],
+  );
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 px-4 py-6 sm:px-6">
-      {/* Top Banner with Active Timer */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-neutral-200 rounded-3xl p-5 shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-primary-600 text-white flex items-center justify-center shadow-md shadow-primary-600/20">
-            <Icon name="stethoscope" className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-primary-700">
-                ACTIVE CONSULTATION
-              </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">
-                Appt #{appointmentId}
-              </span>
-            </div>
-            <h1 className="text-base font-bold text-neutral-900">
-              Consultation Room
-            </h1>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 font-mono font-bold text-xs">
-            <Icon name="clock" className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
-            <span>{formatTimer(timerSeconds)}</span>
-          </div>
-
-          {canComplete ? (
+    <PageShell>
+      <PageHeader
+        eyebrow="Active Consultation"
+        title="Consultation Room"
+        description="Review the booking, record clinical notes, issue prescriptions and complete the visit."
+        meta={
+          <>
+            <span className="rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-semibold text-primary-700">
+              Appt #{appointmentId}
+            </span>
+            <ConsultationTimer running={canComplete} />
+          </>
+        }
+        actions={
+          canComplete ? (
             <Button
               onClick={handleComplete}
               loading={completing}
               disabled={completing}
               size="sm"
+              className="inline-flex items-center gap-2"
             >
-              <Icon name="circle-check" className="w-4 h-4 mr-1.5" />
+              <Icon name="circle-check" className="h-4 w-4" />
               Complete Consultation
             </Button>
           ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate("/doctor/today-schedule")}
-            >
+            <Button variant="outline" size="sm" onClick={goToSchedule}>
               Back to Schedule
             </Button>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
 
       {toast && (
-        <div className="my-2">
-          <Toast
-            message={toast.message}
-            type={toast.type}
-            onClose={() => setToast(null)}
-          />
-        </div>
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
 
       {loadStatus === "loading" ? (
-        <div className="flex justify-center rounded-3xl border border-neutral-200 bg-white p-12 shadow-xs">
-          <LoadingSpinner label="Loading consultation details" />
-        </div>
+        <SkeletonBlock label="Loading consultation details" rows={6} />
       ) : loadStatus === "not-found" ? (
-        <div className="space-y-4 rounded-3xl border border-neutral-200 bg-white p-6 shadow-xs">
-          <ErrorMessage
-            title="Appointment not available"
-            message="This appointment is not part of your schedule. It may have been removed or assigned to another doctor."
-          />
-          <Button
-            variant="outline"
-            onClick={() => navigate("/doctor/today-schedule")}
-          >
-            Back to today’s schedule
-          </Button>
-        </div>
+        <ErrorPanel
+          title="Appointment not available"
+          message="This appointment is not part of your schedule. It may have been removed or assigned to another doctor."
+        />
       ) : loadStatus === "failed" ? (
-        <div className="space-y-4 rounded-3xl border border-neutral-200 bg-white p-6 shadow-xs">
-          <ErrorMessage
-            title="Unable to load the consultation"
-            message="Please check your connection and try again."
-          />
-          <Button
-            onClick={() => {
-              setLoadStatus("loading");
-              load();
-            }}
-          >
-            Retry
-          </Button>
-        </div>
+        <ErrorPanel
+          title="Unable to load the consultation"
+          message="Please check your connection and try again."
+          actionLabel="Retry"
+          onAction={retryLoad}
+        />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Column: Patient Profile & Clinical Notes */}
-          <div className="lg:col-span-7 space-y-6">
-            {/* Patient Card */}
-            <div className="bg-white border border-neutral-200 rounded-3xl p-5 shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
-                <div className="flex items-center gap-2">
-                  <Icon name="user" className="w-4 h-4 text-primary-600" />
-                  <h2 className="text-sm font-bold text-neutral-900">Patient Details</h2>
-                </div>
-                <StatusBadge status={appointment.status} />
-              </div>
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+          <div className="space-y-6 lg:col-span-7">
+            <Panel
+              icon="user"
+              title="Patient Details"
+              aside={<StatusBadge status={appointment.status} />}
+            >
+              <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <DetailTile label="Patient name">
+                  {patientName ?? `Patient ${appointment.patientId ?? "\u2014"}`}
+                </DetailTile>
+                <DetailTile label="Date and time">
+                  {formatDisplayDate(toDateOnly(appointment.appointmentDate))} at{" "}
+                  {formatTimeSlot(appointment.timeSlot)}
+                </DetailTile>
+                <DetailTile label="Reason">
+                  {appointment.reason || "None specified"}
+                </DetailTile>
+              </dl>
+            </Panel>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <div className="p-3 rounded-2xl bg-neutral-50 border border-neutral-100">
-                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">
-                    Patient Name
-                  </span>
-                  <span className="text-xs font-bold text-neutral-900 truncate block mt-0.5">
-                    {patientName ?? `Patient ${appointment.patientId ?? "—"}`}
-                  </span>
-                </div>
-
-                <div className="p-3 rounded-2xl bg-neutral-50 border border-neutral-100">
-                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">
-                    Date & Time
-                  </span>
-                  <span className="text-xs font-bold text-neutral-900 block mt-0.5">
-                    {formatDisplayDate(
-                      String(appointment.appointmentDate ?? "").slice(0, 10)
-                    )}{" "}
-                    • {formatTimeSlot(appointment.timeSlot)}
-                  </span>
-                </div>
-
-                <div className="col-span-2 sm:col-span-1 p-3 rounded-2xl bg-neutral-50 border border-neutral-100">
-                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">
-                    Reason
-                  </span>
-                  <span className="text-xs font-bold text-neutral-900 truncate block mt-0.5">
-                    {appointment.reason || "None specified"}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Encounter Clinical Notes */}
-            <div className="bg-white border border-neutral-200 rounded-3xl p-5 shadow-xs space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Icon name="clipboard" className="w-4 h-4 text-primary-600" />
-                  <h2 className="text-sm font-bold text-neutral-900">
-                    Clinical Examination & Notes
-                  </h2>
-                </div>
-                <span className="text-[10px] font-semibold text-neutral-400">
+            <Panel
+              icon="clipboard"
+              title="Clinical Examination & Notes"
+              titleId="clinical-notes-heading"
+              aside={
+                <span className="text-xs font-medium tabular-nums text-neutral-500">
                   {notes.length}/{CLINICAL_NOTES_MAX_LENGTH}
                 </span>
-              </div>
-
+              }
+              bodyClassName="space-y-3"
+            >
               {isClosed ? (
-                <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 text-xs text-neutral-600">
-                  {appointment.status === "CANCELLED"
-                    ? "Clinical notes cannot be added to a cancelled appointment."
-                    : "This consultation is completed; its clinical notes are read-only."}
-                </div>
+                <>
+                  <p className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-600">
+                    {appointment.status === "CANCELLED"
+                      ? "Clinical notes cannot be added to a cancelled appointment."
+                      : "This consultation is completed; its clinical notes are read-only."}
+                  </p>
+                  {appointment.status === "COMPLETED" && notes.trim() && (
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-800">
+                      {notes}
+                    </p>
+                  )}
+                </>
               ) : (
-                <div className="space-y-3">
+                <>
                   <textarea
                     id="clinical-notes"
-                    rows={6}
+                    aria-labelledby="clinical-notes-heading"
+                    rows={7}
                     maxLength={CLINICAL_NOTES_MAX_LENGTH}
                     value={notes}
-                    onChange={(event) => setNotes(event.target.value)}
-                    className="w-full p-4 text-xs bg-neutral-50/50 border border-neutral-200 rounded-2xl text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 leading-relaxed transition-all"
+                    onChange={handleNotesChange}
+                    className="w-full resize-y rounded-xl border border-neutral-200 bg-neutral-50/60 p-4 text-sm leading-relaxed text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
                     placeholder="Diagnosis, advice, follow-up..."
                   />
                   <div className="flex justify-end">
@@ -431,212 +484,113 @@ const ConsultationPage = () => {
                       Save Notes
                     </Button>
                   </div>
-                </div>
+                </>
               )}
               {notesError && <ErrorMessage message={notesError} />}
-            </div>
+            </Panel>
 
-            {/* Previous Encounter History */}
-            <div className="bg-white border border-neutral-200 rounded-3xl p-5 shadow-xs space-y-3">
-              <div className="flex items-center gap-2 border-b border-neutral-100 pb-3">
-                <Icon name="history" className="w-4 h-4 text-neutral-600" />
-                <h2 className="text-sm font-bold text-neutral-900">
-                  Previous Clinical Notes
-                </h2>
-              </div>
-
+            <Panel icon="history" title="Previous Clinical Notes">
               {previousNotes.length === 0 ? (
-                <p className="text-xs text-neutral-500">
+                <p className="text-sm text-neutral-500">
                   No previous clinical notes for this patient.
                 </p>
               ) : (
-                <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                <ul className="max-h-80 space-y-3 overflow-y-auto pr-1">
                   {previousNotes.map((record) => (
-                    <div
-                      key={record.appointmentId}
-                      className="p-3.5 rounded-2xl bg-neutral-50 border border-neutral-200 text-xs space-y-2"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-neutral-800">
-                          {formatDisplayDate(
-                            String(record.appointmentDate ?? "").slice(0, 10)
-                          )}
-                        </span>
-                        <StatusBadge status={record.status} />
-                      </div>
-                      <p className="text-neutral-700 whitespace-pre-wrap leading-relaxed">
-                        {record.clinicalNotes}
-                      </p>
-                    </div>
+                    <PreviousNote key={record.appointmentId} record={record} />
                   ))}
-                </div>
+                </ul>
               )}
-            </div>
+            </Panel>
           </div>
 
-          {/* Right Column: E-Prescription Builder */}
-          <div className="lg:col-span-5 space-y-6">
-            <div className="bg-white border border-neutral-200 rounded-3xl p-5 shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
-                <div className="flex items-center gap-2">
-                  <Icon name="pill" className="w-4 h-4 text-purple-600" />
-                  <h2 className="text-sm font-bold text-neutral-900">
-                    E-Prescription Builder
-                  </h2>
-                </div>
-                <span className="text-[10px] font-bold text-secondary bg-secondary/10 px-2.5 py-0.5 rounded-full">
+          <div className="lg:col-span-5">
+            <Panel
+              icon="pill"
+              title="E-Prescription Builder"
+              aside={
+                <span className="rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-medium text-primary-700">
                   Pharmacy Queue
                 </span>
-              </div>
-
+              }
+            >
               {createdPrescriptions.length > 0 && (
                 <div className="space-y-2">
-                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
-                    Issued Prescriptions
-                  </span>
-                  {createdPrescriptions.map((prescription) => (
-                    <div
-                      key={prescription.prescriptionId}
-                      className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center justify-between"
-                    >
-                      <span className="font-medium">
-                        Prescription #{prescription.prescriptionId} —{" "}
-                        {prescription.items.length}{" "}
-                        {prescription.items.length === 1 ? "item" : "items"}
-                      </span>
-                      <span className="font-bold text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full uppercase">
-                        {prescription.status}
-                      </span>
-                    </div>
-                  ))}
+                  <p className="text-sm font-medium text-neutral-600">
+                    Issued prescriptions
+                  </p>
+                  <ul className="space-y-2">
+                    {createdPrescriptions.map((prescription) => (
+                      <li
+                        key={prescription.prescriptionId}
+                        className="flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900"
+                      >
+                        <span className="font-medium">
+                          Prescription #{prescription.prescriptionId} &mdash;{" "}
+                          {prescription.items?.length ?? 0}{" "}
+                          {prescription.items?.length === 1 ? "item" : "items"}
+                        </span>
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
+                          {prescription.status}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
 
               {isClosed ? (
-                <p className="text-xs text-neutral-500">
+                <p className="text-sm text-neutral-500">
                   This consultation is closed; no further prescriptions can be issued here.
                 </p>
               ) : (
-                <div className="space-y-3 bg-neutral-50 p-4 rounded-2xl border border-neutral-200">
-                  <span className="text-xs font-bold text-neutral-800 uppercase tracking-wider block">
+                <fieldset className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                  <legend className="px-1 text-sm font-semibold text-neutral-800">
                     Add Medication Item
-                  </span>
-                  <Input
-                    id="rx-medicine"
-                    label="Medicine Name"
-                    value={itemDraft.medicineName}
-                    onChange={(event) =>
-                      setItemDraft((draft) => ({
-                        ...draft,
-                        medicineName: event.target.value,
-                      }))
-                    }
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input
-                      id="rx-dosage"
-                      label="Dosage"
-                      placeholder="1 tablet"
-                      value={itemDraft.dosage}
-                      onChange={(event) =>
-                        setItemDraft((draft) => ({
-                          ...draft,
-                          dosage: event.target.value,
-                        }))
-                      }
-                    />
-                    <Input
-                      id="rx-frequency"
-                      label="Frequency"
-                      placeholder="Twice daily"
-                      value={itemDraft.frequency}
-                      onChange={(event) =>
-                        setItemDraft((draft) => ({
-                          ...draft,
-                          frequency: event.target.value,
-                        }))
-                      }
-                    />
+                  </legend>
+                  <div className="grid grid-cols-2 gap-3">
+                    {DRAFT_FIELDS.map((field) => (
+                      <div key={field.key} className={field.wide ? "col-span-2" : ""}>
+                        <Input
+                          id={field.id}
+                          label={field.label}
+                          type={field.type}
+                          min={field.min}
+                          placeholder={field.placeholder}
+                          value={itemDraft[field.key]}
+                          onChange={handleDraftChange(field.key)}
+                        />
+                      </div>
+                    ))}
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input
-                      id="rx-duration"
-                      label="Duration (days)"
-                      type="number"
-                      min="1"
-                      value={itemDraft.durationDays}
-                      onChange={(event) =>
-                        setItemDraft((draft) => ({
-                          ...draft,
-                          durationDays: event.target.value,
-                        }))
-                      }
-                    />
-                    <Input
-                      id="rx-quantity"
-                      label="Quantity"
-                      type="number"
-                      min="1"
-                      value={itemDraft.quantity}
-                      onChange={(event) =>
-                        setItemDraft((draft) => ({
-                          ...draft,
-                          quantity: event.target.value,
-                        }))
-                      }
-                    />
-                  </div>
-
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleAddItem}
-                    className="w-full mt-1"
+                    className="inline-flex w-full items-center justify-center gap-1.5"
                   >
-                    <Icon name="plus" className="w-3.5 h-3.5 mr-1" /> Add Medication
+                    <Icon name="plus" className="h-4 w-4" />
+                    Add Medication
                   </Button>
-                </div>
+                </fieldset>
               )}
 
-              {/* Added Medicines List */}
               {items.length === 0 ? (
                 <EmptyState
                   title="No medicines added yet."
                   message="Add a medicine above to build this prescription."
                 />
               ) : (
-                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                <ul className="max-h-64 space-y-2 overflow-y-auto pr-1">
                   {items.map((item, index) => (
-                    <div
+                    <MedicationRow
                       key={`${item.medicineName}-${index}`}
-                      className="p-3 rounded-2xl bg-neutral-50 border border-neutral-200 flex items-center justify-between text-xs"
-                    >
-                      <div>
-                        <h4 className="font-bold text-neutral-900">
-                          {item.medicineName}{" "}
-                          <span className="font-mono text-primary-600 font-medium">
-                            ({item.dosage})
-                          </span>
-                        </h4>
-                        <p className="text-[10px] text-neutral-500 mt-0.5">
-                          {item.frequency} • {item.durationDays} day
-                          {item.durationDays === 1 ? "" : "s"} • Qty: {item.quantity}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setItems((current) =>
-                            current.filter((_, i) => i !== index)
-                          )
-                        }
-                        className="p-1 text-neutral-400 hover:text-rose-600 transition-colors"
-                      >
-                        <Icon name="trash" className="w-4 h-4" />
-                      </button>
-                    </div>
+                      item={item}
+                      index={index}
+                      onRemove={handleRemoveItem}
+                    />
                   ))}
-                </div>
+                </ul>
               )}
 
               {!isClosed && items.length > 0 && (
@@ -644,20 +598,20 @@ const ConsultationPage = () => {
                   onClick={handleCreatePrescription}
                   loading={creatingPrescription}
                   disabled={creatingPrescription}
-                  className="w-full"
                   size="sm"
+                  className="inline-flex w-full items-center justify-center gap-1.5"
                 >
-                  <Icon name="trash" className="w-3.5 h-3.5 mr-1.5" />
+                  <Icon name="arrow-up-right" className="h-4 w-4" />
                   Transmit Prescription
                 </Button>
               )}
 
               {prescriptionError && <ErrorMessage message={prescriptionError} />}
-            </div>
+            </Panel>
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 };
 

@@ -1,27 +1,36 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useNavigate } from "react-router-dom";
 
 import Button from "../../components/Button";
-import ErrorMessage from "../../components/ErrorMessage";
-import LoadingSpinner from "../../components/LoadingSpinner";
+import Icon from "../../components/Icon";
 import Pagination from "../../components/Pagination";
 import Table from "../../components/Table";
+import { PageHeader, PageShell } from "../../components/doctor/PageLayout";
+import {
+  ErrorPanel,
+  SectionTitle,
+  SkeletonBlock,
+} from "../../components/doctor/Panel";
 import { getPatients } from "../../services/patientService";
 
-/** Rows per page. `GET /patients` returns the whole directory in one payload,
- *  so paging is done client-side — the backend exposes no page parameters. */
+/** `GET /patients` returns the whole directory, so paging is client-side. */
 const PAGE_SIZE = 10;
-
 const RECORDS_BASE_PATH = "/doctor/patient-records";
 
+const matchesQuery = (patient, query) =>
+  String(patient.fullName ?? "").toLowerCase().includes(query) ||
+  String(patient.patientId).includes(query);
+
 /**
- * Patient directory (DOC — Patient Records).
- *
- * Lists every patient the signed-in doctor can read, paged, and hands off to
- * the record view: "View More" navigates to `/doctor/patient-records/:patientId`.
- *
- * Fetch status is one of `loading | ready | failed`; a failed load keeps the
- * page on screen with a retry rather than blanking it.
+ * Patient directory: search, page and open a record. Fetch status is
+ * `loading | ready | failed`; a failed load keeps the page on screen with a
+ * retry instead of blanking it.
  */
 const PatientRecordsPage = () => {
   const navigate = useNavigate();
@@ -30,6 +39,8 @@ const PatientRecordsPage = () => {
   const [status, setStatus] = useState("loading");
   const [page, setPage] = useState(1);
   const [reloadKey, setReloadKey] = useState(0);
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,10 +53,7 @@ const PatientRecordsPage = () => {
         setStatus("ready");
       })
       .catch(() => {
-        if (cancelled) return;
-        // The envelope is already normalised by the apiClient; the directory
-        // simply could not be read, so surface a retry instead of details.
-        setStatus("failed");
+        if (!cancelled) setStatus("failed");
       });
 
     return () => {
@@ -53,17 +61,32 @@ const PatientRecordsPage = () => {
     };
   }, [reloadKey]);
 
-  // Loading is set from the event handler, not the effect, so the effect only
-  // ever writes from an async result. The first load starts in `loading`.
   const retry = useCallback(() => {
     setStatus("loading");
     setReloadKey((key) => key + 1);
   }, []);
 
-  const totalPages = Math.max(1, Math.ceil(patients.length / PAGE_SIZE));
+  const handleQueryChange = useCallback((event) => {
+    setQuery(event.target.value);
+    setPage(1);
+  }, []);
+
+  const normalizedQuery = deferredQuery.trim().toLowerCase();
+  const filtered = useMemo(
+    () =>
+      normalizedQuery
+        ? patients.filter((patient) => matchesQuery(patient, normalizedQuery))
+        : patients,
+    [patients, normalizedQuery],
+  );
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const startIndex = (currentPage - 1) * PAGE_SIZE;
-  const visiblePatients = patients.slice(startIndex, startIndex + PAGE_SIZE);
+  const visiblePatients = useMemo(
+    () => filtered.slice(startIndex, startIndex + PAGE_SIZE),
+    [filtered, startIndex],
+  );
 
   const columns = useMemo(
     () => [
@@ -78,7 +101,15 @@ const PatientRecordsPage = () => {
         key: "fullName",
         header: "Name",
         render: (row) => (
-          <span className="font-medium text-neutral-900">{row.fullName}</span>
+          <div className="flex items-center gap-3">
+            <span
+              aria-hidden="true"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-semibold text-primary-700"
+            >
+              {String(row.fullName ?? "?").charAt(0).toUpperCase()}
+            </span>
+            <span className="font-medium text-neutral-900">{row.fullName}</span>
+          </div>
         ),
       },
       {
@@ -98,76 +129,83 @@ const PatientRecordsPage = () => {
     [navigate],
   );
 
-  if (status === "loading") {
-    return (
-      <div className="mx-auto max-w-6xl py-4 sm:py-6">
-        <div className="rounded-xl border border-neutral-200 bg-white p-6">
-          <LoadingSpinner label="Loading patients" />
-        </div>
-      </div>
-    );
-  }
-
-  if (status === "failed") {
-    return (
-      <div className="mx-auto max-w-6xl py-4 sm:py-6">
-        <div className="space-y-3">
-          <ErrorMessage
-            title="Unable to load patients"
-            message="Please check your connection and try again."
-          />
-          <Button onClick={retry}>Retry</Button>
-        </div>
-      </div>
-    );
-  }
+  const total = patients.length;
+  const countLabel = normalizedQuery
+    ? `${filtered.length} of ${total} patients`
+    : `${total} ${total === 1 ? "patient" : "patients"}`;
 
   return (
-    <div className="mx-auto max-w-6xl py-4 sm:py-6">
-      <header className="mb-6">
-         <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary-50 text-primary-700 text-xs font-medium mb-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary-600 animate-pulse"></span>
-            Doctor Workspace
-          </div>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-neutral-950 sm:text-3xl">
-          Patient records
-        </h1>
-        <p className="mt-2 text-sm text-neutral-600">
-          All patients you can access. Choose View More to open a patient’s
-          record.
-        </p>
-        <p className="mt-1 text-sm font-medium text-neutral-800">
-          {patients.length} {patients.length === 1 ? "patient" : "patients"}
-        </p>
-      </header>
+    <PageShell>
+      <PageHeader
+        title="Patient records"
+        description={"All patients you can access. Choose View More to open a patient\u2019s record."}
+        meta={
+          status === "ready" ? (
+            <p className="font-medium text-neutral-800">{countLabel}</p>
+          ) : null
+        }
+      />
 
-      <section aria-labelledby="patient-directory-heading">
-        <h2
-          id="patient-directory-heading"
-          className="mb-3 text-lg font-semibold text-neutral-900"
-        >
-          All patients
-        </h2>
-
-        <Table
-          columns={columns}
-          data={visiblePatients}
-          getRowKey={(row) => row.patientId}
-          emptyTitle="No patients found."
-          emptyMessage="There are no patient records available to you yet."
-          label="All patients"
+      {status === "loading" ? (
+        <SkeletonBlock label="Loading patients" rows={6} />
+      ) : status === "failed" ? (
+        <ErrorPanel
+          title="Unable to load patients"
+          message="Please check your connection and try again."
+          actionLabel="Retry"
+          onAction={retry}
         />
+      ) : (
+        <section aria-labelledby="patient-directory-heading">
+          <SectionTitle
+            id="patient-directory-heading"
+            aside={
+              <div className="relative w-full max-w-xs">
+                <label htmlFor="patient-search" className="sr-only">
+                  Search patients
+                </label>
+                <Icon
+                  name="search"
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
+                />
+                <input
+                  id="patient-search"
+                  type="search"
+                  value={query}
+                  onChange={handleQueryChange}
+                  placeholder="Search by name or ID"
+                  className="w-full rounded-xl border border-neutral-200 bg-white py-2 pl-9 pr-3 text-sm text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                />
+              </div>
+            }
+          >
+            All patients
+          </SectionTitle>
 
-        {totalPages > 1 && (
-          <Pagination
-            className="mt-4"
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setPage}
+          <Table
+            columns={columns}
+            data={visiblePatients}
+            getRowKey={(row) => row.patientId}
+            emptyTitle="No patients found."
+            emptyMessage={
+              normalizedQuery
+                ? "No patients match your search. Try a different name or ID."
+                : "There are no patient records available to you yet."
+            }
+            label="All patients"
           />
-        )}
-      </section>
-    </div>
+
+          {totalPages > 1 && (
+            <Pagination
+              className="mt-4"
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          )}
+        </section>
+      )}
+    </PageShell>
   );
 };
 
