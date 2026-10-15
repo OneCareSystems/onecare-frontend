@@ -163,7 +163,7 @@ describe("appointmentService — clinical notes (fix/44 contract)", () => {
     ).toThrow(/response format/i);
   });
 
-  it("fetches history via GET /appointments/patient/{id}/history", async () => {
+  it("fetches history via GET /patients/{id}/history", async () => {
     mswState.historyResponses = [
       { patientId: 7, appointments: [], prescriptions: [] },
     ];

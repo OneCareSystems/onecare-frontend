@@ -12,7 +12,6 @@ import {
   SkeletonBlock,
 } from "../../components/doctor/Panel";
 import { getPatientHistory } from "../../services/appointmentService";
-import { getPatient } from "../../services/patientService";
 import { formatDisplayDate } from "../../utils/dateUtils";
 import { formatTimeSlot, toDateOnly } from "../../utils/timeUtils";
 
@@ -24,7 +23,7 @@ const PROFILE_FIELDS = [
   ["gender", "Gender"],
   ["bloodGroup", "Blood group"],
   ["dateOfBirth", "Date of birth"],
-  ["phone", "Phone"],
+  ["contactNo", "Phone"],
   ["email", "Email"],
   ["address", "Address"],
 ];
@@ -64,6 +63,7 @@ const VisitEntry = memo(function VisitEntry({ visit }) {
 
 const PrescriptionEntry = memo(function PrescriptionEntry({ prescription }) {
   const items = Array.isArray(prescription.items) ? prescription.items : [];
+  const appointment = prescription.appointment;
 
   return (
     <li className="space-y-2 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
@@ -77,6 +77,20 @@ const PrescriptionEntry = memo(function PrescriptionEntry({ prescription }) {
           </span>
         )}
       </div>
+      {appointment && (
+        <div className="rounded-lg border border-primary-100 bg-white px-3 py-2">
+          <p className="text-xs font-medium text-neutral-500">Related appointment</p>
+          <p className="mt-0.5 text-sm font-medium text-neutral-800">
+            {appointment.appointmentDate
+              ? formatDisplayDate(toDateOnly(appointment.appointmentDate))
+              : `Appointment #${appointment.appointmentId}`}
+            {appointment.timeSlot ? ` at ${formatTimeSlot(appointment.timeSlot)}` : ""}
+          </p>
+          {appointment.reason && (
+            <p className="mt-0.5 text-sm text-neutral-600">{appointment.reason}</p>
+          )}
+        </div>
+      )}
       {items.length > 0 && (
         <ul className="space-y-1 text-sm text-neutral-700">
           {items.map((item, index) => (
@@ -95,9 +109,8 @@ const PrescriptionEntry = memo(function PrescriptionEntry({ prescription }) {
 });
 
 /**
- * The record opened from the patient directory. Everything shown comes from
- * the backend: the patient profile and the visit / prescription history.
- * The history loads in parallel with the profile and never blocks it.
+ * The record opened from the patient directory. The patient profile, visit
+ * history, and prescriptions are loaded together from the patient history API.
  */
 export const PatientDetails = () => {
   const { patientId } = useParams();
@@ -110,20 +123,18 @@ export const PatientDetails = () => {
 
     let cancelled = false;
 
-    getPatient(patientId)
-      .then((data) => {
-        if (!cancelled) setOutcome({ id: patientId, patient: data });
-      })
-      .catch(() => {
-        if (!cancelled) setOutcome({ id: patientId, error: true });
-      });
-
     getPatientHistory(patientId)
       .then((data) => {
-        if (!cancelled) setHistoryOutcome({ id: patientId, history: data });
+        if (!cancelled) {
+          setOutcome({ id: patientId, patient: data.patient });
+          setHistoryOutcome({ id: patientId, history: data });
+        }
       })
       .catch(() => {
-        if (!cancelled) setHistoryOutcome({ id: patientId, error: true });
+        if (!cancelled) {
+          setOutcome({ id: patientId, error: true });
+          setHistoryOutcome({ id: patientId, error: true });
+        }
       });
 
     return () => {

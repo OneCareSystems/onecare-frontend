@@ -123,7 +123,7 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     expect(notesTextarea()).toHaveValue("BP 120/80");
     expect(mswState.clinicalNotesHits).toHaveLength(1);
 
-    // Previous encounters from GET .../patient/7/history.
+    // Previous encounters from GET ../patients/7/history.
     expect(
       screen.getByText("Previous Clinical Notes"),
     ).toBeInTheDocument();

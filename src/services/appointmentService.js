@@ -89,11 +89,16 @@ export const saveClinicalNotes = async (
 /** `PatientHistoryResponse`: previous appointments (with notes) + prescriptions. */
 export const adaptPatientHistoryResponse = (payload) => {
   const data = payload?.data;
-  if (payload?.success !== true || !data || data.patientId === undefined) {
+  if (
+    payload?.success !== true ||
+    !data ||
+    (!data.patient && data.patientId === undefined)
+  ) {
     throw new Error("Unexpected patient history response format");
   }
   return {
-    patientId: data.patientId,
+    patient: data.patient ?? null,
+    patientId: data.patient?.patientId ?? data.patientId,
     appointments: Array.isArray(data.appointments) ? data.appointments : [],
     prescriptions: Array.isArray(data.prescriptions) ? data.prescriptions : [],
   };
@@ -101,7 +106,7 @@ export const adaptPatientHistoryResponse = (payload) => {
 
 export const getPatientHistory = async (patientId, { signal } = {}) => {
   const response = await apiClient.get(
-    `/appointments/patient/${patientId}/history`,
+    `/patients/${patientId}/history`,
     { signal },
   );
   return adaptPatientHistoryResponse(response.data);

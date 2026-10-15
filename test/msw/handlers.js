@@ -311,7 +311,7 @@ export const handlers = [
       },
     );
   }),
-  http.get("*/appointments/patient/:patientId/history", async ({ params }) => {
+  http.get("*/patients/:patientId/history", async ({ params }) => {
     mswState.historyHits.push({ patientId: params.patientId });
     if (mswState.historyErrorMode === "not-found") {
       return fail(404, "Patient not found");
