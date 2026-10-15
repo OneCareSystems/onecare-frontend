@@ -57,11 +57,33 @@ const EMPTY_ITEM = {
 };
 
 const DRAFT_FIELDS = [
-  { key: "medicineName", id: "rx-medicine", label: "Medicine Name", wide: true },
+  {
+    key: "medicineName",
+    id: "rx-medicine",
+    label: "Medicine Name",
+    wide: true,
+  },
   { key: "dosage", id: "rx-dosage", label: "Dosage", placeholder: "1 tablet" },
-  { key: "frequency", id: "rx-frequency", label: "Frequency", placeholder: "Twice daily" },
-  { key: "durationDays", id: "rx-duration", label: "Duration (days)", type: "number", min: "1" },
-  { key: "quantity", id: "rx-quantity", label: "Quantity", type: "number", min: "1" },
+  {
+    key: "frequency",
+    id: "rx-frequency",
+    label: "Frequency",
+    placeholder: "Twice daily",
+  },
+  {
+    key: "durationDays",
+    id: "rx-duration",
+    label: "Duration (days)",
+    type: "number",
+    min: "1",
+  },
+  {
+    key: "quantity",
+    id: "rx-quantity",
+    label: "Quantity",
+    type: "number",
+    min: "1",
+  },
 ];
 
 /**
@@ -426,11 +448,12 @@ const ConsultationPage = () => {
             >
               <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <DetailTile label="Patient name">
-                  {patientName ?? `Patient ${appointment.patientId ?? "\u2014"}`}
+                  {patientName ??
+                    `Patient ${appointment.patientId ?? "\u2014"}`}
                 </DetailTile>
                 <DetailTile label="Date and time">
-                  {formatDisplayDate(toDateOnly(appointment.appointmentDate))} at{" "}
-                  {formatTimeSlot(appointment.timeSlot)}
+                  {formatDisplayDate(toDateOnly(appointment.appointmentDate))}{" "}
+                  at {formatTimeSlot(appointment.timeSlot)}
                 </DetailTile>
                 <DetailTile label="Reason">
                   {appointment.reason || "None specified"}
@@ -541,7 +564,8 @@ const ConsultationPage = () => {
 
               {isClosed ? (
                 <p className="text-sm text-neutral-500">
-                  This consultation is closed; no further prescriptions can be issued here.
+                  This consultation is closed; no further prescriptions can be
+                  issued here.
                 </p>
               ) : (
                 <fieldset className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
@@ -550,7 +574,10 @@ const ConsultationPage = () => {
                   </legend>
                   <div className="grid grid-cols-2 gap-3">
                     {DRAFT_FIELDS.map((field) => (
-                      <div key={field.key} className={field.wide ? "col-span-2" : ""}>
+                      <div
+                        key={field.key}
+                        className={field.wide ? "col-span-2" : ""}
+                      >
                         <Input
                           id={field.id}
                           label={field.label}
@@ -606,7 +633,9 @@ const ConsultationPage = () => {
                 </Button>
               )}
 
-              {prescriptionError && <ErrorMessage message={prescriptionError} />}
+              {prescriptionError && (
+                <ErrorMessage message={prescriptionError} />
+              )}
             </Panel>
           </div>
         </div>

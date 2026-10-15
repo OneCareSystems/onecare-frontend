@@ -25,7 +25,6 @@ export const getPatient = async (patientId, { signal } = {}) => {
   return adaptPatientResponse(response.data);
 };
 
-
 export const adaptPatientsResponse = (payload) => {
   if (payload?.success !== true || !Array.isArray(payload.data)) {
     throw new Error("Unexpected patients response format");

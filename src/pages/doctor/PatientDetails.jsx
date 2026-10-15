@@ -48,10 +48,14 @@ const VisitEntry = memo(function VisitEntry({ visit }) {
         </p>
         <StatusBadge status={visit.status} />
       </div>
-      {visit.reason && <p className="text-sm text-neutral-600">{visit.reason}</p>}
+      {visit.reason && (
+        <p className="text-sm text-neutral-600">{visit.reason}</p>
+      )}
       {notes && (
         <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-          <p className="mb-1 text-xs font-medium text-neutral-500">Clinical notes</p>
+          <p className="mb-1 text-xs font-medium text-neutral-500">
+            Clinical notes
+          </p>
           <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-800">
             {notes}
           </p>
@@ -79,23 +83,35 @@ const PrescriptionEntry = memo(function PrescriptionEntry({ prescription }) {
       </div>
       {appointment && (
         <div className="rounded-lg border border-primary-100 bg-white px-3 py-2">
-          <p className="text-xs font-medium text-neutral-500">Related appointment</p>
+          <p className="text-xs font-medium text-neutral-500">
+            Related appointment
+          </p>
           <p className="mt-0.5 text-sm font-medium text-neutral-800">
             {appointment.appointmentDate
               ? formatDisplayDate(toDateOnly(appointment.appointmentDate))
               : `Appointment #${appointment.appointmentId}`}
-            {appointment.timeSlot ? ` at ${formatTimeSlot(appointment.timeSlot)}` : ""}
+            {appointment.timeSlot
+              ? ` at ${formatTimeSlot(appointment.timeSlot)}`
+              : ""}
           </p>
           {appointment.reason && (
-            <p className="mt-0.5 text-sm text-neutral-600">{appointment.reason}</p>
+            <p className="mt-0.5 text-sm text-neutral-600">
+              {appointment.reason}
+            </p>
           )}
         </div>
       )}
       {items.length > 0 && (
         <ul className="space-y-1 text-sm text-neutral-700">
           {items.map((item, index) => (
-            <li key={`${item.medicineName}-${index}`} className="flex items-center gap-2">
-              <Icon name="pill" className="h-3.5 w-3.5 shrink-0 text-primary-600" />
+            <li
+              key={`${item.medicineName}-${index}`}
+              className="flex items-center gap-2"
+            >
+              <Icon
+                name="pill"
+                className="h-3.5 w-3.5 shrink-0 text-primary-600"
+              />
               <span>
                 {item.medicineName}
                 {item.dosage ? ` (${item.dosage})` : ""}
@@ -164,7 +180,10 @@ export const PatientDetails = () => {
     () =>
       patient
         ? PROFILE_FIELDS.filter(
-            ([key]) => patient[key] !== undefined && patient[key] !== null && patient[key] !== "",
+            ([key]) =>
+              patient[key] !== undefined &&
+              patient[key] !== null &&
+              patient[key] !== "",
           )
         : [],
     [patient],
@@ -177,8 +196,16 @@ export const PatientDetails = () => {
       <PageShell>
         <SkeletonBlock label="Loading patient record" rows={2} />
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-          <SkeletonBlock label="Loading clinical history" rows={6} className="lg:col-span-8" />
-          <SkeletonBlock label="Loading patient information" rows={4} className="lg:col-span-4" />
+          <SkeletonBlock
+            label="Loading clinical history"
+            rows={6}
+            className="lg:col-span-8"
+          />
+          <SkeletonBlock
+            label="Loading patient information"
+            rows={4}
+            className="lg:col-span-4"
+          />
         </div>
       </PageShell>
     );
@@ -235,7 +262,8 @@ export const PatientDetails = () => {
               </p>
             ) : historyState.error ? (
               <p className="text-sm text-neutral-600">
-                Visit history is unavailable right now. Reload the page to try again.
+                Visit history is unavailable right now. Reload the page to try
+                again.
               </p>
             ) : visits.length === 0 ? (
               <p className="text-sm text-neutral-600">
@@ -270,7 +298,9 @@ export const PatientDetails = () => {
 
           <Panel icon="pill" title="Prescriptions">
             {!historyState ? (
-              <p className="text-sm text-neutral-500">Loading prescriptions...</p>
+              <p className="text-sm text-neutral-500">
+                Loading prescriptions...
+              </p>
             ) : prescriptions.length === 0 ? (
               <p className="text-sm text-neutral-600">
                 No prescriptions on record.

@@ -130,7 +130,9 @@ describe("DoctorDashboardPage", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Please check your connection",
     );
-    expect(screen.getByRole("button", { name: "Retry Connection" })).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Retry Connection" }),
+    ).toBeEnabled();
     expect(mswState.queueHits).toHaveLength(2);
   });
 
@@ -157,5 +159,4 @@ describe("DoctorDashboardPage", () => {
       screen.queryByText(/Jane Doe|vitals|consultation id|sample/i),
     ).not.toBeInTheDocument();
   });
-
 });

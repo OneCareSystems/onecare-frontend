@@ -105,10 +105,9 @@ export const adaptPatientHistoryResponse = (payload) => {
 };
 
 export const getPatientHistory = async (patientId, { signal } = {}) => {
-  const response = await apiClient.get(
-    `/patients/${patientId}/history`,
-    { signal },
-  );
+  const response = await apiClient.get(`/patients/${patientId}/history`, {
+    signal,
+  });
   return adaptPatientHistoryResponse(response.data);
 };
 

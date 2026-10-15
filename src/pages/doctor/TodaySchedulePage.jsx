@@ -111,7 +111,9 @@ const TodaySchedulePage = () => {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => navigate(`/doctor/consultation/${row.appointmentId}`)}
+              onClick={() =>
+                navigate(`/doctor/consultation/${row.appointmentId}`)
+              }
             >
               Start Consultation
             </Button>
@@ -164,7 +166,9 @@ const TodaySchedulePage = () => {
       />
 
       <section aria-labelledby="schedule-queue-heading">
-        <SectionTitle id="schedule-queue-heading">Appointment queue</SectionTitle>
+        <SectionTitle id="schedule-queue-heading">
+          Appointment queue
+        </SectionTitle>
 
         {firstLoad ? (
           <SkeletonBlock label="Loading appointment queue" rows={5} />

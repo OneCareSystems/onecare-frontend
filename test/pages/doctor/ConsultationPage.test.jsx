@@ -124,9 +124,7 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     expect(mswState.clinicalNotesHits).toHaveLength(1);
 
     // Previous encounters from GET ../patients/7/history.
-    expect(
-      screen.getByText("Previous Clinical Notes"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Previous Clinical Notes")).toBeInTheDocument();
     expect(screen.getByText("Follow-up in two weeks.")).toBeInTheDocument();
     expect(mswState.historyHits[0].patientId).toBe("7");
   });
@@ -213,9 +211,7 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
       ],
     });
     // The issued prescription is listed for this consultation.
-    expect(
-      screen.getByText(/Prescription #9001/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Prescription #9001/)).toBeInTheDocument();
   });
 
   it("blocks an empty prescription item with a validation message", async () => {
@@ -224,9 +220,7 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     renderAt("/doctor/consultation/101");
 
     await waitForLoaded();
-    await user.click(
-      screen.getByRole("button", { name: /add medication/i }),
-    );
+    await user.click(screen.getByRole("button", { name: /add medication/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       /fill in medicine name/i,
@@ -269,7 +263,9 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     ).not.toBeInTheDocument();
     // Notes become read-only for completed appointments.
     expect(
-      screen.getByText(/this consultation is completed; its clinical notes are read-only/i),
+      screen.getByText(
+        /this consultation is completed; its clinical notes are read-only/i,
+      ),
     ).toBeInTheDocument();
   });
 
@@ -430,9 +426,7 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     renderAt("/doctor/consultation/101");
 
     await waitForLoaded();
-    await user.click(
-      screen.getByRole("button", { name: /back to schedule/i }),
-    );
+    await user.click(screen.getByRole("button", { name: /back to schedule/i }));
     expect(
       screen.getByRole("heading", { name: "Today’s schedule" }),
     ).toBeInTheDocument();

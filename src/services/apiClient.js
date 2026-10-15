@@ -315,7 +315,10 @@ export const startTokenRefreshScheduler = ({
     log(`refreshing with ${Math.round(remainingMs / 1000)}s left`);
 
     refreshSession().catch((error) => {
-      log("proactive refresh failed; retrying on the next tick", error?.message);
+      log(
+        "proactive refresh failed; retrying on the next tick",
+        error?.message,
+      );
       onRefreshError?.(error);
     });
   };

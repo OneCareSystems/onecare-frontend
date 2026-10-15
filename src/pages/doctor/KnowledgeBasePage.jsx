@@ -96,8 +96,12 @@ const ArticleCard = memo(function ArticleCard({ article, onOpen, onRemove }) {
             </button>
           </div>
         </div>
-        <h3 className="text-base font-semibold text-neutral-900">{article.title}</h3>
-        <p className="text-sm leading-relaxed text-neutral-600">{article.desc}</p>
+        <h3 className="text-base font-semibold text-neutral-900">
+          {article.title}
+        </h3>
+        <p className="text-sm leading-relaxed text-neutral-600">
+          {article.desc}
+        </p>
       </div>
       <div className="flex items-center justify-between border-t border-neutral-100 pt-3 text-sm">
         <span className="font-medium text-neutral-600">{article.category}</span>
@@ -133,7 +137,8 @@ const AddPdfModal = ({ onCancel, onAdd }) => {
   // Free the temporary PDF URL if the dialog closes without adding it.
   useEffect(
     () => () => {
-      if (!consumedRef.current && urlRef.current) URL.revokeObjectURL(urlRef.current);
+      if (!consumedRef.current && urlRef.current)
+        URL.revokeObjectURL(urlRef.current);
     },
     [],
   );
@@ -153,7 +158,10 @@ const AddPdfModal = ({ onCancel, onAdd }) => {
     const file = event.target.files?.[0];
     if (!file) return;
     if (file.type !== "application/pdf") {
-      setErrors((current) => ({ ...current, file: "Please select a PDF file." }));
+      setErrors((current) => ({
+        ...current,
+        file: "Please select a PDF file.",
+      }));
       return;
     }
     if (urlRef.current) URL.revokeObjectURL(urlRef.current);
@@ -215,7 +223,12 @@ const AddPdfModal = ({ onCancel, onAdd }) => {
               ))}
             </select>
           </div>
-          <Input id="kb-badge" label="Badge" value={form.badge} onChange={setField("badge")} />
+          <Input
+            id="kb-badge"
+            label="Badge"
+            value={form.badge}
+            onChange={setField("badge")}
+          />
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -393,7 +406,11 @@ const KnowledgeBasePage = () => {
                 <Icon name="arrow-up-right" className="h-4 w-4" />
                 Open in new tab
               </a>
-              <Button size="sm" onClick={closeViewer} className="inline-flex items-center gap-1.5">
+              <Button
+                size="sm"
+                onClick={closeViewer}
+                className="inline-flex items-center gap-1.5"
+              >
                 <Icon name="arrow-left" className="h-4 w-4" />
                 Back to list
               </Button>
@@ -418,7 +435,8 @@ const KnowledgeBasePage = () => {
         description="Evidence-based clinical guidelines, pharmacology references and emergency protocols."
         meta={
           <p className="font-medium text-neutral-800">
-            {articles.length} {articles.length === 1 ? "reference" : "references"} in library
+            {articles.length}{" "}
+            {articles.length === 1 ? "reference" : "references"} in library
           </p>
         }
         actions={
@@ -447,7 +465,11 @@ const KnowledgeBasePage = () => {
             className={`${FIELD_CLASS} pl-9`}
           />
         </div>
-        <div role="group" aria-label="Filter by category" className="flex flex-wrap gap-2">
+        <div
+          role="group"
+          aria-label="Filter by category"
+          className="flex flex-wrap gap-2"
+        >
           {FILTERS.map((category) => (
             <button
               key={category}

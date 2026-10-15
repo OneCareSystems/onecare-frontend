@@ -1,4 +1,3 @@
-
 import {
   LuActivity,
   LuArrowLeft,
@@ -146,13 +145,7 @@ const FALLBACK_ICON = LuCircleHelp;
  * @param {string|number} [props.size="1em"] - Icon dimensions.
  * @param {string} [props.className=""] - CSS classes.
  */
-const Icon = ({
-  name,
-  label,
-  size = "1em",
-  className = "",
-  ...rest
-}) => {
+const Icon = ({ name, label, size = "1em", className = "", ...rest }) => {
   const Glyph = ICONS[name] ?? FALLBACK_ICON;
 
   const accessibilityProps = label

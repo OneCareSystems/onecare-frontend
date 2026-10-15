@@ -24,7 +24,10 @@ const Modal = ({ title, onClose, children, widthClass = "max-w-lg" }) => {
     const previouslyFocused = document.activeElement;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    (dialog.querySelector("[data-autofocus], input, select, textarea") ?? dialog).focus();
+    (
+      dialog.querySelector("[data-autofocus], input, select, textarea") ??
+      dialog
+    ).focus();
 
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {

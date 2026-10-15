@@ -73,7 +73,10 @@ const DoctorDashboardPage = () => {
     handleRefresh();
   }, [handleRefresh]);
 
-  const statusCounts = useMemo(() => calculateQueueStatusCounts(queue), [queue]);
+  const statusCounts = useMemo(
+    () => calculateQueueStatusCounts(queue),
+    [queue],
+  );
 
   return (
     <PageShell>
@@ -109,7 +112,9 @@ const DoctorDashboardPage = () => {
       ) : (
         <>
           <section aria-labelledby="queue-summary-heading">
-            <SectionTitle id="queue-summary-heading">Overview Statistics</SectionTitle>
+            <SectionTitle id="queue-summary-heading">
+              Overview Statistics
+            </SectionTitle>
             {initialLoading ? (
               <div
                 role="status"
@@ -162,7 +167,9 @@ const DoctorDashboardPage = () => {
               aside={
                 queue.length > 0 ? (
                   <p className="text-sm text-neutral-500">
-                    {queue.length} {queue.length === 1 ? "consultation" : "consultations"} today
+                    {queue.length}{" "}
+                    {queue.length === 1 ? "consultation" : "consultations"}{" "}
+                    today
                   </p>
                 ) : null
               }

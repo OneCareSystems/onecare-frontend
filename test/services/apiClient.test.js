@@ -393,10 +393,16 @@ describe("AC4b — expiry normalisation and the visibility gate", () => {
     });
     // A long-lived replacement token moves expiry outside the leeway window,
     // so the rapid ticks below cannot trigger a second refresh.
-    mock.onPost("/auth/refresh").reply(
-      200,
-      ok({ accessToken: "access-2", refreshToken: "refresh-2", expiresIn: 7200 }),
-    );
+    mock
+      .onPost("/auth/refresh")
+      .reply(
+        200,
+        ok({
+          accessToken: "access-2",
+          refreshToken: "refresh-2",
+          expiresIn: 7200,
+        }),
+      );
 
     const base = Date.now();
     let clock = base;
@@ -423,10 +429,16 @@ describe("AC4b — expiry normalisation and the visibility gate", () => {
       refreshToken: "refresh-1",
       expiresIn: 1800,
     });
-    mock.onPost("/auth/refresh").reply(
-      200,
-      ok({ accessToken: "access-2", refreshToken: "refresh-2", expiresIn: 1800 }),
-    );
+    mock
+      .onPost("/auth/refresh")
+      .reply(
+        200,
+        ok({
+          accessToken: "access-2",
+          refreshToken: "refresh-2",
+          expiresIn: 1800,
+        }),
+      );
 
     const base = Date.now();
     let clock = base;

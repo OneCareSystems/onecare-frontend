@@ -49,7 +49,9 @@ export const Panel = ({
           {aside}
         </div>
       )}
-      <div className={`${padded ? "p-5" : ""} ${bodyClassName}`}>{children}</div>
+      <div className={`${padded ? "p-5" : ""} ${bodyClassName}`}>
+        {children}
+      </div>
     </section>
   );
 };

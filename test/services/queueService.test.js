@@ -86,10 +86,9 @@ describe("queueService", () => {
     // caller decides what to render.
     expect(records).toEqual([{ ...record, patientFullName: null }]);
 
-
-    expect(new URL(mswState.queueHits[0].url, 'http://localhost').pathname).toMatch(
-      /\/(api\/)?queue\/today$/,
-    );
+    expect(
+      new URL(mswState.queueHits[0].url, "http://localhost").pathname,
+    ).toMatch(/\/(api\/)?queue\/today$/);
     expect(new URL(mswState.queueHits[0].url).search).toBe("");
   });
 

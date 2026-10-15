@@ -74,10 +74,7 @@ describe("StaffLayout — CFG-07 AC4 keyboard tab order (integration)", () => {
     );
     expect(dashboard.reached).toBe(true);
 
-    const queue = await tabUntil(
-      user,
-      (s) => s.tag === "A"
-    );
+    const queue = await tabUntil(user, (s) => s.tag === "A");
     expect(queue.reached).toBe(true);
   });
 

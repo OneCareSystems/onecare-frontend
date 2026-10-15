@@ -24,8 +24,9 @@ const PAGE_SIZE = 10;
 const RECORDS_BASE_PATH = "/doctor/patient-records";
 
 const matchesQuery = (patient, query) =>
-  String(patient.fullName ?? "").toLowerCase().includes(query) ||
-  String(patient.patientId).includes(query);
+  String(patient.fullName ?? "")
+    .toLowerCase()
+    .includes(query) || String(patient.patientId).includes(query);
 
 /**
  * Patient directory: search, page and open a record. Fetch status is
@@ -106,7 +107,9 @@ const PatientRecordsPage = () => {
               aria-hidden="true"
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-semibold text-primary-700"
             >
-              {String(row.fullName ?? "?").charAt(0).toUpperCase()}
+              {String(row.fullName ?? "?")
+                .charAt(0)
+                .toUpperCase()}
             </span>
             <span className="font-medium text-neutral-900">{row.fullName}</span>
           </div>
@@ -138,7 +141,9 @@ const PatientRecordsPage = () => {
     <PageShell>
       <PageHeader
         title="Patient records"
-        description={"All patients you can access. Choose View More to open a patient\u2019s record."}
+        description={
+          "All patients you can access. Choose View More to open a patient\u2019s record."
+        }
         meta={
           status === "ready" ? (
             <p className="font-medium text-neutral-800">{countLabel}</p>
