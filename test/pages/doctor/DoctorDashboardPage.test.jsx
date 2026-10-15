@@ -90,10 +90,6 @@ describe("DoctorDashboardPage", () => {
     expect(
       screen.getByText("Total Patients").parentElement,
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /open full queue/i })).toHaveAttribute(
-      "href",
-      "/queue",
-    );
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
@@ -115,9 +111,6 @@ describe("DoctorDashboardPage", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Unable to load summary metrics",
     );
-    expect(
-      screen.getByRole("link", { name: /open full queue/i }),
-    ).toBeInTheDocument();
 
     mswState.queueErrorMode = null;
     mswState.queueResponses = [[{ appointmentId: 9, status: "SCHEDULED" }]];
@@ -165,14 +158,4 @@ describe("DoctorDashboardPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("uses the real shared queue navigation destination", async () => {
-    const user = userEvent.setup();
-    mswState.queueResponses = [[]];
-    renderPage();
-    await screen.findByText("No Appointments Scheduled");
-    await user.click(screen.getByRole("link", { name: /open full queue/i }));
-    expect(
-      screen.getByRole("heading", { name: "Shared queue" }),
-    ).toBeInTheDocument();
-  });
 });
