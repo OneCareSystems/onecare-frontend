@@ -12,7 +12,7 @@ import {
   SESSION_EXPIRED_EVENT,
 } from "../../services/apiClient";
 
-import { isUserActive, recordUserActivity } from "./sessionActivity";
+import { isTabVisible, recordUserActivity } from "./sessionActivity";
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const WARNING_BEFORE_LOGOUT_MS = 2 * 60 * 1000;
@@ -134,8 +134,12 @@ const SessionManager = () => {
 
     resetTimers();
 
+    // The token is refreshed whenever the tab is visible, so an idle-but-present
+    // user is never logged out by an expiring JWT. The 30-minute inactivity
+    // logout above is a separate control and is unaffected by this.
     const stopScheduler = startTokenRefreshScheduler({
-      isUserActive,
+      canExtendSession: isTabVisible,
+      debug: Boolean(import.meta.env?.DEV),
     });
 
     return () => {

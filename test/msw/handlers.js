@@ -224,8 +224,11 @@ export const handlers = [
       authorization: request.headers.get("Authorization"),
     });
     if (!mswState.tokenValid) return fail(401, "Access token expired");
-    // Optional failure mode so callers can test best-effort enrichment
+    // Optional failure modes so callers can test best-effort enrichment
     // without tripping the 401 refresh flow.
+    if (mswState.patientErrorMode === "not-found") {
+      return fail(404, "Patient not found");
+    }
     if (mswState.patientErrorMode === "server-error") {
       return fail(500, "Internal server error");
     }

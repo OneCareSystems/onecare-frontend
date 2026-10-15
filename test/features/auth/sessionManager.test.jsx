@@ -24,6 +24,8 @@ vi.mock("../../../src/services/apiClient", () => ({
 }));
 
 import { logout } from "../../../src/services/authService";
+import { startTokenRefreshScheduler } from "../../../src/services/apiClient";
+import { isTabVisible } from "../../../src/features/auth/sessionActivity";
 import SessionManager from "../../../src/features/auth/SessionManager.jsx";
 
 const LocationDisplay = () => {
@@ -157,5 +159,13 @@ describe("SessionManager — CFG-05", () => {
     ).toBeTruthy();
 
     expect(logout).not.toHaveBeenCalled();
+  });
+
+  it("gates the proactive token refresh on tab visibility", () => {
+    renderSessionManager();
+
+    expect(startTokenRefreshScheduler).toHaveBeenLastCalledWith(
+      expect.objectContaining({ canExtendSession: isTabVisible }),
+    );
   });
 });

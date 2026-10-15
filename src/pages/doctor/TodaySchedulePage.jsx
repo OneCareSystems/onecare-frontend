@@ -58,26 +58,6 @@ const TodaySchedulePage = () => {
     refresh();
   }, [refresh]);
 
-  // Patient names label rows only; a failed lookup must never break the page.
-  useEffect(() => {
-    let cancelled = false;
-    getPatients()
-      .then((patients) => {
-        if (cancelled) return;
-        setPatientNames(
-          Object.fromEntries(
-            patients.map((patient) => [patient.patientId, patient.fullName]),
-          ),
-        );
-      })
-      .catch(() => {
-        /* rows fall back to "Patient <id>" labels */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   // ~2s polling keeps the queue fresh without any manual refresh.
   useQueuePolling({ enabled: true, onTick: refresh });
 
@@ -134,9 +114,6 @@ const TodaySchedulePage = () => {
     <div className="mx-auto max-w-6xl py-4 sm:py-6">
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-primary-700">
-            Doctor workspace
-          </p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-neutral-950 sm:text-3xl">
             Today’s schedule
           </h1>

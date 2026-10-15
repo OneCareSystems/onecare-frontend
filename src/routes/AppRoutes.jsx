@@ -21,6 +21,7 @@ import QueuePage from "../pages/shared/QueuePage";
 import StaffLayout from "../layouts/StaffLayout";
 import RequireAuth from "./RequireAuth";
 import { CHANGE_PASSWORD_PATH, ROUTE_ACCESS } from "../constants/routeAccess";
+import PatientRecordsPage from "../pages/doctor/PatientRecordsPage";
 import PatientDetails from "../pages/doctor/PatientDetails";
 import KnowledgeBasePage from "../pages/doctor/KnowledgeBasePage";
 
@@ -63,7 +64,12 @@ const AppRoutes = () => {
             path="consultation/:appointmentId"
             element={<ConsultationPage />}
           />
-          <Route path="/doctor/patient-records" element={<PatientDetails />} />
+          {/* Directory first, then the record opened from it. */}
+          <Route path="patient-records" element={<PatientRecordsPage />} />
+          <Route
+            path="patient-records/:patientId"
+            element={<PatientDetails />}
+          />
           <Route
             path="/doctor/knowledge-base"
             element={<KnowledgeBasePage />}

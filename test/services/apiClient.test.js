@@ -2,7 +2,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import MockAdapter from "axios-mock-adapter";
 import apiClient, {
   __resetAuthState,
+  extractTokens,
   handleSessionExpired,
+  normalizeExpiresInSeconds,
   refreshSession,
   setNavigator,
   startTokenRefreshScheduler,
@@ -339,6 +341,140 @@ describe("AC4 — proactive refresh honours activity", () => {
     });
     await wait(30);
     expect(mock.history.post).toHaveLength(0);
+    stop();
+  });
+});
+
+describe("AC4b — expiry normalisation and the visibility gate", () => {
+  it("reads a millisecond expiresIn as seconds", () => {
+    expect(normalizeExpiresInSeconds(1800000)).toBe(1800);
+    expect(normalizeExpiresInSeconds(1800)).toBe(1800);
+  });
+
+  it("rejects a non-positive or non-numeric expiresIn", () => {
+    expect(normalizeExpiresInSeconds(0)).toBeNull();
+    expect(normalizeExpiresInSeconds(-5)).toBeNull();
+    expect(normalizeExpiresInSeconds("soon")).toBeNull();
+    expect(normalizeExpiresInSeconds(undefined)).toBeNull();
+  });
+
+  it("accepts snake_case fields and falls back to the 30-minute default", () => {
+    const snake = extractTokens({
+      success: true,
+      data: {
+        access_token: "a",
+        refresh_token: "r",
+        expires_in: 1800,
+      },
+    });
+    expect(snake).toMatchObject({
+      accessToken: "a",
+      refreshToken: "r",
+      expiresIn: 1800,
+    });
+
+    expect(extractTokens({ data: { accessToken: "a" } }).expiresIn).toBe(1800);
+  });
+
+  it("converts an absolute expiry into seconds from now", () => {
+    const inTenMinutes = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    const tokens = extractTokens({
+      data: { accessToken: "a", expiresAt: inTenMinutes },
+    });
+    expect(tokens.expiresIn).toBeGreaterThanOrEqual(595);
+    expect(tokens.expiresIn).toBeLessThanOrEqual(600);
+  });
+
+  it("fires for an idle user when canExtendSession permits it", async () => {
+    setTokens({
+      accessToken: "access-1",
+      refreshToken: "refresh-1",
+      expiresIn: 1800,
+    });
+    // A long-lived replacement token moves expiry outside the leeway window,
+    // so the rapid ticks below cannot trigger a second refresh.
+    mock.onPost("/auth/refresh").reply(
+      200,
+      ok({ accessToken: "access-2", refreshToken: "refresh-2", expiresIn: 7200 }),
+    );
+
+    const base = Date.now();
+    let clock = base;
+    // isUserActive is left at its inactive default on purpose: only the
+    // visibility predicate is allowed to extend the session.
+    const stop = startTokenRefreshScheduler({
+      canExtendSession: () => true,
+      checkIntervalMs: 5,
+      now: () => clock,
+    });
+
+    clock = base + 26 * 60 * 1000;
+    await wait(40);
+
+    expect(mock.history.post).toHaveLength(1);
+    expect(getAccessToken()).toBe("access-2");
+
+    stop();
+  });
+
+  it("does not refresh while the tab is hidden, even inside the window", async () => {
+    setTokens({
+      accessToken: "access-1",
+      refreshToken: "refresh-1",
+      expiresIn: 1800,
+    });
+    mock.onPost("/auth/refresh").reply(
+      200,
+      ok({ accessToken: "access-2", refreshToken: "refresh-2", expiresIn: 1800 }),
+    );
+
+    const base = Date.now();
+    let clock = base;
+    const stop = startTokenRefreshScheduler({
+      canExtendSession: () => false,
+      checkIntervalMs: 5,
+      now: () => clock,
+    });
+
+    clock = base + 60 * 60 * 1000;
+    await wait(40);
+
+    expect(mock.history.post).toHaveLength(0);
+    expect(getAccessToken()).toBe("access-1");
+
+    stop();
+  });
+
+  it("reports a failed proactive refresh instead of swallowing it", async () => {
+    setTokens({
+      accessToken: "access-1",
+      refreshToken: "refresh-1",
+      expiresIn: 1800,
+    });
+    // A 500 — not a 401. A 401 from the refresh endpoint is meant to end the
+    // session; a transient server failure must leave it untouched.
+    mock.onPost("/auth/refresh").reply(500, fail("Internal server error"));
+
+    const onRefreshError = vi.fn();
+    const base = Date.now();
+    let clock = base;
+    const stop = startTokenRefreshScheduler({
+      canExtendSession: () => true,
+      checkIntervalMs: 5,
+      now: () => clock,
+      onRefreshError,
+    });
+
+    clock = base + 26 * 60 * 1000;
+    await wait(40);
+
+    // Reported rather than swallowed: expiry never moves on failure, so each
+    // tick retries until the token leaves the leeway window.
+    expect(onRefreshError).toHaveBeenCalled();
+    // A failed proactive refresh must never end the session on its own.
+    expect(getAccessToken()).toBe("access-1");
+    expect(navigate).not.toHaveBeenCalled();
+
     stop();
   });
 });
