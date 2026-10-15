@@ -13,8 +13,11 @@ export const adaptAppointmentsResponse = (payload) => {
   );
 };
 
-export const getAppointments = async ({ signal } = {}) => {
-  const response = await apiClient.get("/appointments", { signal });
+export const getAppointments = async ({ date, signal } = {}) => {
+  const response = await apiClient.get("/appointments", {
+    params: date ? { date } : undefined,
+    signal,
+  });
   return adaptAppointmentsResponse(response.data);
 };
 

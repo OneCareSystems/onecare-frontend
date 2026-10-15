@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-
 import Button from "../../components/Button";
 import DatePicker from "../../components/DatePicker";
 import Icon from "../../components/Icon";
@@ -13,11 +11,7 @@ import {
   SectionTitle,
   SkeletonBlock,
 } from "../../components/doctor/Panel";
-import {
-  fetchQueue,
-  selectQueueRecords,
-  selectQueueStatus,
-} from "../../features/queue/queueSlice";
+import { getAppointments } from "../../services/appointmentService";
 import useQueuePolling from "../../hooks/useQueuePolling";
 import usePageVisible from "../../hooks/usePageVisible";
 import { formatDisplayDate, toLocalDateString } from "../../utils/dateUtils";
@@ -34,21 +28,31 @@ const DASH = "\u2014";
  * prescriptions and completion happen. No optimistic changes are made.
  */
 const TodaySchedulePage = () => {
-  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const records = useSelector(selectQueueRecords);
-  const queueStatus = useSelector(selectQueueStatus);
   const pageVisible = usePageVisible();
 
   const [selectedDate, setSelectedDate] = useState(() => toLocalDateString());
+  const [records, setRecords] = useState([]);
+  const [queueStatus, setQueueStatus] = useState("idle");
+  const requestIdRef = useRef(0);
 
   const loading = queueStatus === "loading";
   const firstLoad = loading && records.length === 0;
   const failed = queueStatus === "failed";
 
-  const refresh = useCallback(() => {
-    dispatch(fetchQueue({ date: selectedDate }));
-  }, [dispatch, selectedDate]);
+  const refresh = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
+    setQueueStatus("loading");
+    try {
+      const appointments = await getAppointments({ date: selectedDate });
+      if (requestId !== requestIdRef.current) return;
+      setRecords(appointments);
+      setQueueStatus("succeeded");
+    } catch {
+      if (requestId !== requestIdRef.current) return;
+      setQueueStatus("failed");
+    }
+  }, [selectedDate]);
 
   // Initial fetch and re-fetch whenever the doctor picks another date.
   useEffect(() => {
@@ -76,7 +80,7 @@ const TodaySchedulePage = () => {
       {
         key: "queuePosition",
         header: "#",
-        render: (row) => row.queuePosition ?? DASH,
+        render: (row) => row.appointmentId ?? DASH,
       },
       {
         key: "patientFullName",
