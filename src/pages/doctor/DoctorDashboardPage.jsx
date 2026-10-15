@@ -90,13 +90,6 @@ const DoctorDashboardPage = () => {
             />
             Refresh Queue
           </Button>
-          <Link
-            to="/queue"
-            className="inline-flex items-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-800 shadow-sm hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 transition-colors"
-          >
-            <Icon name="list-checks" className="h-4 w-4 text-neutral-600" />
-            Open Full Queue
-          </Link>
         </div>
       </header>
 
