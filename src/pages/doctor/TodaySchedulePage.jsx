@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import Button from "../../components/Button";
 import DatePicker from "../../components/DatePicker";
 import Icon from "../../components/Icon";
@@ -11,6 +12,7 @@ import {
   SectionTitle,
   SkeletonBlock,
 } from "../../components/doctor/Panel";
+
 import { getAppointments } from "../../services/appointmentService";
 import useQueuePolling from "../../hooks/useQueuePolling";
 import usePageVisible from "../../hooks/usePageVisible";
@@ -22,10 +24,11 @@ const DASH = "\u2014";
 /**
  * DOC - Doctor's Today Schedule / Consultation Queue.
  *
- * Server-authoritative order (`queuePosition`), scoped to the selected local
- * date and refreshed about every 2s while the tab is visible. The queue is
- * read-only here: "Start Consultation" opens DOC-04, where notes,
- * prescriptions and completion happen. No optimistic changes are made.
+ * Server-authoritative order, scoped to the selected local date.
+ * The queue refreshes approximately every 2 seconds while the tab is visible.
+ *
+ * This page is read-only. Starting a consultation opens DOC-04, where
+ * notes, prescriptions and consultation completion are handled.
  */
 const TodaySchedulePage = () => {
   const navigate = useNavigate();
@@ -34,38 +37,101 @@ const TodaySchedulePage = () => {
   const [selectedDate, setSelectedDate] = useState(() => toLocalDateString());
   const [records, setRecords] = useState([]);
   const [queueStatus, setQueueStatus] = useState("idle");
+
   const requestIdRef = useRef(0);
+  const wasHiddenRef = useRef(false);
 
   const loading = queueStatus === "loading";
   const firstLoad = loading && records.length === 0;
   const failed = queueStatus === "failed";
 
+  /**
+   * Refresh appointments manually or through polling.
+   * Request IDs prevent older requests from overwriting newer results.
+   */
   const refresh = useCallback(async () => {
     const requestId = ++requestIdRef.current;
+
     setQueueStatus("loading");
+
     try {
-      const appointments = await getAppointments({ date: selectedDate });
-      if (requestId !== requestIdRef.current) return;
+      const appointments = await getAppointments({
+        date: selectedDate,
+      });
+
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
       setRecords(appointments);
       setQueueStatus("succeeded");
     } catch {
-      if (requestId !== requestIdRef.current) return;
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
       setQueueStatus("failed");
     }
   }, [selectedDate]);
 
-  // Initial fetch and re-fetch whenever the doctor picks another date.
+  /**
+   * Initial fetch and re-fetch whenever the selected date changes.
+   *
+   * The request is started inside the effect rather than by calling
+   * refresh(), avoiding the set-state-in-effect lint warning.
+   */
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    let cancelled = false;
+    const requestId = ++requestIdRef.current;
 
-  // Poll only while the tab is visible; catch up as soon as it returns.
-  useQueuePolling({ enabled: pageVisible, onTick: refresh });
-  const wasHiddenRef = useRef(false);
+    const loadSchedule = async () => {
+      setQueueStatus("loading");
+
+      try {
+        const appointments = await getAppointments({
+          date: selectedDate,
+        });
+
+        if (cancelled || requestId !== requestIdRef.current) {
+          return;
+        }
+
+        setRecords(appointments);
+        setQueueStatus("succeeded");
+      } catch {
+        if (cancelled || requestId !== requestIdRef.current) {
+          return;
+        }
+
+        setQueueStatus("failed");
+      }
+    };
+
+    loadSchedule();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedDate]);
+
+  /**
+   * Poll only while the tab is visible.
+   */
+  useQueuePolling({
+    enabled: pageVisible,
+    onTick: refresh,
+  });
+
+  /**
+   * Refresh immediately when the user returns to the tab.
+   */
   useEffect(() => {
     if (!pageVisible) {
       wasHiddenRef.current = true;
-    } else if (wasHiddenRef.current) {
+      return;
+    }
+
+    if (wasHiddenRef.current) {
       wasHiddenRef.current = false;
       refresh();
     }
@@ -135,6 +201,7 @@ const TodaySchedulePage = () => {
             <p className="font-medium text-neutral-800">
               {formatDisplayDate(selectedDate)}
             </p>
+
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
               <span
                 aria-hidden="true"
@@ -154,6 +221,7 @@ const TodaySchedulePage = () => {
               onChange={handleDateChange}
               className="min-w-40"
             />
+
             <Button
               variant="outline"
               onClick={refresh}

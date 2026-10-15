@@ -99,7 +99,11 @@ const ConsultationTimer = memo(function ConsultationTimer({ running }) {
 
   useEffect(() => {
     if (!running) return undefined;
-    const id = setInterval(() => setSeconds((value) => value + 1), 1000);
+
+    const id = setInterval(() => {
+      setSeconds((value) => value + 1);
+    }, 1000);
+
     return () => clearInterval(id);
   }, [running]);
 
@@ -111,7 +115,9 @@ const ConsultationTimer = memo(function ConsultationTimer({ running }) {
     >
       <Icon
         name="clock"
-        className={`h-3.5 w-3.5 text-amber-600 ${running ? "motion-safe:animate-pulse" : ""}`}
+        className={`h-3.5 w-3.5 text-amber-600 ${
+          running ? "motion-safe:animate-pulse" : ""
+        }`}
       />
       {formatElapsed(seconds)}
     </span>
@@ -133,6 +139,7 @@ const MedicationRow = memo(function MedicationRow({ item, index, onRemove }) {
           {item.durationDays === 1 ? "" : "s"}, quantity {item.quantity}
         </p>
       </div>
+
       <button
         type="button"
         aria-label={`Remove ${item.medicineName}`}
@@ -154,6 +161,7 @@ const PreviousNote = memo(function PreviousNote({ record }) {
         </span>
         <StatusBadge status={record.status} />
       </div>
+
       <p className="whitespace-pre-wrap leading-relaxed text-neutral-700">
         {record.clinicalNotes}
       </p>
@@ -164,10 +172,10 @@ const PreviousNote = memo(function PreviousNote({ record }) {
 /**
  * DOC-04 - Consultation screen.
  *
- * 1. review the booking and the patient's previous clinical notes,
- * 2. record this encounter's clinical notes (stored on the appointment),
- * 3. issue a prescription if needed,
- * 4. mark the appointment COMPLETED.
+ * 1. Review the booking and the patient's previous clinical notes.
+ * 2. Record this encounter's clinical notes.
+ * 3. Issue a prescription if needed.
+ * 4. Mark the appointment COMPLETED.
  */
 const ConsultationPage = () => {
   const { appointmentId } = useParams();
@@ -175,18 +183,21 @@ const ConsultationPage = () => {
 
   const [appointment, setAppointment] = useState(null);
   const [patientName, setPatientName] = useState(null);
-  const [loadStatus, setLoadStatus] = useState("loading"); // loading | succeeded | not-found | failed
+  const [loadStatus, setLoadStatus] = useState("loading");
 
   const [notes, setNotes] = useState("");
   const [notesSaving, setNotesSaving] = useState(false);
   const [notesError, setNotesError] = useState(null);
   const notesDirtyRef = useRef(false);
 
-  const [history, setHistory] = useState(null); // null = not loaded / unavailable
+  const [history, setHistory] = useState(null);
 
   const [items, setItems] = useState([]);
   const [itemDraft, setItemDraft] = useState(EMPTY_ITEM);
   const [medicineSuggestions, setMedicineSuggestions] = useState([]);
+  const [medicineSuggestionsForQuery, setMedicineSuggestionsForQuery] =
+    useState("");
+
   const [creatingPrescription, setCreatingPrescription] = useState(false);
   const [prescriptionError, setPrescriptionError] = useState(null);
   const [createdPrescriptions, setCreatedPrescriptions] = useState([]);
@@ -198,19 +209,31 @@ const ConsultationPage = () => {
 
   const loadIdRef = useRef(0);
 
+  // Medicine autocomplete.
+  // Suggestions are displayed only when they match the current query.
+  // This avoids synchronously clearing state inside the effect.
   useEffect(() => {
     const query = itemDraft.medicineName.trim();
+
     if (query.length < 2) {
-      setMedicineSuggestions([]);
       return undefined;
     }
 
     const controller = new AbortController();
+
     const timeoutId = setTimeout(() => {
       searchMedicines(query, { signal: controller.signal })
-        .then(setMedicineSuggestions)
+        .then((suggestions) => {
+          if (controller.signal.aborted) return;
+
+          setMedicineSuggestions(suggestions);
+          setMedicineSuggestionsForQuery(query);
+        })
         .catch(() => {
-          if (!controller.signal.aborted) setMedicineSuggestions([]);
+          if (controller.signal.aborted) return;
+
+          setMedicineSuggestions([]);
+          setMedicineSuggestionsForQuery("");
         });
     }, 250);
 
@@ -220,8 +243,16 @@ const ConsultationPage = () => {
     };
   }, [itemDraft.medicineName]);
 
+  const medicineQuery = itemDraft.medicineName.trim();
+
+  const visibleMedicineSuggestions =
+    medicineQuery.length >= 2 && medicineSuggestionsForQuery === medicineQuery
+      ? medicineSuggestions
+      : [];
+
   const isClosed =
     appointment?.status === "COMPLETED" || appointment?.status === "CANCELLED";
+
   const isCompleted = appointment?.status === "COMPLETED";
   const canComplete = appointment?.status === "SCHEDULED";
 
@@ -229,16 +260,22 @@ const ConsultationPage = () => {
     const loadId = ++loadIdRef.current;
     const isStale = () => loadId !== loadIdRef.current;
 
-    setRelatedPrescriptions(null);
     getAppointmentById(appointmentId)
       .then((found) => {
         if (isStale()) return;
+
+        // Update related prescription state after the request resolves,
+        // rather than synchronously when the loading effect starts.
+        setRelatedPrescriptions(null);
+
         setAppointment(found);
+
         if (!notesDirtyRef.current) {
           setNotes(
             typeof found.clinicalNotes === "string" ? found.clinicalNotes : "",
           );
         }
+
         setLoadStatus("succeeded");
 
         if (found.patientId === null || found.patientId === undefined) {
@@ -247,17 +284,30 @@ const ConsultationPage = () => {
           setRelatedPrescriptions([]);
           return;
         }
+
         getPatient(found.patientId)
-          .then((patient) => !isStale() && setPatientName(patient.fullName))
-          .catch(() => !isStale() && setPatientName(null));
+          .then((patient) => {
+            if (!isStale()) {
+              setPatientName(patient.fullName);
+            }
+          })
+          .catch(() => {
+            if (!isStale()) {
+              setPatientName(null);
+            }
+          });
+
         getPatientHistory(found.patientId)
           .then((response) => {
             if (isStale()) return;
+
             setHistory(response);
+
             if (found.status !== "COMPLETED") {
               setRelatedPrescriptions([]);
               return;
             }
+
             const ids = response.prescriptions
               .filter(
                 (prescription) =>
@@ -268,12 +318,17 @@ const ConsultationPage = () => {
               )
               .map((prescription) => prescription.prescriptionId)
               .filter((id) => id !== undefined && id !== null);
+
             Promise.all(ids.map((id) => getPrescriptionById(id)))
               .then((prescriptions) => {
-                if (!isStale()) setRelatedPrescriptions(prescriptions);
+                if (!isStale()) {
+                  setRelatedPrescriptions(prescriptions);
+                }
               })
               .catch(() => {
-                if (!isStale()) setRelatedPrescriptions("failed");
+                if (!isStale()) {
+                  setRelatedPrescriptions("failed");
+                }
               });
           })
           .catch(() => {
@@ -284,14 +339,17 @@ const ConsultationPage = () => {
           });
       })
       .catch(() => {
-        if (!isStale()) setLoadStatus("failed");
+        if (!isStale()) {
+          setLoadStatus("failed");
+        }
       });
   }, [appointmentId]);
 
   useEffect(() => {
     load();
+
     return () => {
-      loadIdRef.current += 1; // ignore responses that arrive after unmount
+      loadIdRef.current += 1;
     };
   }, [load]);
 
@@ -303,12 +361,21 @@ const ConsultationPage = () => {
 
   const handleSaveNotes = useCallback(() => {
     if (notesSaving) return;
+
     setNotesSaving(true);
     setNotesError(null);
+
     saveClinicalNotes(appointmentId, notes)
-      .then(() => setToast({ type: "success", message: SAVED_NOTES_MESSAGE }))
+      .then(() => {
+        notesDirtyRef.current = false;
+        setToast({
+          type: "success",
+          message: SAVED_NOTES_MESSAGE,
+        });
+      })
       .catch((error) => {
         const status = error?.response?.status;
+
         setNotesError(
           status === 400
             ? (error?.userMessage ??
@@ -316,17 +383,23 @@ const ConsultationPage = () => {
             : "Unable to save the clinical notes. Please try again.",
         );
       })
-      .finally(() => setNotesSaving(false));
+      .finally(() => {
+        setNotesSaving(false);
+      });
   }, [appointmentId, notes, notesSaving]);
 
   const handleDraftChange = useCallback(
     (key) => (event) =>
-      setItemDraft((draft) => ({ ...draft, [key]: event.target.value })),
+      setItemDraft((draft) => ({
+        ...draft,
+        [key]: event.target.value,
+      })),
     [],
   );
 
   const handleAddItem = useCallback(() => {
     const draft = itemDraft;
+
     if (
       !draft.medicineName.trim() ||
       !draft.dosage.trim() ||
@@ -339,7 +412,9 @@ const ConsultationPage = () => {
       );
       return;
     }
+
     setPrescriptionError(null);
+
     setItems((current) => [
       ...current,
       {
@@ -350,6 +425,7 @@ const ConsultationPage = () => {
         quantity: Number(draft.quantity),
       },
     ]);
+
     setItemDraft(EMPTY_ITEM);
   }, [itemDraft]);
 
@@ -359,8 +435,10 @@ const ConsultationPage = () => {
 
   const handleCreatePrescription = useCallback(() => {
     if (creatingPrescription || items.length === 0) return;
+
     setCreatingPrescription(true);
     setPrescriptionError(null);
+
     createPrescription({
       patientId: appointment.patientId,
       appointmentId: appointment.appointmentId,
@@ -368,11 +446,16 @@ const ConsultationPage = () => {
     })
       .then((prescription) => {
         setCreatedPrescriptions((current) => [...current, prescription]);
+
         setRelatedPrescriptions((current) =>
           Array.isArray(current) ? [...current, prescription] : [prescription],
         );
+
         setItems([]);
-        setToast({ type: "success", message: PRESCRIPTION_CREATED_MESSAGE });
+        setToast({
+          type: "success",
+          message: PRESCRIPTION_CREATED_MESSAGE,
+        });
       })
       .catch((error) => {
         setPrescriptionError(
@@ -380,28 +463,44 @@ const ConsultationPage = () => {
             "Unable to create the prescription. Please try again.",
         );
       })
-      .finally(() => setCreatingPrescription(false));
+      .finally(() => {
+        setCreatingPrescription(false);
+      });
   }, [appointment, creatingPrescription, items]);
 
   const handleComplete = useCallback(() => {
     if (completingRef.current) return;
+
     completingRef.current = true;
     setCompleting(true);
+
     completeAppointment(appointmentId)
       .then((updated) => {
         setAppointment((current) => ({
           ...current,
           status: updated?.status ?? "COMPLETED",
         }));
-        setToast({ type: "success", message: COMPLETED_TOAST_MESSAGE });
+
+        setToast({
+          type: "success",
+          message: COMPLETED_TOAST_MESSAGE,
+        });
       })
       .catch((error) => {
         const status = error?.response?.status;
+
         if (status === 409 || status === 400) {
-          setToast({ type: "warning", message: CONCURRENT_CHANGE_MESSAGE });
+          setToast({
+            type: "warning",
+            message: CONCURRENT_CHANGE_MESSAGE,
+          });
+
           load();
         } else {
-          setToast({ type: "error", message: COMPLETE_FAILED_MESSAGE });
+          setToast({
+            type: "error",
+            message: COMPLETE_FAILED_MESSAGE,
+          });
         }
       })
       .finally(() => {
@@ -504,10 +603,12 @@ const ConsultationPage = () => {
                   {patientName ??
                     `Patient ${appointment.patientId ?? "\u2014"}`}
                 </DetailTile>
+
                 <DetailTile label="Date and time">
                   {formatDisplayDate(toDateOnly(appointment.appointmentDate))}{" "}
                   at {formatTimeSlot(appointment.timeSlot)}
                 </DetailTile>
+
                 <DetailTile label="Reason">
                   {appointment.reason || "None specified"}
                 </DetailTile>
@@ -532,6 +633,7 @@ const ConsultationPage = () => {
                       ? "Clinical notes cannot be added to a cancelled appointment."
                       : "This consultation is completed; its clinical notes are read-only."}
                   </p>
+
                   {appointment.status === "COMPLETED" && notes.trim() && (
                     <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-800">
                       {notes}
@@ -550,6 +652,7 @@ const ConsultationPage = () => {
                     className="w-full resize-y rounded-xl border border-neutral-200 bg-neutral-50/60 p-4 text-sm leading-relaxed text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
                     placeholder="Diagnosis, advice, follow-up..."
                   />
+
                   <div className="flex justify-end">
                     <Button
                       onClick={handleSaveNotes}
@@ -562,6 +665,7 @@ const ConsultationPage = () => {
                   </div>
                 </>
               )}
+
               {notesError && <ErrorMessage message={notesError} />}
             </Panel>
 
@@ -595,6 +699,7 @@ const ConsultationPage = () => {
                   <p className="text-sm font-medium text-neutral-600">
                     Issued prescriptions
                   </p>
+
                   <ul className="space-y-2">
                     {createdPrescriptions.map((prescription) => (
                       <li
@@ -606,6 +711,7 @@ const ConsultationPage = () => {
                           {prescription.items?.length ?? 0}{" "}
                           {prescription.items?.length === 1 ? "item" : "items"}
                         </span>
+
                         <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
                           {prescription.status}
                         </span>
@@ -621,11 +727,13 @@ const ConsultationPage = () => {
                     This consultation is closed; no further prescriptions can be
                     issued here.
                   </p>
+
                   {appointment.status === "COMPLETED" && (
                     <div className="space-y-2" aria-live="polite">
                       <p className="text-sm font-medium text-neutral-700">
                         Prescriptions for this appointment
                       </p>
+
                       {relatedPrescriptions === null ? (
                         <p className="text-sm text-neutral-500">
                           Loading prescriptions...
@@ -649,10 +757,12 @@ const ConsultationPage = () => {
                                 <span className="font-semibold text-neutral-900">
                                   Prescription #{prescription.prescriptionId}
                                 </span>
+
                                 <span className="rounded-full bg-neutral-200 px-2 py-0.5 text-xs font-medium text-neutral-700">
                                   {prescription.status}
                                 </span>
                               </div>
+
                               <ul className="mt-2 space-y-1 text-sm text-neutral-700">
                                 {prescription.items.map((item, index) => (
                                   <li
@@ -689,6 +799,7 @@ const ConsultationPage = () => {
                   <legend className="px-1 text-sm font-semibold text-neutral-800">
                     Add Medication Item
                   </legend>
+
                   <div className="grid grid-cols-2 gap-3">
                     <div className="relative col-span-2">
                       <Input
@@ -700,16 +811,18 @@ const ConsultationPage = () => {
                         autoComplete="off"
                         role="combobox"
                         aria-autocomplete="list"
-                        aria-expanded={medicineSuggestions.length > 0}
+                        aria-expanded={visibleMedicineSuggestions.length > 0}
                       />
-                      {medicineSuggestions.length > 0 && (
+
+                      {visibleMedicineSuggestions.length > 0 && (
                         <ul
                           role="listbox"
                           aria-label="Available medicines"
                           className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-neutral-200 bg-white py-1 shadow-lg"
                         >
-                          {medicineSuggestions.map((medicine, index) => {
+                          {visibleMedicineSuggestions.map((medicine, index) => {
                             const name = medicine.medicineName ?? medicine.name;
+
                             return (
                               <li
                                 key={
@@ -730,7 +843,9 @@ const ConsultationPage = () => {
                                       ...draft,
                                       medicineName: name,
                                     }));
+
                                     setMedicineSuggestions([]);
+                                    setMedicineSuggestionsForQuery("");
                                   }}
                                   className="w-full px-4 py-2.5 text-left text-sm text-neutral-800 hover:bg-primary-50 focus:bg-primary-50 focus:outline-none"
                                 >
@@ -742,6 +857,7 @@ const ConsultationPage = () => {
                         </ul>
                       )}
                     </div>
+
                     {DRAFT_FIELDS.filter(
                       (field) => field.key !== "medicineName",
                     ).map((field) => (
@@ -761,6 +877,7 @@ const ConsultationPage = () => {
                       </div>
                     ))}
                   </div>
+
                   <Button
                     variant="outline"
                     size="sm"
