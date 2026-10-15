@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useCallback, memo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Link } from "react-router-dom";
 
 import Button from "../../components/Button";
 import EmptyState from "../../components/EmptyState";
@@ -24,7 +23,7 @@ const QueueItem = memo(({ record }) => (
       </div>
       <div>
         <p className="font-semibold text-neutral-900">
-          {record.patientName || `Appointment #${record.appointmentId}`}
+          {record.patientFullName || `Appointment #${record.appointmentId}`}
         </p>
         <p className="text-xs text-neutral-500 mt-0.5">
           {record.appointmentTime || "Scheduled today"}

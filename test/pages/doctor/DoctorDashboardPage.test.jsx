@@ -55,6 +55,32 @@ describe("DoctorDashboardPage", () => {
     expect(mswState.queueHits).toHaveLength(1);
   });
 
+  it("renders the patient's full name supplied by the queue response", async () => {
+    mswState.queueResponses = [
+      [
+        {
+          appointmentId: 55,
+          patientId: 4,
+          status: "SCHEDULED",
+          patientFullName: "Priya Raman",
+        },
+        {
+          appointmentId: 56,
+          patientId: 5,
+          status: "SCHEDULED",
+          patientFullName: "   ",
+        },
+      ],
+    ];
+    renderPage();
+
+    expect(await screen.findByText("Priya Raman")).toBeInTheDocument();
+    // A blank name degrades to the `Patient <id>` label rather than a blank.
+    expect(screen.getByText("Patient 5")).toBeInTheDocument();
+    // The appointment label is only a last resort.
+    expect(screen.queryByText("Appointment #55")).not.toBeInTheDocument();
+  });
+
   it("shows a distinct empty state with zero total and keeps queue navigation", async () => {
     mswState.queueResponses = [[]];
     renderPage();
@@ -130,7 +156,10 @@ describe("DoctorDashboardPage", () => {
       ],
     ];
     renderPage();
-    await screen.findByText("Appointment #4");
+    // The record carries a real patient id but no name, so the label is the
+    // derived `Patient <id>` — never an invented one.
+    await screen.findByText("Patient 1");
+    expect(screen.queryByText("Appointment #4")).not.toBeInTheDocument();
     expect(
       screen.queryByText(/Jane Doe|vitals|consultation id|sample/i),
     ).not.toBeInTheDocument();

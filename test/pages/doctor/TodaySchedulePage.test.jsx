@@ -64,18 +64,15 @@ afterEach(() => {
 
 describe("TodaySchedulePage — doctor's consultation queue", () => {
   it("AC1: renders the queue in server order with names, times and statuses", async () => {
-    mswState.patientsResponses = [
-      [
-        { patientId: 1, fullName: "Jane Doe" },
-        { patientId: 2, fullName: "Sam Lee" },
-      ],
-    ];
+    // Names arrive on the queue response itself — the page no longer issues a
+    // separate `GET /patients` lookup per row.
     mswState.queueResponses = [
       [
-        scheduled(),
+        scheduled({ patientFullName: "Jane Doe" }),
         scheduled({
           appointmentId: 102,
           patientId: 2,
+          patientFullName: "Sam Lee",
           timeSlot: "09:30:00",
           queuePosition: 2,
         }),

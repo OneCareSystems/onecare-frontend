@@ -14,7 +14,6 @@ import {
   selectQueueStatus,
 } from "../../features/queue/queueSlice";
 import useQueuePolling from "../../hooks/useQueuePolling";
-import { getPatients } from "../../services/patientService";
 import { formatDisplayDate, toLocalDateString } from "../../utils/dateUtils";
 
 /** `09:00:00` → `09:00`; echoes anything unexpected. */
@@ -43,7 +42,6 @@ const TodaySchedulePage = () => {
   const queueStatus = useSelector(selectQueueStatus);
 
   const [selectedDate, setSelectedDate] = useState(() => toLocalDateString());
-  const [patientNames, setPatientNames] = useState({});
 
   const loading = queueStatus === "loading";
   const firstLoad = loading && records.length === 0;
@@ -73,10 +71,11 @@ const TodaySchedulePage = () => {
         render: (row) => row.queuePosition ?? "—",
       },
       {
-        key: "patientId",
+        key: "patientFullName",
         header: "Patient",
-        render: (row) =>
-          patientNames[row.patientId] ?? `Patient ${row.patientId}`,
+        // Guaranteed by the queue adapter; "—" only if the backend omits both
+        // the name and the patient id.
+        render: (row) => row.patientFullName ?? "—",
       },
       {
         key: "timeSlot",
@@ -107,7 +106,7 @@ const TodaySchedulePage = () => {
         },
       },
     ],
-    [patientNames, navigate],
+    [navigate],
   );
 
   return (
