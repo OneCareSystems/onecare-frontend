@@ -94,13 +94,21 @@ describe("PatientRecordsPage — all patients with pagination", () => {
     renderPage();
     await screen.findByText(/12\s*patients/);
 
+    // PatientDetails reads the profile from GET /patients/:id/history.
+    mswState.historyResponses = [
+      {
+        patient: { patientId: 1, fullName: "Jane Doe" },
+        patientId: 1,
+        appointments: [],
+        prescriptions: [],
+      },
+    ];
     fireEvent.click(screen.getAllByRole("button", { name: "View More" })[0]);
 
-    // PatientDetails loads through GET /patients/:id.
     expect(await screen.findByText("Jane Doe")).toBeInTheDocument();
     expect(screen.getByText("#1")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: /all patients/i }),
+      screen.getByRole("link", { name: /All patients/i }),
     ).toBeInTheDocument();
   });
 

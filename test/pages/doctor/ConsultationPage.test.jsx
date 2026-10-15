@@ -49,7 +49,7 @@ const renderAt = (path) =>
   );
 
 const seedBasic = () => {
-  mswState.appointmentsResponses = [[appointment()]];
+  mswState.appointmentByIdResponses = { 101: appointment() };
 };
 
 /**
@@ -94,15 +94,11 @@ afterEach(resetMswState);
 
 describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
   it("loads booking, current notes and previous clinical notes", async () => {
-    seedBasic();
-    mswState.clinicalNotesResponses = [
-      {
-        appointmentId: 101,
-        patientId: 7,
-        doctorId: 3,
-        clinicalNotes: "BP 120/80",
-      },
-    ];
+    // Current encounter notes ride on the appointment read itself — the page
+    // no longer issues a separate GET .../clinical-notes while loading.
+    mswState.appointmentByIdResponses = {
+      101: { ...appointment(), clinicalNotes: "BP 120/80" },
+    };
     mswState.historyResponses = [
       {
         patientId: 7,
@@ -119,9 +115,8 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     expect(screen.getByText("Scheduled")).toBeInTheDocument();
     expect(mswState.protectedHits[0].id).toBe("7");
 
-    // Current encounter notes come from GET .../clinical-notes.
     expect(notesTextarea()).toHaveValue("BP 120/80");
-    expect(mswState.clinicalNotesHits).toHaveLength(1);
+    expect(mswState.clinicalNotesHits).toHaveLength(0); // no separate fetch
 
     // Previous encounters from GET ../patients/7/history.
     expect(screen.getByText("Previous Clinical Notes")).toBeInTheDocument();
@@ -271,8 +266,9 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
 
   it("shows the concurrent-change message on conflict and reloads (409)", async () => {
     const user = userEvent.setup();
-    // One response per load: initial + the post-conflict reload.
-    mswState.appointmentsResponses = [[appointment()], [appointment()]];
+    // The screen reloads after the conflict, so the same booking is served
+    // again (the per-id fixture is not consumed).
+    mswState.appointmentByIdResponses = { 101: appointment() };
     mswState.queueCompleteErrorMode = "conflict";
     renderAt("/doctor/consultation/101");
 
@@ -285,7 +281,7 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
       await screen.findByText(CONCURRENT_CHANGE_MESSAGE),
     ).toBeInTheDocument();
     // The screen reloads so the doctor sees the refreshed state.
-    await waitFor(() => expect(mswState.appointmentsHits).toHaveLength(2));
+    await waitFor(() => expect(mswState.appointmentByIdHits).toHaveLength(2));
     expect(screen.getByText("Scheduled")).toBeInTheDocument();
   });
 
@@ -303,7 +299,7 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     expect(
       await screen.findByText(CONCURRENT_CHANGE_MESSAGE),
     ).toBeInTheDocument();
-    await waitFor(() => expect(mswState.appointmentsHits).toHaveLength(2));
+    await waitFor(() => expect(mswState.appointmentByIdHits).toHaveLength(2));
   });
 
   it("surfaces other completion failures as an error toast", async () => {
@@ -344,9 +340,9 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
   });
 
   it("locks the form on cancelled appointments", async () => {
-    mswState.appointmentsResponses = [
-      [{ ...appointment(), status: "CANCELLED" }],
-    ];
+    mswState.appointmentByIdResponses = {
+      101: { ...appointment(), status: "CANCELLED" },
+    };
     renderAt("/doctor/consultation/101");
 
     await waitForLoaded();
@@ -390,27 +386,30 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows not-found when the appointment is outside the doctor's list", async () => {
-    mswState.appointmentsResponses = [[]];
+  it("reports an unreadable appointment as a load failure (404)", async () => {
+    mswState.appointmentByIdErrorMode = "not-found";
     renderAt("/doctor/consultation/404");
 
+    // A 404 from GET /appointments/{id} is a failed read, so the page shows
+    // the retryable load error rather than the schedule panel.
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      /appointment not available/i,
+      /unable to load the consultation/i,
     );
+    expect(screen.queryByText(/appointment not available/i)).toBeNull();
     expect(mswState.protectedHits).toHaveLength(0); // no patient fetch
   });
 
   it("surfaces load failures with a working retry", async () => {
     const user = userEvent.setup();
-    mswState.appointmentsErrorMode = "server-error";
+    mswState.appointmentByIdErrorMode = "server-error";
     renderAt("/doctor/consultation/101");
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       /unable to load the consultation/i,
     );
 
-    mswState.appointmentsErrorMode = null;
-    mswState.appointmentsResponses = [[appointment()]];
+    mswState.appointmentByIdErrorMode = null;
+    mswState.appointmentByIdResponses = { 101: appointment() };
     await user.click(screen.getByRole("button", { name: /retry/i }));
 
     await waitForLoaded();
@@ -420,15 +419,15 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
   it("links back to the doctor's schedule", async () => {
     const user = userEvent.setup();
     seedBasic();
-    mswState.appointmentsResponses = [
-      [{ ...appointment(), status: "COMPLETED" }],
-    ];
+    mswState.appointmentByIdResponses = {
+      101: { ...appointment(), status: "COMPLETED" },
+    };
     renderAt("/doctor/consultation/101");
 
     await waitForLoaded();
     await user.click(screen.getByRole("button", { name: /back to schedule/i }));
     expect(
-      screen.getByRole("heading", { name: "Today’s schedule" }),
+      screen.getByRole("heading", {  name: /today.s Schedule/i }),
     ).toBeInTheDocument();
   });
 });

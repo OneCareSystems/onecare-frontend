@@ -26,8 +26,21 @@ afterEach(() => {
   resetMswState();
 });
 
+/** The record view now loads profile + history in one GET .../history read. */
+const seedHistory = (patientId, fullName) => {
+  mswState.historyResponses = [
+    {
+      patient: { patientId, fullName },
+      patientId,
+      appointments: [],
+      prescriptions: [],
+    },
+  ];
+};
+
 describe("PatientDetails — the record opened from the directory", () => {
   it("loads the patient identified by the route param", async () => {
+    seedHistory(7, "Jane Doe");
     renderRecord(7);
 
     expect(await screen.findByText("Jane Doe")).toBeInTheDocument();
@@ -35,6 +48,7 @@ describe("PatientDetails — the record opened from the directory", () => {
   });
 
   it("links back to the patient directory", async () => {
+    seedHistory(7, "Jane Doe");
     renderRecord(7);
     await screen.findByText("Jane Doe");
 
@@ -43,7 +57,7 @@ describe("PatientDetails — the record opened from the directory", () => {
   });
 
   it("shows an error with a way back when the record cannot be read", async () => {
-    mswState.patientErrorMode = "server-error";
+    mswState.historyErrorMode = "server-error";
 
     renderRecord(7);
 
@@ -58,7 +72,7 @@ describe("PatientDetails — the record opened from the directory", () => {
   });
 
   it("treats a missing record as a failure rather than a blank page", async () => {
-    mswState.patientErrorMode = "not-found";
+    mswState.historyErrorMode = "not-found";
 
     renderRecord(404);
 

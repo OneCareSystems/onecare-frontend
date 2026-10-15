@@ -64,9 +64,9 @@ afterEach(() => {
 
 describe("TodaySchedulePage — doctor's consultation queue", () => {
   it("AC1: renders the queue in server order with names, times and statuses", async () => {
-    // Names arrive on the queue response itself — the page no longer issues a
-    // separate `GET /patients` lookup per row.
-    mswState.queueResponses = [
+    // Names arrive on the appointments response itself — the page no longer
+    // issues a separate `GET /patients` lookup per row.
+    mswState.appointmentsResponses = [
       [
         scheduled({ patientFullName: "Jane Doe" }),
         scheduled({
@@ -97,8 +97,8 @@ describe("TodaySchedulePage — doctor's consultation queue", () => {
     expect(rows[1]).toHaveTextContent("Sam Lee");
     expect(rows[1]).toHaveTextContent("09:30");
     expect(rows[2]).toHaveTextContent("Completed");
-    // Unknown patients degrade to a label instead of invented names.
-    expect(rows[2]).toHaveTextContent("Patient 9");
+    // Missing names degrade to a placeholder rather than invented labels.
+    expect(rows[2]).toHaveTextContent("\u2014");
 
     // The page is scoped to the local calendar date.
     expect(
@@ -111,7 +111,7 @@ describe("TodaySchedulePage — doctor's consultation queue", () => {
 
   it("AC1: Start Consultation navigates to the DOC-04 consultation route", async () => {
     const user = userEvent.setup();
-    mswState.queueResponses = [[scheduled()]];
+    mswState.appointmentsResponses = [[scheduled()]];
     renderPage();
 
     await screen.findByRole("table");
@@ -127,7 +127,7 @@ describe("TodaySchedulePage — doctor's consultation queue", () => {
   });
 
   it("AC3: shows the exact empty-state text when the date has no appointments", async () => {
-    mswState.queueResponses = [[]];
+    mswState.appointmentsResponses = [[]];
     renderPage();
 
     expect(
@@ -138,18 +138,16 @@ describe("TodaySchedulePage — doctor's consultation queue", () => {
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 
-  it("re-fetches when the doctor picks another date and filters locally", async () => {
-    mswState.queueResponses = [
-      [scheduled()], // today
-      // The backend only serves today's queue, so records for other dates
-      // carry their own appointmentDate and are filtered client-side.
+  it("re-fetches when the doctor picks another date (server-scoped read)", async () => {
+    mswState.appointmentsResponses = [
+      [{ ...scheduled(), patientFullName: "Jane Doe" }], // today
+      // GET /appointments is scoped to the requested ?date, so this response
+      // only carries records for the date that was just picked.
       [
-        scheduled({ appointmentDate: "2020-05-05" }),
-        scheduled({
-          appointmentId: 102,
-          patientId: 2,
-          appointmentDate: "2020-06-06",
-        }),
+        {
+          ...scheduled({ appointmentDate: "2020-05-05" }),
+          patientFullName: "Sam Lee",
+        },
       ],
     ];
     renderPage();
@@ -159,24 +157,29 @@ describe("TodaySchedulePage — doctor's consultation queue", () => {
       target: { value: "2020-05-05" },
     });
 
-    // Only the record whose local calendar date matches survives the filter.
-    expect(await screen.findByText("Patient 1")).toBeInTheDocument();
-    expect(mswState.queueHits).toHaveLength(2);
-    expect(screen.queryByText("Patient 2")).not.toBeInTheDocument();
+    expect(await screen.findByText("Sam Lee")).toBeInTheDocument();
+    // One request per date, each carrying the selected date.
+    expect(mswState.appointmentsHits).toHaveLength(2);
+    expect(
+      mswState.appointmentsHits.map(
+        (hit) => new URL(hit.url).searchParams.get("date"),
+      ),
+    ).toEqual([toLocalDateString(), "2020-05-05"]);
+    expect(screen.queryByText("Jane Doe")).not.toBeInTheDocument();
     expect(screen.getAllByRole("row")).toHaveLength(2); // header + one row
   });
 
   it("AC2: surfaces load failures with a working retry", async () => {
     const user = userEvent.setup();
-    mswState.queueErrorMode = "server-error";
+    mswState.appointmentsErrorMode = "server-error";
     renderPage();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Unable to load the schedule",
     );
 
-    mswState.queueErrorMode = null;
-    mswState.queueResponses = [[scheduled()]];
+    mswState.appointmentsErrorMode = null;
+    mswState.appointmentsResponses = [[scheduled()]];
     await user.click(screen.getByRole("button", { name: "Retry" }));
 
     expect(await screen.findByRole("table")).toBeInTheDocument();
@@ -184,7 +187,7 @@ describe("TodaySchedulePage — doctor's consultation queue", () => {
   });
 
   it("never offers queue mutations or admin-only actions on the schedule page", async () => {
-    mswState.queueResponses = [[scheduled()]];
+    mswState.appointmentsResponses = [[scheduled()]];
     renderPage();
 
     await screen.findByRole("table");
@@ -204,28 +207,28 @@ describe("TodaySchedulePage — doctor's consultation queue", () => {
 
   it("polls the queue about every 2 seconds", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    mswState.queueResponses = [[scheduled()], [scheduled()]];
+    mswState.appointmentsResponses = [[scheduled()], [scheduled()]];
     renderPage();
 
     expect(await screen.findByRole("table")).toBeInTheDocument();
-    expect(mswState.queueHits).toHaveLength(1);
+    expect(mswState.appointmentsHits).toHaveLength(1);
 
     act(() => {
       vi.advanceTimersByTime(QUEUE_POLL_INTERVAL_MS);
     });
-    await waitFor(() => expect(mswState.queueHits).toHaveLength(2));
+    await waitFor(() => expect(mswState.appointmentsHits).toHaveLength(2));
 
     act(() => {
       vi.advanceTimersByTime(QUEUE_POLL_INTERVAL_MS);
     });
     // Third poll has no queued response left and falls back to `[]`;
     // the request itself proves the cadence continues.
-    await waitFor(() => expect(mswState.queueHits).toHaveLength(3));
+    await waitFor(() => expect(mswState.appointmentsHits).toHaveLength(3));
   });
 
   it("shows a loading spinner on the first load only", async () => {
-    mswState.queueErrorMode = "delay";
-    mswState.queueResponses = [[scheduled()]];
+    mswState.appointmentsErrorMode = "delay";
+    mswState.appointmentsResponses = [[scheduled()]];
     renderPage();
 
     expect(

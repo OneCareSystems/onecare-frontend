@@ -27,6 +27,9 @@ export const mswState = {
   appointmentsHits: [],
   appointmentsResponses: [],
   appointmentsErrorMode: null,
+  appointmentByIdResponses: {},
+  appointmentByIdHits: [],
+  appointmentByIdErrorMode: null,
   appointmentUpdateHits: [],
   appointmentUpdateErrorMode: null,
   clinicalNotesHits: [],
@@ -65,6 +68,9 @@ export const resetMswState = () => {
   mswState.appointmentsHits = [];
   mswState.appointmentsResponses = [];
   mswState.appointmentsErrorMode = null;
+  mswState.appointmentByIdResponses = {};
+  mswState.appointmentByIdHits = [];
+  mswState.appointmentByIdErrorMode = null;
   mswState.appointmentUpdateHits = [];
   mswState.appointmentUpdateErrorMode = null;
   mswState.clinicalNotesHits = [];
@@ -242,9 +248,8 @@ export const handlers = [
       fullName: "Jane Doe",
     });
   }),
-  // Verified backend contract: `GET /api/appointments` is the only read —
-  // there is no `GET /api/appointments/{id}`, so the consultation page
-  // resolves a single appointment with a client-side lookup.
+  // `GET /api/appointments` returns the doctor's list; a single appointment
+  // is read through the dedicated `GET /api/appointments/{id}` below.
   http.get("*/appointments", async ({ request }) => {
     mswState.appointmentsHits.push({
       url: request.url,
@@ -311,6 +316,36 @@ export const handlers = [
       },
     );
   }),
+  // `GET /appointments/{id}` — the consultation screen resolves a single
+  // appointment directly. Seeded per-id through `appointmentByIdResponses`;
+  // unseeded ids answer with a minimal SCHEDULED record so callers that only
+  // need the id keep working.
+  http.get("*/appointments/:id", async ({ request, params }) => {
+    mswState.appointmentByIdHits.push({
+      id: params.id,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.appointmentByIdErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    if (mswState.appointmentByIdErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    if (mswState.appointmentByIdErrorMode === "not-found") {
+      return fail(404, "Appointment not found");
+    }
+    const stored = mswState.appointmentByIdResponses[params.id];
+    if (stored) return ok(stored);
+    return ok({
+      appointmentId: Number(params.id),
+      patientId: null,
+      doctorId: null,
+      appointmentDate: null,
+      timeSlot: null,
+      status: "SCHEDULED",
+      clinicalNotes: "",
+    });
+  }),
   http.get("*/patients/:patientId/history", async ({ params }) => {
     mswState.historyHits.push({ patientId: params.patientId });
     if (mswState.historyErrorMode === "not-found") {
@@ -324,6 +359,10 @@ export const handlers = [
     }
     return ok(
       mswState.historyResponses.shift() ?? {
+        patient: {
+          patientId: Number(params.patientId),
+          fullName: `Patient ${params.patientId}`,
+        },
         patientId: Number(params.patientId),
         appointments: [],
         prescriptions: [],
