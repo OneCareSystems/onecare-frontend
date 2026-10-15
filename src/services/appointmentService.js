@@ -21,14 +21,21 @@ export const getAppointments = async ({ date, signal } = {}) => {
   return adaptAppointmentsResponse(response.data);
 };
 
-/** Resolve one appointment from the doctor's list; `null` when unknown. */
-export const findAppointment = async (appointmentId, { signal } = {}) => {
-  const appointments = await getAppointments({ signal });
-  const match = appointments.find(
-    (record) => String(record.appointmentId) === String(appointmentId),
-  );
-  return match ?? null;
+/** Fetch one appointment, including its clinical details. */
+export const getAppointmentById = async (appointmentId, { signal } = {}) => {
+  const response = await apiClient.get(`/appointments/${appointmentId}`, { signal });
+  const payload = response.data;
+  if (
+    payload?.success !== true ||
+    !payload.data ||
+    String(payload.data.appointmentId) !== String(appointmentId)
+  ) {
+    throw new Error("Unexpected appointment response format");
+  }
+  return payload.data;
 };
+
+export const findAppointment = getAppointmentById;
 
 /*
  * Clinical-notes endpoints below come from the backend branch
@@ -113,6 +120,7 @@ export const getPatientHistory = async (patientId, { signal } = {}) => {
 
 export default {
   getAppointments,
+  getAppointmentById,
   findAppointment,
   getClinicalNotes,
   saveClinicalNotes,

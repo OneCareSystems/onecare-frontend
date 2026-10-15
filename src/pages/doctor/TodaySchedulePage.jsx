@@ -105,7 +105,7 @@ const TodaySchedulePage = () => {
         key: "actions",
         header: "Actions",
         render: (row) =>
-          row.status !== "SCHEDULED" ? (
+          row.status === "CANCELLED" ? (
             DASH
           ) : (
             <Button
@@ -115,7 +115,9 @@ const TodaySchedulePage = () => {
                 navigate(`/doctor/consultation/${row.appointmentId}`)
               }
             >
-              Start Consultation
+              {row.status === "COMPLETED"
+                ? "View Consultation"
+                : "Start Consultation"}
             </Button>
           ),
       },

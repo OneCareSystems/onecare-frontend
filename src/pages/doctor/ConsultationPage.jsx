@@ -16,13 +16,16 @@ import {
   SkeletonBlock,
 } from "../../components/doctor/Panel";
 import {
-  findAppointment,
-  getClinicalNotes,
+  getAppointmentById,
   getPatientHistory,
   saveClinicalNotes,
 } from "../../services/appointmentService";
 import { getPatient } from "../../services/patientService";
-import { createPrescription } from "../../services/prescriptionService";
+import { searchMedicines } from "../../services/medicineService";
+import {
+  createPrescription,
+  getPrescriptionById,
+} from "../../services/prescriptionService";
 import { completeAppointment } from "../../services/queueService";
 import { formatDisplayDate } from "../../utils/dateUtils";
 import {
@@ -183,9 +186,11 @@ const ConsultationPage = () => {
 
   const [items, setItems] = useState([]);
   const [itemDraft, setItemDraft] = useState(EMPTY_ITEM);
+  const [medicineSuggestions, setMedicineSuggestions] = useState([]);
   const [creatingPrescription, setCreatingPrescription] = useState(false);
   const [prescriptionError, setPrescriptionError] = useState(null);
   const [createdPrescriptions, setCreatedPrescriptions] = useState([]);
+  const [relatedPrescriptions, setRelatedPrescriptions] = useState(null);
 
   const [completing, setCompleting] = useState(false);
   const completingRef = useRef(false);
@@ -193,49 +198,88 @@ const ConsultationPage = () => {
 
   const loadIdRef = useRef(0);
 
+  useEffect(() => {
+    const query = itemDraft.medicineName.trim();
+    if (query.length < 2) {
+      setMedicineSuggestions([]);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      searchMedicines(query, { signal: controller.signal })
+        .then(setMedicineSuggestions)
+        .catch(() => {
+          if (!controller.signal.aborted) setMedicineSuggestions([]);
+        });
+    }, 250);
+
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [itemDraft.medicineName]);
+
   const isClosed =
     appointment?.status === "COMPLETED" || appointment?.status === "CANCELLED";
+  const isCompleted = appointment?.status === "COMPLETED";
   const canComplete = appointment?.status === "SCHEDULED";
 
   const load = useCallback(() => {
     const loadId = ++loadIdRef.current;
     const isStale = () => loadId !== loadIdRef.current;
 
-    // Clinical notes only need the appointment id, so they load in parallel
-    // with the booking instead of waiting for it.
-    const notesLoad = getClinicalNotes(appointmentId)
-      .then((response) => response?.clinicalNotes ?? "")
-      .catch(() => null); // no notes yet, or backend without fix/44
-
-    findAppointment(appointmentId)
+    setRelatedPrescriptions(null);
+    getAppointmentById(appointmentId)
       .then((found) => {
         if (isStale()) return;
-        if (!found) {
-          setAppointment(null);
-          setPatientName(null);
-          setLoadStatus("not-found");
-          return;
-        }
         setAppointment(found);
+        if (!notesDirtyRef.current) {
+          setNotes(typeof found.clinicalNotes === "string" ? found.clinicalNotes : "");
+        }
         setLoadStatus("succeeded");
-
-        notesLoad.then((text) => {
-          // Never overwrite what the doctor has already typed (e.g. on reload).
-          if (isStale() || text === null || notesDirtyRef.current) return;
-          setNotes(text);
-        });
 
         if (found.patientId === null || found.patientId === undefined) {
           setPatientName(null);
           setHistory(null);
+          setRelatedPrescriptions([]);
           return;
         }
         getPatient(found.patientId)
           .then((patient) => !isStale() && setPatientName(patient.fullName))
           .catch(() => !isStale() && setPatientName(null));
         getPatientHistory(found.patientId)
-          .then((response) => !isStale() && setHistory(response))
-          .catch(() => !isStale() && setHistory(null));
+          .then((response) => {
+            if (isStale()) return;
+            setHistory(response);
+            if (found.status !== "COMPLETED") {
+              setRelatedPrescriptions([]);
+              return;
+            }
+            const ids = response.prescriptions
+              .filter(
+                (prescription) =>
+                  String(
+                    prescription.appointmentId ??
+                      prescription.appointment?.appointmentId,
+                  ) === String(found.appointmentId),
+              )
+              .map((prescription) => prescription.prescriptionId)
+              .filter((id) => id !== undefined && id !== null);
+            Promise.all(ids.map((id) => getPrescriptionById(id)))
+              .then((prescriptions) => {
+                if (!isStale()) setRelatedPrescriptions(prescriptions);
+              })
+              .catch(() => {
+                if (!isStale()) setRelatedPrescriptions("failed");
+              });
+          })
+          .catch(() => {
+            if (!isStale()) {
+              setHistory(null);
+              setRelatedPrescriptions("failed");
+            }
+          });
       })
       .catch(() => {
         if (!isStale()) setLoadStatus("failed");
@@ -322,6 +366,9 @@ const ConsultationPage = () => {
     })
       .then((prescription) => {
         setCreatedPrescriptions((current) => [...current, prescription]);
+        setRelatedPrescriptions((current) =>
+          Array.isArray(current) ? [...current, prescription] : [prescription],
+        );
         setItems([]);
         setToast({ type: "success", message: PRESCRIPTION_CREATED_MESSAGE });
       })
@@ -385,9 +432,21 @@ const ConsultationPage = () => {
   return (
     <PageShell>
       <PageHeader
-        eyebrow="Active Consultation"
-        title="Consultation Room"
-        description="Review the booking, record clinical notes, issue prescriptions and complete the visit."
+        eyebrow={
+          isCompleted
+            ? "Completed Appointment"
+            : "Active Consultation"
+        }
+        title={
+          isCompleted
+            ? "Consultation Details"
+            : "Consultation Room"
+        }
+        description={
+          isCompleted
+            ? "Review the completed visit, clinical notes and linked prescriptions."
+            : "Review the booking, record clinical notes, issue prescriptions and complete the visit."
+        }
         meta={
           <>
             <span className="rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-semibold text-primary-700">
@@ -563,17 +622,107 @@ const ConsultationPage = () => {
               )}
 
               {isClosed ? (
-                <p className="text-sm text-neutral-500">
-                  This consultation is closed; no further prescriptions can be
-                  issued here.
-                </p>
+                <div className="space-y-3">
+                  <p className="text-sm text-neutral-500">
+                    This consultation is closed; no further prescriptions can be
+                    issued here.
+                  </p>
+                  {appointment.status === "COMPLETED" && (
+                    <div className="space-y-2" aria-live="polite">
+                      <p className="text-sm font-medium text-neutral-700">
+                        Prescriptions for this appointment
+                      </p>
+                      {relatedPrescriptions === null ? (
+                        <p className="text-sm text-neutral-500">Loading prescriptions...</p>
+                      ) : relatedPrescriptions === "failed" ? (
+                        <p className="text-sm text-neutral-600">
+                          Prescription details are unavailable right now.
+                        </p>
+                      ) : relatedPrescriptions.length === 0 ? (
+                        <p className="text-sm text-neutral-500">
+                          No prescriptions are linked to this appointment.
+                        </p>
+                      ) : (
+                        <ul className="space-y-2">
+                          {relatedPrescriptions.map((prescription) => (
+                            <li
+                              key={prescription.prescriptionId}
+                              className="rounded-xl border border-neutral-200 bg-neutral-50 p-3"
+                            >
+                              <div className="flex items-center justify-between gap-2 text-sm">
+                                <span className="font-semibold text-neutral-900">
+                                  Prescription #{prescription.prescriptionId}
+                                </span>
+                                <span className="rounded-full bg-neutral-200 px-2 py-0.5 text-xs font-medium text-neutral-700">
+                                  {prescription.status}
+                                </span>
+                              </div>
+                              <ul className="mt-2 space-y-1 text-sm text-neutral-700">
+                                {prescription.items.map((item, index) => (
+                                  <li key={item.itemId ?? `${item.medicineName}-${index}`}>
+                                    <span className="font-medium">{item.medicineName}</span>
+                                    {item.dosage ? ` — ${item.dosage}` : ""}
+                                    {item.frequency ? `, ${item.frequency}` : ""}
+                                    {item.durationDays ? ` for ${item.durationDays} days` : ""}
+                                    {item.quantity ? ` (qty ${item.quantity})` : ""}
+                                  </li>
+                                ))}
+                              </ul>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+                </div>
               ) : (
                 <fieldset className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
                   <legend className="px-1 text-sm font-semibold text-neutral-800">
                     Add Medication Item
                   </legend>
                   <div className="grid grid-cols-2 gap-3">
-                    {DRAFT_FIELDS.map((field) => (
+                    <div className="relative col-span-2">
+                      <Input
+                        id="rx-medicine"
+                        label="Medicine Name"
+                        placeholder="Type at least 2 characters to search"
+                        value={itemDraft.medicineName}
+                        onChange={handleDraftChange("medicineName")}
+                        autoComplete="off"
+                        role="combobox"
+                        aria-autocomplete="list"
+                        aria-expanded={medicineSuggestions.length > 0}
+                      />
+                      {medicineSuggestions.length > 0 && (
+                        <ul
+                          role="listbox"
+                          aria-label="Available medicines"
+                          className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-neutral-200 bg-white py-1 shadow-lg"
+                        >
+                          {medicineSuggestions.map((medicine, index) => {
+                            const name = medicine.medicineName ?? medicine.name;
+                            return (
+                              <li key={medicine.medicineId ?? medicine.id ?? `${name}-${index}`}>
+                                <button
+                                  type="button"
+                                  role="option"
+                                  aria-selected={false}
+                                  onMouseDown={(event) => event.preventDefault()}
+                                  onClick={() => {
+                                    setItemDraft((draft) => ({ ...draft, medicineName: name }));
+                                    setMedicineSuggestions([]);
+                                  }}
+                                  className="w-full px-4 py-2.5 text-left text-sm text-neutral-800 hover:bg-primary-50 focus:bg-primary-50 focus:outline-none"
+                                >
+                                  {name}
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                    </div>
+                    {DRAFT_FIELDS.filter((field) => field.key !== "medicineName").map((field) => (
                       <div
                         key={field.key}
                         className={field.wide ? "col-span-2" : ""}
