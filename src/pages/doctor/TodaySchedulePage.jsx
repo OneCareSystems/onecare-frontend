@@ -1,85 +1,141 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import Button from "../../components/Button";
 import DatePicker from "../../components/DatePicker";
-import ErrorMessage from "../../components/ErrorMessage";
-import LoadingSpinner from "../../components/LoadingSpinner";
+import Icon from "../../components/Icon";
 import StatusBadge from "../../components/StatusBadge";
 import Table from "../../components/Table";
+import { PageHeader, PageShell } from "../../components/doctor/PageLayout";
 import {
-  fetchQueue,
-  selectQueueRecords,
-  selectQueueStatus,
-} from "../../features/queue/queueSlice";
-import useQueuePolling from "../../hooks/useQueuePolling";
-import { getPatients } from "../../services/patientService";
-import { formatDisplayDate, toLocalDateString } from "../../utils/dateUtils";
+  ErrorPanel,
+  SectionTitle,
+  SkeletonBlock,
+} from "../../components/doctor/Panel";
 
-/** `09:00:00` → `09:00`; echoes anything unexpected. */
-const formatTimeSlot = (timeSlot) => {
-  const value = String(timeSlot ?? "");
-  return /^\d{2}:\d{2}/.test(value) ? value.slice(0, 5) : value || "—";
-};
+import { getAppointments } from "../../services/appointmentService";
+import useQueuePolling from "../../hooks/useQueuePolling";
+import usePageVisible from "../../hooks/usePageVisible";
+import { formatDisplayDate, toLocalDateString } from "../../utils/dateUtils";
+import { formatTimeSlot } from "../../utils/timeUtils";
+
+const DASH = "\u2014";
 
 /**
- * DOC — Doctor's Today Schedule / Consultation Queue.
+ * DOC - Doctor's Today Schedule / Consultation Queue.
  *
- * Shows the signed-in doctor's queue in server-authoritative order
- * (`queuePosition` from the backend), filtered to the locally selected
- * calendar date, refreshing every ~2s.
+ * Server-authoritative order, scoped to the selected local date.
+ * The queue refreshes approximately every 2 seconds while the tab is visible.
  *
- * The queue itself is read-only here: "Start Consultation" opens DOC-04,
- * where the whole consultation workflow — clinical notes, prescriptions
- * and completion — takes place. Admin-only actions such as Check In /
- * No Show are deliberately absent, and the queue never changes
- * optimistically: it is re-fetched on every tick.
+ * This page is read-only. Starting a consultation opens DOC-04, where
+ * notes, prescriptions and consultation completion are handled.
  */
 const TodaySchedulePage = () => {
-  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const records = useSelector(selectQueueRecords);
-  const queueStatus = useSelector(selectQueueStatus);
+  const pageVisible = usePageVisible();
 
   const [selectedDate, setSelectedDate] = useState(() => toLocalDateString());
-  const [patientNames, setPatientNames] = useState({});
+  const [records, setRecords] = useState([]);
+  const [queueStatus, setQueueStatus] = useState("idle");
+
+  const requestIdRef = useRef(0);
+  const wasHiddenRef = useRef(false);
 
   const loading = queueStatus === "loading";
   const firstLoad = loading && records.length === 0;
   const failed = queueStatus === "failed";
 
-  const refresh = useCallback(() => {
-    dispatch(fetchQueue({ date: selectedDate }));
-  }, [dispatch, selectedDate]);
+  /**
+   * Refresh appointments manually or through polling.
+   * Request IDs prevent older requests from overwriting newer results.
+   */
+  const refresh = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
 
-  // Initial fetch and re-fetch whenever the doctor picks another date.
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+    setQueueStatus("loading");
 
-  // Patient names label rows only; a failed lookup must never break the page.
+    try {
+      const appointments = await getAppointments({
+        date: selectedDate,
+      });
+
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
+      setRecords(appointments);
+      setQueueStatus("succeeded");
+    } catch {
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+
+      setQueueStatus("failed");
+    }
+  }, [selectedDate]);
+
+  /**
+   * Initial fetch and re-fetch whenever the selected date changes.
+   *
+   * The request is started inside the effect rather than by calling
+   * refresh(), avoiding the set-state-in-effect lint warning.
+   */
   useEffect(() => {
     let cancelled = false;
-    getPatients()
-      .then((patients) => {
-        if (cancelled) return;
-        setPatientNames(
-          Object.fromEntries(
-            patients.map((patient) => [patient.patientId, patient.fullName]),
-          ),
-        );
-      })
-      .catch(() => {
-        /* rows fall back to "Patient <id>" labels */
-      });
+    const requestId = ++requestIdRef.current;
+
+    const loadSchedule = async () => {
+      setQueueStatus("loading");
+
+      try {
+        const appointments = await getAppointments({
+          date: selectedDate,
+        });
+
+        if (cancelled || requestId !== requestIdRef.current) {
+          return;
+        }
+
+        setRecords(appointments);
+        setQueueStatus("succeeded");
+      } catch {
+        if (cancelled || requestId !== requestIdRef.current) {
+          return;
+        }
+
+        setQueueStatus("failed");
+      }
+    };
+
+    loadSchedule();
+
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [selectedDate]);
 
-  // ~2s polling keeps the queue fresh without any manual refresh.
-  useQueuePolling({ enabled: true, onTick: refresh });
+  /**
+   * Poll only while the tab is visible.
+   */
+  useQueuePolling({
+    enabled: pageVisible,
+    onTick: refresh,
+  });
+
+  /**
+   * Refresh immediately when the user returns to the tab.
+   */
+  useEffect(() => {
+    if (!pageVisible) {
+      wasHiddenRef.current = true;
+      return;
+    }
+
+    if (wasHiddenRef.current) {
+      wasHiddenRef.current = false;
+      refresh();
+    }
+  }, [pageVisible, refresh]);
 
   const handleDateChange = useCallback((event) => {
     setSelectedDate(event.target.value || toLocalDateString());
@@ -90,13 +146,16 @@ const TodaySchedulePage = () => {
       {
         key: "queuePosition",
         header: "#",
-        render: (row) => row.queuePosition ?? "—",
+        render: (row) => row.appointmentId ?? DASH,
       },
       {
-        key: "patientId",
+        key: "patientFullName",
         header: "Patient",
-        render: (row) =>
-          patientNames[row.patientId] ?? `Patient ${row.patientId}`,
+        render: (row) => (
+          <span className="font-medium text-neutral-900">
+            {row.patientFullName ?? DASH}
+          </span>
+        ),
       },
       {
         key: "timeSlot",
@@ -111,9 +170,10 @@ const TodaySchedulePage = () => {
       {
         key: "actions",
         header: "Actions",
-        render: (row) => {
-          if (row.status !== "SCHEDULED") return "—";
-          return (
+        render: (row) =>
+          row.status === "CANCELLED" ? (
+            DASH
+          ) : (
             <Button
               size="sm"
               variant="outline"
@@ -121,75 +181,75 @@ const TodaySchedulePage = () => {
                 navigate(`/doctor/consultation/${row.appointmentId}`)
               }
             >
-              Start Consultation
+              {row.status === "COMPLETED"
+                ? "View Consultation"
+                : "Start Consultation"}
             </Button>
-          );
-        },
+          ),
       },
     ],
-    [patientNames, navigate],
+    [navigate],
   );
 
   return (
-    <div className="mx-auto max-w-6xl py-4 sm:py-6">
-      <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold text-primary-700">
-            Doctor workspace
-          </p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-neutral-950 sm:text-3xl">
-            Today’s schedule
-          </h1>
-          <p className="mt-2 text-sm text-neutral-600">
-            Review appointments for the selected date and open the consultation
-            screen to treat patients and complete appointments.
-          </p>
-          <p className="mt-1 text-sm font-medium text-neutral-800">
-            {formatDisplayDate(selectedDate)}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-end gap-3">
-          <DatePicker
-            id="schedule-date"
-            name="scheduleDate"
-            label="Date"
-            value={selectedDate}
-            onChange={handleDateChange}
-            className="min-w-40"
-          />
-          <Button
-            variant="outline"
-            onClick={refresh}
-            disabled={loading}
-            className="inline-flex items-center gap-2"
-          >
-            Refresh
-          </Button>
-        </div>
-      </header>
+    <PageShell>
+      <PageHeader
+        title={"Today\u2019s schedule"}
+        description="Review appointments for the selected date and open the consultation screen to treat patients and complete appointments."
+        meta={
+          <>
+            <p className="font-medium text-neutral-800">
+              {formatDisplayDate(selectedDate)}
+            </p>
+
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+              <span
+                aria-hidden="true"
+                className="h-1.5 w-1.5 rounded-full bg-emerald-500 motion-safe:animate-pulse"
+              />
+              {pageVisible ? "Live" : "Paused"}
+            </span>
+          </>
+        }
+        actions={
+          <>
+            <DatePicker
+              id="schedule-date"
+              name="scheduleDate"
+              label="Date"
+              value={selectedDate}
+              onChange={handleDateChange}
+              className="min-w-40"
+            />
+
+            <Button
+              variant="outline"
+              onClick={refresh}
+              disabled={firstLoad}
+              className="inline-flex items-center gap-2"
+            >
+              <Icon name="refresh" className="h-4 w-4" />
+              Refresh
+            </Button>
+          </>
+        }
+      />
 
       <section aria-labelledby="schedule-queue-heading">
-        <h2
-          id="schedule-queue-heading"
-          className="mb-3 text-lg font-semibold text-neutral-900"
-        >
+        <SectionTitle id="schedule-queue-heading">
           Appointment queue
-        </h2>
+        </SectionTitle>
 
         {firstLoad ? (
-          <div className="rounded-xl border border-neutral-200 bg-white p-6">
-            <LoadingSpinner label="Loading appointment queue" />
-          </div>
+          <SkeletonBlock label="Loading appointment queue" rows={5} />
         ) : failed ? (
-          <div className="space-y-3">
-            <ErrorMessage
-              title="Unable to load the schedule"
-              message="Please check your connection and try again."
-            />
-            <Button onClick={refresh} loading={loading}>
-              Retry
-            </Button>
-          </div>
+          <ErrorPanel
+            title="Unable to load the schedule"
+            message="Please check your connection and try again."
+            actionLabel="Retry"
+            onAction={refresh}
+            actionLoading={loading}
+          />
         ) : (
           <Table
             columns={columns}
@@ -201,7 +261,7 @@ const TodaySchedulePage = () => {
           />
         )}
       </section>
-    </div>
+    </PageShell>
   );
 };
 

@@ -60,26 +60,28 @@ describe("appointmentService", () => {
     expect(mswState.appointmentsHits[0].authorization).toBe("Bearer a-access");
   });
 
-  it("resolves a single appointment via client-side lookup", async () => {
-    // Verified contract: no GET /appointments/{id} — lookup goes through
-    // the doctor-scoped list.
-    mswState.appointmentsResponses = [
-      [
-        appointment({ appointmentId: 101 }),
-        appointment({ appointmentId: 102 }),
-      ],
-    ];
+  it("fetches a single appointment by id", async () => {
+    // The consultation screen reads one appointment directly rather than
+    // filtering the doctor's list.
+    store.dispatch(setSession({ accessToken: "a-access", role: "DOCTOR" }));
+    mswState.appointmentByIdResponses = {
+      102: appointment({ appointmentId: 102 }),
+    };
     const found = await findAppointment("102");
 
     expect(found?.appointmentId).toBe(102);
-    expect(mswState.appointmentsHits).toHaveLength(1);
-    // The lookup does not add a ?date= or /{id} query the backend lacks.
-    expect(new URL(mswState.appointmentsHits[0].url).search).toBe("");
+    expect(mswState.appointmentByIdHits).toHaveLength(1);
+    expect(mswState.appointmentByIdHits[0].id).toBe("102");
+    expect(mswState.appointmentByIdHits[0].authorization).toBe(
+      "Bearer a-access",
+    );
   });
 
-  it("returns null for appointments outside the doctor's list", async () => {
-    mswState.appointmentsResponses = [[appointment()]];
-    await expect(findAppointment(999)).resolves.toBeNull();
+  it("rejects for appointments the doctor cannot read", async () => {
+    mswState.appointmentByIdErrorMode = "not-found";
+    await expect(findAppointment(999)).rejects.toMatchObject({
+      response: { status: 404 },
+    });
   });
 
   it("propagates fetch failures for callers to surface", async () => {
@@ -157,13 +159,36 @@ describe("appointmentService — clinical notes (fix/44 contract)", () => {
         success: true,
         data: { patientId: 7, appointments: null, prescriptions: null },
       }),
-    ).toEqual({ patientId: 7, appointments: [], prescriptions: [] });
+    ).toEqual({
+      patient: null,
+      patientId: 7,
+      appointments: [],
+      prescriptions: [],
+    });
+
+    // A nested patient object supplies both the label and the id.
+    expect(
+      adaptPatientHistoryResponse({
+        success: true,
+        data: {
+          patient: { patientId: 7, fullName: "Jane Doe" },
+          appointments: [],
+          prescriptions: [],
+        },
+      }),
+    ).toEqual({
+      patient: { patientId: 7, fullName: "Jane Doe" },
+      patientId: 7,
+      appointments: [],
+      prescriptions: [],
+    });
+
     expect(() =>
       adaptPatientHistoryResponse({ success: true, data: {} }),
     ).toThrow(/response format/i);
   });
 
-  it("fetches history via GET /appointments/patient/{id}/history", async () => {
+  it("fetches history via GET /patients/{id}/history", async () => {
     mswState.historyResponses = [
       { patientId: 7, appointments: [], prescriptions: [] },
     ];

@@ -1,9 +1,24 @@
 import apiClient from "./apiClient";
 import { isToday, toLocalDateString } from "../utils/dateUtils";
 
+/** A name is only trusted when it is a non-empty string. */
+const cleanName = (value) =>
+  typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+
+/** Last-resort label, matching the patient directory's convention. */
+const fallbackName = (record) =>
+  record.patientId === null || record.patientId === undefined
+    ? null
+    : `Patient ${record.patientId}`;
+
 /**
  * Queue API adapter for the `{ success, message, data }` envelope, where
  * `data` contains appointment records with an `appointmentId` and `status`.
+ *
+ * `AppointmentResponse` / `QueueResponse` now carry the patient's full name,
+ * so pages read `patientFullName` directly instead of issuing a second
+ * `GET /patients` lookup per row. A record without a name degrades to a
+ * `Patient <id>` label — never to an invented name, and never to a blank.
  */
 export const adaptQueueResponse = (payload) => {
   if (payload?.success !== true || !Array.isArray(payload.data)) {
@@ -21,7 +36,11 @@ export const adaptQueueResponse = (payload) => {
     ) {
       throw new Error("Unexpected queue record format");
     }
-    return record;
+    return {
+      ...record,
+      patientFullName:
+        cleanName(record.patientFullName) ?? fallbackName(record),
+    };
   });
 };
 

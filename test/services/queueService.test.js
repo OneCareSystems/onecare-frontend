@@ -30,7 +30,8 @@ describe("queueService", () => {
         message: "Queue retrieved successfully",
         data: [record],
       }),
-    ).toEqual([record]);
+      // No name on the wire: the adapter supplies the `Patient <id>` label.
+    ).toEqual([{ ...record, patientFullName: "Patient 1" }]);
     expect(() =>
       adaptQueueResponse({ success: true, data: { records: [record] } }),
     ).toThrow(/response format/i);
@@ -42,18 +43,52 @@ describe("queueService", () => {
     ).toThrow(/record format/i);
   });
 
+  it("surfaces patientFullName and degrades to a label, never to a blank", () => {
+    const names = adaptQueueResponse({
+      success: true,
+      data: [
+        {
+          appointmentId: 1,
+          patientId: 7,
+          status: "SCHEDULED",
+          patientFullName: "  Jane Doe  ",
+        },
+        {
+          appointmentId: 2,
+          patientId: 8,
+          status: "SCHEDULED",
+          patientFullName: "   ",
+        },
+        {
+          appointmentId: 3,
+          status: "SCHEDULED",
+          patientFullName: "Sam Lee",
+        },
+        { appointmentId: 4, status: "SCHEDULED" },
+      ],
+    }).map((record) => record.patientFullName);
+
+    expect(names).toEqual([
+      "Jane Doe", // trimmed
+      "Patient 8", // blank name falls back to the id label
+      "Sam Lee", // a name without an id still wins
+      null, // neither — the page renders "—"
+    ]);
+  });
+
   it("requests today's `/api/queue/today` through the authenticated shared client", async () => {
     store.dispatch(setSession({ accessToken: "queue-access", role: "DOCTOR" }));
     const record = { appointmentId: 9, status: "SCHEDULED" };
     mswState.queueResponses = [[record]];
     const records = await getTodayQueue();
 
-    expect(records).toEqual([record]);
+    // Neither a name nor a patient id: the field is present but empty, so the
+    // caller decides what to render.
+    expect(records).toEqual([{ ...record, patientFullName: null }]);
 
-
-    expect(new URL(mswState.queueHits[0].url, 'http://localhost').pathname).toMatch(
-      /\/(api\/)?queue\/today$/,
-    );
+    expect(
+      new URL(mswState.queueHits[0].url, "http://localhost").pathname,
+    ).toMatch(/\/(api\/)?queue\/today$/);
     expect(new URL(mswState.queueHits[0].url).search).toBe("");
   });
 

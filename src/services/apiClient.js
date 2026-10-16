@@ -102,12 +102,59 @@ export const normalizeError = (error) => {
   return error;
 };
 
+/**
+ * Heuristic for `expiresIn`: anything above this is milliseconds, not seconds
+ * (~11.5 days expressed in seconds). Backends disagree on the unit, and a
+ * millisecond value read as seconds puts expiry decades out — which is exactly
+ * what silently stops the proactive scheduler from ever firing.
+ */
+const EXPIRES_UNIT_THRESHOLD = 1_000_000;
+
+/** Normalise a relative expiry to a positive number of seconds, or null. */
+export const normalizeExpiresInSeconds = (value) => {
+  if (value == null) return null;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return null;
+  if (numeric > EXPIRES_UNIT_THRESHOLD) {
+    return Math.max(1, Math.round(numeric / 1000));
+  }
+  return Math.round(numeric);
+};
+
+/** Convert an absolute expiry (epoch or ISO string) into seconds from now. */
+const absoluteExpiryToSeconds = (value) => {
+  const numeric = Number(value);
+  let at;
+
+  if (Number.isFinite(numeric) && String(value).trim() !== "") {
+    at = numeric > EXPIRES_UNIT_THRESHOLD ? numeric : numeric * 1000;
+  } else {
+    at = Date.parse(String(value));
+  }
+
+  if (!Number.isFinite(at)) return null;
+  const seconds = (at - Date.now()) / 1000;
+  return seconds > 0 ? Math.ceil(seconds) : null;
+};
+
 export const extractTokens = (payload) => {
   const data = payload?.data ?? payload ?? {};
+
+  // Backends spell these differently and disagree on the unit. Accept the
+  // camelCase and snake_case forms plus an absolute expiry, and normalise to
+  // seconds before it reaches the store.
+  const rawExpiresIn =
+    data.expiresIn ?? data.expires_in ?? data.expiresInSeconds ?? null;
+  const rawExpiresAt = data.expiresAt ?? data.expires_at ?? null;
+
+  const expiresIn =
+    normalizeExpiresInSeconds(rawExpiresIn) ??
+    (rawExpiresAt != null ? absoluteExpiryToSeconds(rawExpiresAt) : null);
+
   const session = {
-    accessToken: data.accessToken ?? null,
-    refreshToken: data.refreshToken ?? null,
-    expiresIn: data.expiresIn ?? DEFAULT_EXPIRES_IN_SECONDS,
+    accessToken: data.accessToken ?? data.access_token ?? null,
+    refreshToken: data.refreshToken ?? data.refresh_token ?? null,
+    expiresIn: expiresIn ?? DEFAULT_EXPIRES_IN_SECONDS,
     role: data.role ?? null,
   };
   if (data.username !== undefined && data.username !== null) {
@@ -218,27 +265,62 @@ apiClient.interceptors.response.use(
 
 /**
  * Proactive refresh (SDS §2.5.1): fires ~5 minutes before expiry (expiresIn
- * 1800 s) and only while the user is active — an idle session is never
- * extended (FR008). `isUserActive` is supplied by CFG-05 and defaults to
- * inactive-safe.
+ * 1800 s) and only while the session may be extended.
+ *
+ * `canExtendSession` decides that gate and defaults to `isUserActive`, which
+ * is inactive-safe: with no callback supplied nothing is ever refreshed.
+ * CFG-05 passes a visibility predicate instead, so an idle-but-visible user is
+ * kept signed in while a background tab is not.
+ *
+ * A failed refresh is reported through `onRefreshError` (and logged when
+ * `debug` is on) and then retried on the next tick while the token is still
+ * inside the leeway window — it never ends the session by itself; the next
+ * real call receives a 401 and runs the full refresh / session-expired flow.
  *
  * Returns a stop function.
  */
 export const startTokenRefreshScheduler = ({
   isUserActive = () => false,
+  canExtendSession = null,
   checkIntervalMs = 60 * 1000,
   now = () => Date.now(),
   leewayMs = REFRESH_LEEWAY_MS,
+  debug = false,
+  onRefreshError = null,
 } = {}) => {
+  const extendSession = canExtendSession ?? isUserActive;
+
+  const log = (...args) => {
+    if (debug && typeof console !== "undefined") {
+      console.warn("[onecare] token-refresh:", ...args);
+    }
+  };
+
   const tick = () => {
     if (refreshPromise) return;
+
     const expiresAt = selectExpiresAt(store.getState());
-    if (!expiresAt) return;
-    if (expiresAt - now() > leewayMs) return;
-    if (!isUserActive()) return;
-    // A failed proactive refresh does not end the session here; the next real
-    // call receives a 401 and runs the full refresh / session-expired flow.
-    refreshSession().catch(() => {});
+    if (!expiresAt) {
+      // Nothing to schedule against — surface it instead of letting the
+      // session die quietly at expiry.
+      log("no expiresAt in the store; the token will never be refreshed.");
+      return;
+    }
+
+    const remainingMs = expiresAt - now();
+    if (remainingMs > leewayMs) return;
+
+    if (!extendSession()) return;
+
+    log(`refreshing with ${Math.round(remainingMs / 1000)}s left`);
+
+    refreshSession().catch((error) => {
+      log(
+        "proactive refresh failed; retrying on the next tick",
+        error?.message,
+      );
+      onRefreshError?.(error);
+    });
   };
 
   const intervalId = setInterval(tick, checkIntervalMs);

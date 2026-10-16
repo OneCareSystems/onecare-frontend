@@ -13,19 +13,31 @@ export const adaptAppointmentsResponse = (payload) => {
   );
 };
 
-export const getAppointments = async ({ signal } = {}) => {
-  const response = await apiClient.get("/appointments", { signal });
+export const getAppointments = async ({ date, signal } = {}) => {
+  const response = await apiClient.get("/appointments", {
+    params: date ? { date } : undefined,
+    signal,
+  });
   return adaptAppointmentsResponse(response.data);
 };
 
-/** Resolve one appointment from the doctor's list; `null` when unknown. */
-export const findAppointment = async (appointmentId, { signal } = {}) => {
-  const appointments = await getAppointments({ signal });
-  const match = appointments.find(
-    (record) => String(record.appointmentId) === String(appointmentId),
-  );
-  return match ?? null;
+/** Fetch one appointment, including its clinical details. */
+export const getAppointmentById = async (appointmentId, { signal } = {}) => {
+  const response = await apiClient.get(`/appointments/${appointmentId}`, {
+    signal,
+  });
+  const payload = response.data;
+  if (
+    payload?.success !== true ||
+    !payload.data ||
+    String(payload.data.appointmentId) !== String(appointmentId)
+  ) {
+    throw new Error("Unexpected appointment response format");
+  }
+  return payload.data;
 };
+
+export const findAppointment = getAppointmentById;
 
 /*
  * Clinical-notes endpoints below come from the backend branch
@@ -86,26 +98,31 @@ export const saveClinicalNotes = async (
 /** `PatientHistoryResponse`: previous appointments (with notes) + prescriptions. */
 export const adaptPatientHistoryResponse = (payload) => {
   const data = payload?.data;
-  if (payload?.success !== true || !data || data.patientId === undefined) {
+  if (
+    payload?.success !== true ||
+    !data ||
+    (!data.patient && data.patientId === undefined)
+  ) {
     throw new Error("Unexpected patient history response format");
   }
   return {
-    patientId: data.patientId,
+    patient: data.patient ?? null,
+    patientId: data.patient?.patientId ?? data.patientId,
     appointments: Array.isArray(data.appointments) ? data.appointments : [],
     prescriptions: Array.isArray(data.prescriptions) ? data.prescriptions : [],
   };
 };
 
 export const getPatientHistory = async (patientId, { signal } = {}) => {
-  const response = await apiClient.get(
-    `/appointments/patient/${patientId}/history`,
-    { signal },
-  );
+  const response = await apiClient.get(`/patients/${patientId}/history`, {
+    signal,
+  });
   return adaptPatientHistoryResponse(response.data);
 };
 
 export default {
   getAppointments,
+  getAppointmentById,
   findAppointment,
   getClinicalNotes,
   saveClinicalNotes,

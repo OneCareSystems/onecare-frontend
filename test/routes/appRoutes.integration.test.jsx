@@ -1,10 +1,4 @@
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-} from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   fireEvent,
   render,
@@ -13,33 +7,18 @@ import {
   cleanup,
 } from "@testing-library/react";
 import { Provider } from "react-redux";
-import {
-  MemoryRouter,
-  Route,
-  Routes,
-  useLocation,
-} from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 
 import { store } from "../../src/app/store";
-import {
-  clearSession,
-  setSession,
-} from "../../src/features/auth/authSlice";
+import { clearSession, setSession } from "../../src/features/auth/authSlice";
 import { ROLES } from "../../src/constants/roles";
 import AppRoutes from "../../src/routes/AppRoutes";
-import {
-  mswState,
-  resetMswState,
-} from "../msw/handlers";
+import { mswState, resetMswState } from "../msw/handlers";
 
 const LocationDisplay = () => {
   const location = useLocation();
 
-  return (
-    <div data-testid="location">
-      {location.pathname}
-    </div>
-  );
+  return <div data-testid="location">{location.pathname}</div>;
 };
 
 const seed = (payload) => {
@@ -174,11 +153,7 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
   });
 
   it("AC4: the shared Queue screen renders for every allowed role", async () => {
-    const allowed = [
-      ROLES.ADMIN,
-      ROLES.DOCTOR,
-      ROLES.SUPER_ADMIN,
-    ];
+    const allowed = [ROLES.ADMIN, ROLES.DOCTOR, ROLES.SUPER_ADMIN];
 
     for (const role of allowed) {
       store.dispatch(clearSession());
@@ -324,9 +299,7 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
     await signIn("doctor@onecare.test");
 
     expect(
-      await screen.findByText(
-        "Invalid username or password.",
-      ),
+      await screen.findByText("Invalid username or password."),
     ).toBeInTheDocument();
 
     expectLocation("/login");

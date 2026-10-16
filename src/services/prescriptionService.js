@@ -8,8 +8,8 @@ import apiClient from "./apiClient";
  * on the `fix/44/align-clinical-notes` backend they moved onto the
  * appointment itself.
  *
- * Doctors hold no MEDICINE_READ permission, so items use the
- * `EXTERNAL_PURCHASE` free-text shape (`medicineName`, no `medicineId`).
+ * Prescription items use the existing `EXTERNAL_PURCHASE` free-text shape
+ * (`medicineName`, no `medicineId`). Catalog search supports name entry only.
  */
 export const adaptPrescriptionResponse = (payload) => {
   const data = payload?.data;
@@ -58,4 +58,12 @@ export const createPrescription = async (
   return adaptPrescriptionResponse(response.data);
 };
 
-export default { createPrescription };
+/** Fetch an issued prescription and its medicine items by ID. */
+export const getPrescriptionById = async (prescriptionId, { signal } = {}) => {
+  const response = await apiClient.get(`/prescriptions/${prescriptionId}`, {
+    signal,
+  });
+  return adaptPrescriptionResponse(response.data);
+};
+
+export default { createPrescription, getPrescriptionById };
