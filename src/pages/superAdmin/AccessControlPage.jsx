@@ -5,6 +5,7 @@ import ConfirmDialog from "../../components/ConfirmDialog";
 import Icon from "../../components/Icon";
 import SearchBar from "../../components/SearchBar";
 import Select from "../../components/Select";
+import StatCard from "../../components/StatCard";
 import StatusBadge from "../../components/StatusBadge";
 import Table from "../../components/Table";
 import Tabs from "../../components/Tabs";
@@ -60,37 +61,6 @@ const CATEGORY_FILTER_OPTIONS = PERMISSION_CATEGORIES.map((category) => ({
   value: category,
   label: category,
 }));
-
-const StatCard = ({
-  label,
-  value,
-  chip,
-  icon,
-  iconClass,
-  chipClass,
-  valueClass = "text-neutral-900",
-}) => (
-  <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-xs sm:p-5">
-    <div className="flex items-center justify-between gap-2">
-      <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-        {label}
-      </span>
-      <span
-        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl ${iconClass}`}
-      >
-        <Icon name={icon} className="h-4 w-4" />
-      </span>
-    </div>
-    <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2">
-      <h3 className={`text-2xl font-bold ${valueClass}`}>{value}</h3>
-      <span
-        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${chipClass}`}
-      >
-        {chip}
-      </span>
-    </div>
-  </div>
-);
 
 /**
  * Super-admin access control: the RBAC entitlement matrix mirrored from

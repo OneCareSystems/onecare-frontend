@@ -15,12 +15,14 @@ import {
   LuCircleX,
   LuClipboardList,
   LuClock,
+  LuDatabase,
   LuDownload,
   LuDroplet,
   LuEar,
   LuEye,
   LuEyeOff,
   LuFileCode,
+  LuHardDrive,
   LuHeartPulse,
   LuHospital,
   LuInbox,
@@ -40,6 +42,7 @@ import {
   LuRefreshCw,
   LuScanLine,
   LuSearch,
+  LuServer,
   LuShield,
   LuShieldAlert,
   LuShieldPlus,
@@ -53,6 +56,7 @@ import {
   LuUser,
   LuUserCheck,
   LuUsers,
+  LuWrench,
   LuX,
 } from "react-icons/lu";
 
@@ -120,6 +124,10 @@ const UI_ICONS = {
   "arrow-up-right": LuArrowUpRight,
   print: LuPrinter,
   "file-code": LuFileCode,
+  database: LuDatabase,
+  "hard-drive": LuHardDrive,
+  server: LuServer,
+  wrench: LuWrench,
 };
 
 // Authentication icons
