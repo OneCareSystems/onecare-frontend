@@ -15,6 +15,7 @@ import {
   LuCircleX,
   LuClipboardList,
   LuClock,
+  LuCpu,
   LuDatabase,
   LuDownload,
   LuDroplet,
@@ -40,6 +41,7 @@ import {
   LuPlus,
   LuPrinter,
   LuRefreshCw,
+  LuSave,
   LuScanLine,
   LuSearch,
   LuServer,
@@ -56,6 +58,7 @@ import {
   LuUser,
   LuUserCheck,
   LuUsers,
+  LuWifi,
   LuWrench,
   LuX,
 } from "react-icons/lu";
@@ -128,6 +131,9 @@ const UI_ICONS = {
   "hard-drive": LuHardDrive,
   server: LuServer,
   wrench: LuWrench,
+  save: LuSave,
+  wifi: LuWifi,
+  cpu: LuCpu,
 };
 
 // Authentication icons
