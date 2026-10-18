@@ -20,17 +20,6 @@ const asTrimmedString = (value) =>
 
 const normalizeLabel = (value) => asTrimmedString(value).toUpperCase();
 
-const TRUTHY_STRINGS = new Set([
-  "true",
-  "yes",
-  "1",
-  "enabled",
-  "active",
-  "enrolled",
-  "enforced",
-]);
-
-
 /** A record is usable when it carries some stable identifier. */
 const hasIdentity = (raw) => {
   if (!raw || typeof raw !== "object") return false;

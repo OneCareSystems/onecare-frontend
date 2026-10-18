@@ -12,6 +12,7 @@ import {
   LuChevronRight,
   LuCircleCheck,
   LuCircleHelp,
+  LuCircleX,
   LuClipboardList,
   LuClock,
   LuDownload,
@@ -19,6 +20,7 @@ import {
   LuEar,
   LuEye,
   LuEyeOff,
+  LuFileCode,
   LuHeartPulse,
   LuHospital,
   LuInbox,
@@ -39,6 +41,7 @@ import {
   LuScanLine,
   LuSearch,
   LuShield,
+  LuShieldAlert,
   LuShieldPlus,
   LuSparkles,
   LuStethoscope,
@@ -111,15 +114,18 @@ const UI_ICONS = {
   "triangle-alert": LuTriangleAlert,
   info: LuInfo,
   "circle-help": LuCircleHelp,
+  "circle-x": LuCircleX,
   "package-check": LuPackageCheck,
   "user-check": LuUserCheck,
   "arrow-up-right": LuArrowUpRight,
   print: LuPrinter,
+  "file-code": LuFileCode,
 };
 
 // Authentication icons
 const AUTH_ICONS = {
   shield: LuShield,
+  "shield-alert": LuShieldAlert,
   "key-round": LuKeyRound,
   sparkles: LuSparkles,
   "arrow-right": LuArrowRight,
