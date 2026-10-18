@@ -146,7 +146,7 @@ const SystemConfigPage = () => {
           Active profile: {ACTIVE_PROFILE}
         </span>
         <h1 className="mt-1 text-2xl font-semibold text-neutral-900">
-          Clinic Configuration & Microservices
+          Clinic Configuration
         </h1>
         <p className="mt-1 max-w-2xl text-sm text-neutral-600">
           Spring Boot REST gateway parameters, JWT cipher policies, and
@@ -262,7 +262,7 @@ const SystemConfigPage = () => {
               id="password-hashing"
               name="password-hashing"
               label="Password hashing"
-              defaultValue="BCrypt (12 rounds)"
+              defaultValue="Argnoid2"
               disabled
             />
             <Input
