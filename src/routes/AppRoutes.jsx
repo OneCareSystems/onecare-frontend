@@ -24,6 +24,11 @@ import { CHANGE_PASSWORD_PATH, ROUTE_ACCESS } from "../constants/routeAccess";
 import PatientRecordsPage from "../pages/doctor/PatientRecordsPage";
 import PatientDetails from "../pages/doctor/PatientDetails";
 import KnowledgeBasePage from "../pages/doctor/KnowledgeBasePage";
+import UserManagementPage from "../pages/superAdmin/UserManagementPage";
+import AccessControlPage from "../pages/superAdmin/AccessControlPage";
+import SystemConfigPage from "../pages/superAdmin/SystemConfigPage";
+import SystemMaintenancePage from "../pages/superAdmin/SystemMaintenancePage";
+import AuditLogsPage from "../pages/superAdmin/AuditLogsPage";
 
 const AppRoutes = () => {
   return (
@@ -90,6 +95,14 @@ const AppRoutes = () => {
       >
         <Route path="/super-admin" element={<SuperAdminLayout />}>
           <Route path="dashboard" element={<SuperAdminDashboardPage />} />
+          <Route path="user-management" element={<UserManagementPage />} />
+          <Route path="access-control" element={<AccessControlPage />} />
+          <Route path="clinic-configuration" element={<SystemConfigPage />} />
+          <Route
+            path="system-maintenance"
+            element={<SystemMaintenancePage />}
+          />
+          <Route path="audits-reports" element={<AuditLogsPage />} />
         </Route>
       </Route>
 
