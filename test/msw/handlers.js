@@ -50,6 +50,9 @@ export const mswState = {
   userStatusErrorMode: null,
   userResetHits: [],
   userResetErrorMode: null,
+  auditLogsHits: [],
+  auditLogsResponses: [],
+  auditLogsErrorMode: null,
 };
 
 export const resetMswState = () => {
@@ -100,6 +103,9 @@ export const resetMswState = () => {
   mswState.userStatusErrorMode = null;
   mswState.userResetHits = [];
   mswState.userResetErrorMode = null;
+  mswState.auditLogsHits = [];
+  mswState.auditLogsResponses = [];
+  mswState.auditLogsErrorMode = null;
 };
 
 const ok = (data, message = "ok") =>
@@ -475,6 +481,24 @@ export const handlers = [
       return fail(500, "Internal server error");
     }
     return ok(null, "Password reset instructions sent");
+  }),
+  // Planned audit trail (endpoint not yet implemented server-side —
+  // "not-implemented" mirrors the 404 the real backend serves today).
+  http.get("*/audit-logs", ({ request }) => {
+    mswState.auditLogsHits.push({
+      url: request.url,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.auditLogsErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    if (mswState.auditLogsErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    if (mswState.auditLogsErrorMode === "not-implemented") {
+      return fail(404, "Not found");
+    }
+    return ok(mswState.auditLogsResponses.shift() ?? []);
   }),
   http.get("*/reports/:id", protectedReply),
   http.get("*", ({ request }) => {

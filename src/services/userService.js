@@ -30,17 +30,6 @@ const TRUTHY_STRINGS = new Set([
   "enforced",
 ]);
 
-/**
- * Coerce the many spellings a 2FA flag can arrive as into a boolean.
- * Anything unrecognised is treated as "not enrolled" rather than truthy.
- */
-const normalizeTwoFactor = (value) => {
-  if (typeof value === "boolean") return value;
-  if (typeof value === "string") {
-    return TRUTHY_STRINGS.has(value.trim().toLowerCase());
-  }
-  return Boolean(value);
-};
 
 /** A record is usable when it carries some stable identifier. */
 const hasIdentity = (raw) => {
