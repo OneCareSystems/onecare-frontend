@@ -41,6 +41,15 @@ export const mswState = {
   prescriptionCreateHits: [],
   prescriptionCreateResponses: [],
   prescriptionCreateErrorMode: null,
+  usersHits: [],
+  usersResponses: [],
+  usersErrorMode: null,
+  userCreateHits: [],
+  userCreateErrorMode: null,
+  userStatusHits: [],
+  userStatusErrorMode: null,
+  userResetHits: [],
+  userResetErrorMode: null,
 };
 
 export const resetMswState = () => {
@@ -82,6 +91,15 @@ export const resetMswState = () => {
   mswState.prescriptionCreateHits = [];
   mswState.prescriptionCreateResponses = [];
   mswState.prescriptionCreateErrorMode = null;
+  mswState.usersHits = [];
+  mswState.usersResponses = [];
+  mswState.usersErrorMode = null;
+  mswState.userCreateHits = [];
+  mswState.userCreateErrorMode = null;
+  mswState.userStatusHits = [];
+  mswState.userStatusErrorMode = null;
+  mswState.userResetHits = [];
+  mswState.userResetErrorMode = null;
 };
 
 const ok = (data, message = "ok") =>
@@ -396,6 +414,67 @@ export const handlers = [
         createdAt: "2026-10-14T09:00:00",
       },
     );
+  }),
+  // Super-admin user management (access governance): list, provision,
+  // activate/suspend and trigger the reset-key email.
+  http.get("*/users", ({ request }) => {
+    mswState.usersHits.push({
+      url: request.url,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.usersErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    if (mswState.usersErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    return ok(mswState.usersResponses.shift() ?? []);
+  }),
+  http.post("*/users", async ({ request }) => {
+    const body = await request.json().catch(() => ({}));
+    mswState.userCreateHits.push({
+      body,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.userCreateErrorMode === "validation") {
+      return fail(400, "Username already exists");
+    }
+    if (mswState.userCreateErrorMode === "forbidden") {
+      return fail(403, "Access denied");
+    }
+    if (mswState.userCreateErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    return ok({
+      userId: 9001,
+      ...body,
+      status: "ACTIVE",
+    });
+  }),
+  http.patch("*/users/:id/status", async ({ request, params }) => {
+    const body = await request.json().catch(() => ({}));
+    mswState.userStatusHits.push({
+      id: params.id,
+      body,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.userStatusErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    return ok({
+      userId: Number(params.id),
+      status: body?.status ?? "ACTIVE",
+    });
+  }),
+  http.post("*/users/:id/password-reset", ({ request, params }) => {
+    mswState.userResetHits.push({
+      id: params.id,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.userResetErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    return ok(null, "Password reset instructions sent");
   }),
   http.get("*/reports/:id", protectedReply),
   http.get("*", ({ request }) => {
