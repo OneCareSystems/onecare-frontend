@@ -169,27 +169,49 @@ const AccessControlPage = () => {
   }, []);
 
   // Fetch all permissions in parallel
-  const loadPermissions = useCallback(async () => {
-    setStatus("loading");
-    setLoadError(null);
-    try {
-      const results = await Promise.all(
+  const fetchPermissions = useCallback(
+    () =>
+      Promise.all(
         ROLE_ORDER.map(async (role) => {
           const { permissions } = await getRolePermissions(role);
           return [role, permissions];
         })
-      );
+      ),
+    []
+  );
+
+  const loadPermissions = useCallback(async () => {
+    setStatus("loading");
+    setLoadError(null);
+    try {
+      const results = await fetchPermissions();
       setGrantsByRole(Object.fromEntries(results));
       setStatus("ready");
     } catch (error) {
       setLoadError(error?.userMessage ?? "Failed to load permissions matrix.");
       setStatus("failed");
     }
-  }, []);
+  }, [fetchPermissions]);
 
   useEffect(() => {
-    loadPermissions();
-  }, [loadPermissions]);
+    let active = true;
+
+    fetchPermissions()
+      .then((results) => {
+        if (!active) return;
+        setGrantsByRole(Object.fromEntries(results));
+        setStatus("ready");
+      })
+      .catch((error) => {
+        if (!active) return;
+        setLoadError(error?.userMessage ?? "Failed to load permissions matrix.");
+        setStatus("failed");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [fetchPermissions]);
 
   // Fast Set lookups per role: Map<role, Set<code/permission>>
   const grantsByRoleSets = useMemo(() => {
@@ -255,7 +277,7 @@ const AccessControlPage = () => {
   );
 
   /** Optimistic update handler with failure fallback */
-  const applyRolePermissions = async (
+  const applyRolePermissions = useCallback(async (
     role,
     nextPermissions,
     entry,
@@ -295,7 +317,7 @@ const AccessControlPage = () => {
     } finally {
       setSavingKey(null);
     }
-  };
+  }, [grantsByRole]);
 
   const requestToggle = useCallback(
     (code, role, entry) => {
@@ -317,7 +339,7 @@ const AccessControlPage = () => {
         run: () => applyRolePermissions(role, nextList, entry, isGranted),
       });
     },
-    [grantsByRole]
+    [applyRolePermissions, grantsByRole]
   );
 
   const requestBreakGlass = () => {
