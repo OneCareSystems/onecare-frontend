@@ -16,6 +16,7 @@ export const NAV_ITEMS = Object.freeze({
       label: "Dashboard",
       icon: "dashboard",
     }),
+    Object.freeze({ id: "register-patient", to: "/super-admin/register-patient", label: "Register Patient", icon: "user-check" }),
     Object.freeze({
       id: "queue",
       to: "/queue",
@@ -30,6 +31,7 @@ export const NAV_ITEMS = Object.freeze({
       label: "Dashboard",
       icon: "dashboard",
     }),
+    Object.freeze({ id: "register-patient", to: "/admin/register-patient", label: "Register Patient", icon: "user-check" }),
     Object.freeze({
       id: "queue",
       to: "/queue",
