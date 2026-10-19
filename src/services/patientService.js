@@ -53,4 +53,22 @@ export const getPatients = async ({ signal } = {}) => {
   return adaptPatientsResponse(response.data);
 };
 
-export default { getPatient, getPatients };
+// Explicit allowlists keep clinical fields out of the registration workflow.
+export const createPatient = async (values) => {
+  const body = {
+    full_name: values.full_name,
+    dateOfBirth: values.dateOfBirth,
+    contactNo: values.contactNo,
+    address: values.address || null,
+    email: values.email || null,
+    gender: values.gender || null,
+  };
+  const response = await apiClient.post("/patients", body);
+  const patient = adaptPatientResponse(response.data);
+  return {
+    ...patient,
+    duplicateSuspected: response.data.data.duplicateSuspected === true,
+  };
+};
+
+export default { getPatient, getPatients, createPatient };
