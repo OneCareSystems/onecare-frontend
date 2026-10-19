@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
-
 import Button from "../../components/Button";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import ErrorMessage from "../../components/ErrorMessage";
@@ -8,7 +7,6 @@ import SearchBar from "../../components/SearchBar";
 import Select from "../../components/Select";
 import StatCard from "../../components/StatCard";
 import Table from "../../components/Table";
-import Tabs from "../../components/Tabs";
 import Toast from "../../components/Toast";
 import {
   PERMISSION_CODES,
@@ -73,8 +71,8 @@ const MatrixCell = memo(
     const blockReason = isLastGranted
       ? "BR006: A role's permission set cannot be empty"
       : isPrivilegedForNonAdmin
-      ? "BR004: Only SUPER_ADMIN may hold this privileged scope"
-      : null;
+        ? "BR004: Only SUPER_ADMIN may hold this privileged scope"
+        : null;
 
     if (isSuperAdmin) {
       return (
@@ -86,9 +84,8 @@ const MatrixCell = memo(
           >
             <Icon
               name={isGranted ? "circle-check" : "circle-x"}
-              className={`h-5 w-5 ${
-                isGranted ? "text-success-600" : "text-neutral-300"
-              }`}
+              className={`h-5 w-5 ${isGranted ? "text-success-600" : "text-neutral-300"
+                }`}
             />
           </span>
         </div>
@@ -110,22 +107,20 @@ const MatrixCell = memo(
               ? blockReason
               : `${isGranted ? "Authorized" : "Denied"} — click to toggle`
           }
-          className={`relative inline-flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
-            isBlocked
+          className={`relative inline-flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${isBlocked
               ? "cursor-not-allowed opacity-40 bg-neutral-50"
               : isGranted
-              ? "bg-success-50 hover:bg-success-100 text-success-700"
-              : "bg-neutral-50 hover:bg-neutral-100 text-neutral-400"
-          }`}
+                ? "bg-success-50 hover:bg-success-100 text-success-700"
+                : "bg-neutral-50 hover:bg-neutral-100 text-neutral-400"
+            }`}
         >
           {isSaving ? (
             <Icon name="loader" className="h-4 w-4 animate-spin text-primary-600" />
           ) : (
             <Icon
               name={isGranted ? "circle-check" : "circle-x"}
-              className={`h-5 w-5 ${
-                isGranted ? "text-success-600" : "text-neutral-400"
-              }`}
+              className={`h-5 w-5 ${isGranted ? "text-success-600" : "text-neutral-400"
+                }`}
             />
           )}
         </button>
@@ -300,9 +295,8 @@ const AccessControlPage = () => {
       }));
       setToast({
         type: "success",
-        message: `${roleLabel(role)} updated: ${entry.name} ${
-          wasGranted ? "revoked" : "granted"
-        }.`,
+        message: `${roleLabel(role)} updated: ${entry.name} ${wasGranted ? "revoked" : "granted"
+          }.`,
       });
     } catch (error) {
       // Revert optimistic update
@@ -329,11 +323,10 @@ const AccessControlPage = () => {
 
       setConfirm({
         title: isGranted ? "Revoke Security Scope?" : "Grant Security Scope?",
-        message: `Are you sure you want to ${
-          isGranted ? "revoke" : "grant"
-        } "${entry.name}" (${code}) for [${roleLabel(
-          role
-        )}]? Changes take effect immediately.`,
+        message: `Are you sure you want to ${isGranted ? "revoke" : "grant"
+          } "${entry.name}" (${code}) for [${roleLabel(
+            role
+          )}]? Changes take effect immediately.`,
         confirmLabel: isGranted ? "Confirm Revocation" : "Authorize Scope",
         variant: isGranted ? "danger" : "primary",
         run: () => applyRolePermissions(role, nextList, entry, isGranted),
@@ -433,23 +426,6 @@ const AccessControlPage = () => {
         </div>
       </div>
 
-      {/* Emergency Action Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-xl border border-warning-200 bg-warning-50/50 p-4">
-        <div className="flex items-center gap-3">
-          <Icon name="shield-alert" className="h-5 w-5 text-warning-700 shrink-0" />
-          <p className="text-xs sm:text-sm text-warning-900">
-            <strong>Need temporary elevated access?</strong> Emergency Break-Glass override elevates session permissions for 60 mins.
-          </p>
-        </div>
-        <Button
-          variant="secondary"
-          onClick={requestBreakGlass}
-          className="whitespace-nowrap border-warning-300 bg-white text-warning-800 hover:bg-warning-100 text-xs"
-        >
-          Break-Glass Access
-        </Button>
-      </div>
-
       {/* Matrix Main Section */}
       <section aria-labelledby="permission-matrix-heading">
         {status === "ready" && (
@@ -527,14 +503,6 @@ const AccessControlPage = () => {
     </div>
   );
 
-  const tabs = [
-    {
-      id: "matrix",
-      label: "Role entitlement matrix",
-      content: matrixPanel,
-    },
-  ];
-
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
       {/* Header Summary Stats */}
@@ -565,13 +533,8 @@ const AccessControlPage = () => {
         />
       </div>
 
-      {/* Tabs Nav */}
-      <Tabs
-        tabs={tabs}
-        activeTab={activeTab}
-        onChange={setActiveTab}
-        ariaLabel="Access control tabs"
-      />
+      {/* Role Entitlement Matrix */}
+      {matrixPanel}
 
       {/* Confirmation Modal */}
       <ConfirmDialog
