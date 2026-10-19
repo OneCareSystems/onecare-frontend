@@ -46,7 +46,7 @@ const LoginPage = () => {
     setSubmitted(true);
     setError("");
 
-    if (!username.trim() || !password) return;
+    if (!username.trim() || !password.trim() || submitting) return;
 
     setSubmitting(true);
     try {
@@ -88,6 +88,10 @@ const LoginPage = () => {
         );
       } else if (status === 401) {
         setError("Invalid username or password.");
+      } else if (!err?.response && err?.isAxiosError) {
+        setError("Unable to reach the server. Please try again.");
+      } else if (status === 502 || status === 503 || status === 504) {
+        setError("Unable to reach the server. Please try again.");
       } else {
         setError("Something went wrong. Please try again.");
       }
