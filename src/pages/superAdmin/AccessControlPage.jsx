@@ -1,85 +1,67 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import Button from "../../components/Button";
 import ConfirmDialog from "../../components/ConfirmDialog";
+import ErrorMessage from "../../components/ErrorMessage";
 import Icon from "../../components/Icon";
 import SearchBar from "../../components/SearchBar";
 import Select from "../../components/Select";
 import StatCard from "../../components/StatCard";
-import StatusBadge from "../../components/StatusBadge";
 import Table from "../../components/Table";
 import Tabs from "../../components/Tabs";
 import Toast from "../../components/Toast";
 import {
-  PERMISSION_CATEGORIES,
+  PERMISSION_CODES,
   PERMISSION_MATRIX,
 } from "../../constants/permissions";
 import { ROLES } from "../../constants/roles";
+import {
+  getRolePermissions,
+  setRolePermissions,
+} from "../../services/rolePermissionService";
 
 const ALL_CATEGORIES = "ALL";
+const UNCATEGORIZED = "Uncategorized";
 
-/** Column order mirrors the reference matrix (role constants, CFG-03). */
+/** Column order mirrors the role constants (CFG-03). */
 const ROLE_ORDER = Object.values(ROLES);
 
 const roleLabel = (role) => String(role ?? "").replace(/_/g, " ");
 
-/**
- * Session-local fixtures: no machine-token endpoint exists (nor is one
- * planned), so the daemon tokens below are illustrative only.
- */
-const INITIAL_API_TOKENS = [
-  {
-    id: "TOK-9921",
-    name: "DICOM PACS Gateway Bridge",
-    roleTarget: "SERVICE_ACCOUNT",
-    scope: "IMAGING_INGEST_READ_WRITE",
-    lastUsed: "2 mins ago",
-    ipWhitelist: "10.0.4.12, 10.0.4.15",
-    status: "ACTIVE",
-  },
-  {
-    id: "TOK-9920",
-    name: "HL7 Lab Integration Daemon",
-    roleTarget: "SERVICE_ACCOUNT",
-    scope: "LAB_RESULTS_STREAM",
-    lastUsed: "14 secs ago",
-    ipWhitelist: "192.168.10.88",
-    status: "ACTIVE",
-  },
-  {
-    id: "TOK-9919",
-    name: "Telehealth Video Session Broker",
-    roleTarget: "DOCTOR",
-    scope: "WEBRTC_ROOM_MINT",
-    lastUsed: "1 hour ago",
-    ipWhitelist: "0.0.0.0/0 (VPN required)",
-    status: "ACTIVE",
-  },
-];
+/** BR005 — the SUPER_ADMIN role's own set is immutable through the API. */
+const IMMUTABLE_ROLE = ROLES.SUPER_ADMIN;
 
-const CATEGORY_FILTER_OPTIONS = PERMISSION_CATEGORIES.map((category) => ({
-  value: category,
-  label: category,
-}));
+const SUPER_ADMIN_READONLY_TITLE =
+  "BR005: the SUPER_ADMIN role's own permission set cannot be modified";
+
 
 /**
- * Super-admin access control: the RBAC entitlement matrix mirrored from
- * the backend `RolePermission` policy (static — no endpoint exists or is
- * planned), service-account tokens and the break-glass protocol.
+ * Super-admin access control (FR003/UC3).
  *
- * Because the policy service does not exist, every change here is
- * session-local and clearly labelled as such; the confirm dialog keeps
- * the sensitive-operation ritual the reference design asks for.
+ * The role entitlement matrix is live: GET/PUT
+ * /api/roles/{role}/permissions read and rewrite each role's full
+ * permission set (src/services/rolePermissionService.js). Backend rules
+ * shape the UI: SUPER_ADMIN's own column is read-only (BR005), a role's
+ * last permission cannot be revoked (BR006) and privileged scopes such
+ * as SYSTEM_BACKUP cannot be granted to non-SUPER_ADMIN roles (BR004) —
+ * blocked cells explain themselves, and any rule the server still
+ * rejects is surfaced verbatim through the error toast (the backend
+ * leaves the stored set untouched on failure).
+ *
+ * Catalog metadata (names, descriptions, domains) comes from
+ * src/constants/permissions.js; codes granted by the backend but absent
+ * from the local catalog are appended as UNCATEGORIZED rows instead of
+ * being hidden. The API-token and break-glass tabs remain session-local
+ * fixtures — no backend exists for either.
  */
 const AccessControlPage = () => {
-  // Editable copy of the static mirror — toggles never mutate the import.
-  const [matrix, setMatrix] = useState(() =>
-    PERMISSION_MATRIX.map((entry) => ({
-      ...entry,
-      granted: [...entry.granted],
-    })),
-  );
-  const [tokens, setTokens] = useState(INITIAL_API_TOKENS);
+  // Live permission sets per role, straight from the backend.
+  const [status, setStatus] = useState("loading"); // loading | ready | failed
+  const [grantsByRole, setGrantsByRole] = useState({});
+  const [loadError, setLoadError] = useState(null);
+  /** Role whose PUT is in flight — its column (and every toggle) locks. */
+  const [savingRole, setSavingRole] = useState(null);
+
   const [activeTab, setActiveTab] = useState("matrix");
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -89,9 +71,79 @@ const AccessControlPage = () => {
   /** { title, message, confirmLabel, variant, run } | null */
   const [confirm, setConfirm] = useState(null);
 
+  const fetchPermissions = useCallback(
+    () =>
+      Promise.all(
+        ROLE_ORDER.map(async (role) => {
+          const { permissions } = await getRolePermissions(role);
+          return [role, permissions];
+        }),
+      ),
+    [],
+  );
+
+  const loadPermissions = useCallback(async () => {
+    setStatus("loading");
+    setLoadError(null);
+    try {
+      const pairs = await fetchPermissions();
+      setGrantsByRole(Object.fromEntries(pairs));
+      setStatus("ready");
+    } catch (error) {
+      setLoadError(error?.userMessage ?? null);
+      setStatus("failed");
+    }
+  }, [fetchPermissions]);
+
+  useEffect(() => {
+    let active = true;
+
+    fetchPermissions()
+      .then((pairs) => {
+        if (!active) return;
+        setGrantsByRole(Object.fromEntries(pairs));
+        setStatus("ready");
+      })
+      .catch((error) => {
+        if (!active) return;
+        setLoadError(error?.userMessage ?? null);
+        setStatus("failed");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [fetchPermissions]);
+
+  /** Catalog rows + backend-granted codes missing from local metadata. */
+  const catalog = useMemo(() => {
+    const grantedCodes = Object.values(grantsByRole).flat();
+    const extras = [...new Set(grantedCodes)]
+      .filter((code) => !PERMISSION_CODES.includes(code))
+      .sort();
+    return [
+      ...PERMISSION_MATRIX,
+      ...extras.map((code) => ({
+        code,
+        category: UNCATEGORIZED,
+        name: code,
+        description:
+          "Granted through the backend but missing from the local catalog metadata.",
+      })),
+    ];
+  }, [grantsByRole]);
+
+  const categoryOptions = useMemo(() => {
+    const seen = [];
+    for (const entry of catalog) {
+      if (!seen.includes(entry.category)) seen.push(entry.category);
+    }
+    return seen.map((value) => ({ value, label: value }));
+  }, [catalog]);
+
   const filteredPermissions = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    return matrix.filter((entry) => {
+    return catalog.filter((entry) => {
       const matchesCategory =
         category === ALL_CATEGORIES || entry.category === category;
       const matchesText =
@@ -101,73 +153,62 @@ const AccessControlPage = () => {
         );
       return matchesCategory && matchesText;
     });
-  }, [matrix, category, searchQuery]);
-
-  const activeTokenCount = useMemo(
-    () => tokens.filter((token) => token.status === "ACTIVE").length,
-    [tokens],
-  );
+  }, [catalog, category, searchQuery]);
 
   const grantedCells = useMemo(
-    () => matrix.reduce((sum, entry) => sum + entry.granted.length, 0),
-    [matrix],
+    () =>
+      Object.values(grantsByRole).reduce(
+        (sum, permissions) => sum + permissions.length,
+        0,
+      ),
+    [grantsByRole],
   );
 
-  const requestToggle = (code, role) => {
-    const entry = matrix.find((item) => item.code === code);
-    if (!entry) return;
-
-    const isGranted = entry.granted.includes(role);
-    const willGrant = !isGranted;
-
-    setConfirm({
-      title: willGrant ? "Grant security scope?" : "Revoke security scope?",
-      message: `You are about to ${willGrant ? "grant" : "revoke"} "${entry.name}" (${entry.code}) for the [${roleLabel(
-        role,
-      )}] role group across all clinic workstations.`,
-      confirmLabel: willGrant
-        ? "Authorize scope"
-        : "Confirm revocation",
-      variant: willGrant ? "primary" : "danger",
-      run: () => {
-        setMatrix((current) =>
-          current.map((item) =>
-            item.code === code
-              ? {
-                  ...item,
-                  granted: willGrant
-                    ? [...item.granted, role]
-                    : item.granted.filter((granted) => granted !== role),
-                }
-              : item,
-          ),
-        );
-        setToast({
-          type: "success",
-          message: `Security scope "${entry.code}" ${
-            willGrant ? "granted to" : "revoked from"
-          } ${role} (session-only until the policy service ships).`,
-        });
-      },
-    });
+  const applyRolePermissions = async (role, permissions, entry, wasGranted) => {
+    setSavingRole(role);
+    try {
+      const updated = await setRolePermissions(role, permissions);
+      setGrantsByRole((current) => ({
+        ...current,
+        [role]: updated.permissions,
+      }));
+      setToast({
+        type: "success",
+        message: `Permissions for ${roleLabel(
+          role,
+        )} updated — ${entry.code} ${wasGranted ? "granted" : "revoked"}.`,
+      });
+    } catch (error) {
+      setToast({
+        type: "error",
+        message:
+          error?.userMessage ??
+          error?.message ??
+          "Could not update the permission set — the stored set was left untouched.",
+      });
+    } finally {
+      setSavingRole(null);
+    }
   };
 
-  const requestRevokeToken = (token) => {
+  const requestToggle = (code, role, entry) => {
+    const current = grantsByRole[role] ?? [];
+    const isGranted = current.includes(code);
+    const next = isGranted
+      ? current.filter((granted) => granted !== code)
+      : [...current, code];
+
     setConfirm({
-      title: "Revoke API machine token?",
-      message: `Immediately invalidate ${token.name} (#${token.id}). Any daemon service relying on this token will start receiving HTTP 401 Unauthorized responses.`,
-      confirmLabel: "Revoke token immediately",
-      variant: "danger",
+      title: isGranted ? "Revoke security scope?" : "Grant security scope?",
+      message: `You are about to ${isGranted ? "revoke" : "grant"} "${
+        entry.name
+      }" (${entry.code}) for the [${roleLabel(
+        role,
+      )}] role group. The role's full permission set is written to the backend after confirmation.`,
+      confirmLabel: isGranted ? "Confirm revocation" : "Authorize scope",
+      variant: isGranted ? "danger" : "primary",
       run: () => {
-        setTokens((current) =>
-          current.map((item) =>
-            item.id === token.id ? { ...item, status: "REVOKED" } : item,
-          ),
-        );
-        setToast({
-          type: "success",
-          message: `Token ${token.id} has been revoked for this session.`,
-        });
+        applyRolePermissions(role, next, entry, isGranted);
       },
     });
   };
@@ -176,7 +217,7 @@ const AccessControlPage = () => {
     setConfirm({
       title: "Initiate emergency break-glass elevation?",
       message:
-        "This temporarily elevates emergency on-call clinicians with full system privileges for 60 minutes. Every clinical query executed during this window will be flagged as an elevated emergency event in HIPAA SIEM records.",
+        "This temporarily elevates emergency on-call clinicians with full system privileges for 60 minutes. Every clinical query executed during this window will be flagged as an elevated emergency event in HIPAA SIEM records. This action is local to this session.",
       confirmLabel: "Authorize emergency elevation (1 hour)",
       variant: "warning",
       run: () =>
@@ -201,6 +242,11 @@ const AccessControlPage = () => {
             <span className="font-mono text-xs text-neutral-500">
               {row.code}
             </span>
+            {row.privileged ? (
+              <span className="rounded-md bg-danger-100 px-2 py-0.5 text-xs font-semibold text-danger-800">
+                Privileged
+              </span>
+            ) : null}
           </div>
           <p className="mt-1 font-medium text-neutral-900">{row.name}</p>
           <p className="mt-0.5 text-xs leading-relaxed text-neutral-600">
@@ -209,113 +255,80 @@ const AccessControlPage = () => {
         </div>
       ),
     },
-    ...ROLE_ORDER.map((role) => ({
-      key: role,
-      header: roleLabel(role),
-      render: (row) => {
-        const granted = row.granted.includes(role);
-        return (
-          <button
-            type="button"
-            onClick={() => requestToggle(row.code, role)}
-            aria-pressed={granted}
-            aria-label={`${granted ? "Revoke" : "Grant"} ${row.name} for ${roleLabel(
-              role,
-            )}`}
-            title={`${granted ? "Authorized" : "Denied"} — click to toggle`}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-          >
-            <Icon
-              name={granted ? "circle-check" : "circle-x"}
-              className={
-                granted
-                  ? "h-5 w-5 text-success-600"
-                  : "h-5 w-5 text-neutral-400"
-              }
-            />
-          </button>
-        );
-      },
-    })),
-  ];
+    ...ROLE_ORDER.map((role) => {
+      const readOnly = role === IMMUTABLE_ROLE;
 
-  const tokenColumns = [
-    {
-      key: "id",
-      header: "Token",
-      render: (token) => (
-        <div className="min-w-0 whitespace-normal">
-          <span className="block font-mono text-xs font-semibold text-secondary-700">
-            {token.id}
-          </span>
-          <span className="block font-medium text-neutral-900">
-            {token.name}
-          </span>
-        </div>
-      ),
-    },
-    {
-      key: "roleTarget",
-      header: "Role target",
-      render: (token) => (
-        <span className="font-medium text-neutral-800">
-          {roleLabel(token.roleTarget)}
-        </span>
-      ),
-    },
-    {
-      key: "scope",
-      header: "Scope",
-      render: (token) => (
-        <span className="rounded-md bg-neutral-100 px-2 py-0.5 font-mono text-xs text-neutral-700">
-          {token.scope}
-        </span>
-      ),
-    },
-    {
-      key: "ipWhitelist",
-      header: "Allowed IP subnet",
-      render: (token) => (
-        <span className="font-mono text-xs text-neutral-600">
-          {token.ipWhitelist}
-        </span>
-      ),
-    },
-    {
-      key: "lastUsed",
-      header: "Last active",
-      render: (token) => (
-        <span className="text-xs text-neutral-600">{token.lastUsed}</span>
-      ),
-    },
-    {
-      key: "status",
-      header: "Status",
-      render: (token) =>
-        token.status === "ACTIVE" ? (
-          <StatusBadge status="success">Active</StatusBadge>
-        ) : (
-          <StatusBadge status="danger">Revoked</StatusBadge>
-        ),
-    },
-    {
-      key: "actions",
-      header: "Actions",
-      render: (token) =>
-        token.status === "ACTIVE" ? (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => requestRevokeToken(token)}
-          >
-            Revoke token
-          </Button>
-        ) : (
-          <span className="text-sm font-semibold text-danger-700">
-            Permanently inactive
-          </span>
-        ),
-    },
+      return {
+        key: role,
+        header: roleLabel(role),
+        render: (row) => {
+          const roleGrants = grantsByRole[role] ?? [];
+          const granted = roleGrants.includes(row.code);
+          const lastGranted = granted && roleGrants.length <= 1; // BR006
+          const privilegedForRole =
+            Boolean(row.privileged) && role !== IMMUTABLE_ROLE; // BR004
+          const blocked = lastGranted || privilegedForRole;
+          const blockReason = lastGranted
+            ? "BR006: a role's permission set cannot be empty"
+            : privilegedForRole
+              ? "BR004: only SUPER_ADMIN may hold this privileged scope"
+              : null;
+
+          if (readOnly) {
+            return (
+              <span
+                className="inline-flex h-8 w-8 items-center justify-center"
+                title={SUPER_ADMIN_READONLY_TITLE}
+              >
+                <Icon
+                  name={granted ? "circle-check" : "circle-x"}
+                  className={
+                    granted
+                      ? "h-5 w-5 text-success-600"
+                      : "h-5 w-5 text-neutral-400"
+                  }
+                />
+                <span className="sr-only">
+                  {granted ? "Authorized" : "Denied"} (read-only — the
+                  SUPER_ADMIN permission set cannot be modified)
+                </span>
+              </span>
+            );
+          }
+
+          return (
+            <button
+              type="button"
+              onClick={() => requestToggle(row.code, role, row)}
+              disabled={Boolean(savingRole) || blocked}
+              aria-pressed={granted}
+              aria-label={`${granted ? "Revoke" : "Grant"} ${row.name} for ${roleLabel(
+                role,
+              )}`}
+              title={
+                blocked
+                  ? blockReason
+                  : `${granted ? "Authorized" : "Denied"} — click to toggle`
+              }
+              className={`inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
+                blocked
+                  ? "cursor-not-allowed opacity-50"
+                  : "hover:bg-neutral-100"
+              }`}
+            >
+              <Icon
+                name={granted ? "circle-check" : "circle-x"}
+                className={
+                  granted
+                    ? "h-5 w-5 text-success-600"
+                    : "h-5 w-5 text-neutral-400"
+                }
+              />
+            </button>
+          );
+        },
+      };
+    }),
   ];
 
   const matrixPanel = (
@@ -335,7 +348,7 @@ const AccessControlPage = () => {
             id="category-filter"
             name="category-filter"
             label="Domain"
-            options={CATEGORY_FILTER_OPTIONS}
+            options={categoryOptions}
             placeholder="All categories"
             defaultValue=""
             onChange={(event) =>
@@ -348,46 +361,81 @@ const AccessControlPage = () => {
 
       {/* Matrix */}
       <section aria-labelledby="permission-matrix-heading">
-        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2
-              id="permission-matrix-heading"
-              className="text-base font-semibold text-neutral-900"
-            >
-              Granular permission boundaries
-            </h2>
-            <p className="text-sm text-neutral-600">
-              Select any cell to toggle authorization status. Changes
-              require explicit confirmation and apply to this session only.
-            </p>
+        {status === "ready" ? (
+          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2
+                id="permission-matrix-heading"
+                className="text-base font-semibold text-neutral-900"
+              >
+                Granular permission boundaries
+              </h2>
+              <p className="text-sm text-neutral-600">
+                Select any cell to rewrite the role's full permission set on
+                the backend. SUPER_ADMIN's own column is read-only (BR005).
+              </p>
+            </div>
+            <div className="flex items-center gap-4 text-sm text-neutral-600">
+              <span className="inline-flex items-center gap-1">
+                <Icon
+                  name="circle-check"
+                  className="h-4 w-4 text-success-600"
+                />
+                Authorized
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Icon name="circle-x" className="h-4 w-4 text-neutral-400" />
+                Denied
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-4 text-sm text-neutral-600">
-            <span className="inline-flex items-center gap-1">
-              <Icon
-                name="circle-check"
-                className="h-4 w-4 text-success-600"
-              />
-              Authorized
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Icon name="circle-x" className="h-4 w-4 text-neutral-400" />
-              Denied
-            </span>
-          </div>
-        </div>
+        ) : null}
 
-        <Table
-          columns={permissionColumns}
-          data={filteredPermissions}
-          getRowKey={(row) => row.code}
-          emptyTitle="No permission scopes found."
-          emptyMessage={
-            searchQuery || category !== ALL_CATEGORIES
-              ? "No scopes match the current filters. Try a different search or domain."
-              : "The policy mirror contains no permission scopes."
-          }
-          label="Role entitlement matrix"
-        />
+        {status === "loading" ? (
+          <div
+            role="status"
+            aria-label="Loading role permissions"
+            aria-busy="true"
+            className="motion-safe:animate-pulse space-y-3 rounded-2xl border border-neutral-200 bg-white p-5 shadow-xs"
+          >
+            {Array.from({ length: 8 }, (_, index) => (
+              <div
+                key={index}
+                className="h-4 rounded bg-neutral-100"
+                style={{ width: `${Math.max(40, 92 - index * 10)}%` }}
+              />
+            ))}
+          </div>
+        ) : status === "failed" ? (
+          <div className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-5 shadow-xs">
+            <ErrorMessage
+              title="Unable to load role permissions"
+              message={
+                loadError ?? "Please check your connection and try again."
+              }
+            />
+            <Button
+              onClick={loadPermissions}
+              className="inline-flex items-center gap-2"
+            >
+              <Icon name="refresh" className="h-4 w-4" />
+              Retry
+            </Button>
+          </div>
+        ) : (
+          <Table
+            columns={permissionColumns}
+            data={filteredPermissions}
+            getRowKey={(row) => row.code}
+            emptyTitle="No permission scopes found."
+            emptyMessage={
+              searchQuery || category !== ALL_CATEGORIES
+                ? "No scopes match the current filters. Try a different search or domain."
+                : "The permission catalog is empty."
+            }
+            label="Role entitlement matrix"
+          />
+        )}
       </section>
     </div>
   );
@@ -404,7 +452,7 @@ const AccessControlPage = () => {
           </h2>
           <p className="text-sm text-neutral-600">
             Tokens used by backend daemons, PACS imaging systems, and lab
-            bridges.
+            bridges. Session-local preview — no token endpoint exists yet.
           </p>
         </div>
         <Button
@@ -423,14 +471,6 @@ const AccessControlPage = () => {
         </Button>
       </div>
 
-      <Table
-        columns={tokenColumns}
-        data={tokens}
-        getRowKey={(row) => row.id}
-        emptyTitle="No machine tokens."
-        emptyMessage="No service-account tokens have been issued."
-        label="Daemon API tokens"
-      />
     </section>
   );
 
@@ -472,7 +512,8 @@ const AccessControlPage = () => {
             EMERGENCY_OVERRIDE
           </code>{" "}
           and automatically dispatched to the Chief Medical Officer and
-          Legal Compliance Officer.
+          Legal Compliance Officer. The trigger below is a session-local
+          preview — no elevation endpoint exists yet.
         </p>
       </div>
 
@@ -527,6 +568,8 @@ const AccessControlPage = () => {
           <p className="mt-1 max-w-2xl text-sm text-neutral-600">
             Fine-grained role entitlement policies, service tokens,
             workstation IP restrictions, and HIPAA access boundaries.
+            Permission sets are read from and written to the
+            role-permissions API.
           </p>
         </div>
 
@@ -552,24 +595,16 @@ const AccessControlPage = () => {
         />
         <StatCard
           label="Active scopes"
-          value={`${matrix.length} scopes`}
+          value={`${catalog.length} scopes`}
           chip="Enforced"
           icon="shield"
           iconClass="bg-primary-50 text-primary-700"
           chipClass="bg-primary-100 text-primary-800"
         />
         <StatCard
-          label="Machine tokens"
-          value={`${activeTokenCount} tokens`}
-          chip="IP restricted"
-          icon="file-code"
-          iconClass="bg-secondary-50 text-secondary-700"
-          chipClass="bg-secondary-100 text-secondary-800"
-        />
-        <StatCard
           label="Granted edges"
           value={String(grantedCells)}
-          chip={`of ${matrix.length * ROLE_ORDER.length} cells`}
+          chip={`of ${catalog.length * ROLE_ORDER.length} cells`}
           icon="circle-check"
           iconClass="bg-success-50 text-success-700"
           chipClass="bg-success-100 text-success-800"

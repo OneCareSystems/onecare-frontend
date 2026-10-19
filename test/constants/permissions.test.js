@@ -16,9 +16,9 @@ import {
  */
 describe("permission matrix — CFG-03 backend mirror", () => {
   it("mirrors every Permission constant exactly once", () => {
-    expect(PERMISSION_MATRIX).toHaveLength(35);
+    expect(PERMISSION_MATRIX).toHaveLength(38);
     expect(new Set(PERMISSION_CODES).size).toBe(PERMISSION_CODES.length);
-    expect(PERMISSION_CODES).toHaveLength(35);
+    expect(PERMISSION_CODES).toHaveLength(38);
 
     for (const entry of PERMISSION_MATRIX) {
       // Java constant naming: UPPER_SNAKE_CASE.
@@ -58,18 +58,18 @@ describe("permission matrix — CFG-03 backend mirror", () => {
         .map((entry) => entry.code)
         .sort();
 
-    expect(grantsFor(ROLES.SUPER_ADMIN)).toHaveLength(26);
+    expect(grantsFor(ROLES.SUPER_ADMIN)).toHaveLength(29);
     expect(grantsFor(ROLES.ADMIN)).toHaveLength(23);
     expect(grantsFor(ROLES.DOCTOR)).toHaveLength(14);
     expect(grantsFor(ROLES.PHARMACIST)).toHaveLength(14);
 
-    // 35 scopes × 4 roles = 140 cells, 75 of them granted.
+    // 38 scopes × 4 roles = 152 cells, 80 of them granted by default.
     const grantedCells = PERMISSION_MATRIX.reduce(
       (sum, entry) => sum + entry.granted.length,
       0,
     );
-    expect(PERMISSION_MATRIX.length * Object.keys(ROLES).length).toBe(140);
-    expect(grantedCells).toBe(77);
+    expect(PERMISSION_MATRIX.length * Object.keys(ROLES).length).toBe(152);
+    expect(grantedCells).toBe(80);
   });
 
   it("keeps the sharp edges of the Java policy intact", () => {
@@ -105,6 +105,17 @@ describe("permission matrix — CFG-03 backend mirror", () => {
     expect(rolesWith("USER_CREATE")).toEqual(
       [ROLES.SUPER_ADMIN, ROLES.ADMIN].sort(),
     );
+
+    // Governance scopes shipped with the role permissions API (FR003):
+    // only SUPER_ADMIN may read or rewrite role permission sets, and
+    // SYSTEM_BACKUP is privileged (backend rule BR004).
+    expect(rolesWith("SYSTEM_BACKUP")).toEqual([ROLES.SUPER_ADMIN]);
+    expect(rolesWith("ROLE_PERMISSION_READ")).toEqual([ROLES.SUPER_ADMIN]);
+    expect(rolesWith("ROLE_PERMISSION_UPDATE")).toEqual([ROLES.SUPER_ADMIN]);
+    expect(
+      PERMISSION_MATRIX.find((entry) => entry.code === "SYSTEM_BACKUP")
+        .privileged,
+    ).toBe(true);
   });
 
   it("surfaces scopes defined but granted to no role yet", () => {

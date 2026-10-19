@@ -1,6 +1,18 @@
 import { http, HttpResponse } from "msw";
 
-import { ROLE_DASHBOARDS } from "../../src/constants/roles";
+import { PERMISSION_CODES, PERMISSION_MATRIX } from "../../src/constants/permissions";
+import { ROLE_DASHBOARDS, ROLES } from "../../src/constants/roles";
+
+/** Mock backend state seeded from the factory defaults (permissions.js). */
+const defaultRolePermissions = () =>
+  Object.fromEntries(
+    Object.values(ROLES).map((role) => [
+      role,
+      PERMISSION_MATRIX.filter((entry) => entry.granted.includes(role)).map(
+        (entry) => entry.code,
+      ),
+    ]),
+  );
 
 export const mswState = {
   tokenValid: true,
@@ -46,13 +58,19 @@ export const mswState = {
   usersErrorMode: null,
   userCreateHits: [],
   userCreateErrorMode: null,
-  userStatusHits: [],
-  userStatusErrorMode: null,
+  userEmailUpdateHits: [],
+  userRoleUpdateHits: [],
+  userUnlockHits: [],
+  userDeactivateHits: [],
   userResetHits: [],
   userResetErrorMode: null,
   auditLogsHits: [],
   auditLogsResponses: [],
   auditLogsErrorMode: null,
+  rolePermissions: defaultRolePermissions(),
+  rolePermissionReadHits: [],
+  rolePermissionWriteHits: [],
+  rolePermissionsErrorMode: null,
 };
 
 export const resetMswState = () => {
@@ -99,13 +117,19 @@ export const resetMswState = () => {
   mswState.usersErrorMode = null;
   mswState.userCreateHits = [];
   mswState.userCreateErrorMode = null;
-  mswState.userStatusHits = [];
-  mswState.userStatusErrorMode = null;
+  mswState.userEmailUpdateHits = [];
+  mswState.userRoleUpdateHits = [];
+  mswState.userUnlockHits = [];
+  mswState.userDeactivateHits = [];
   mswState.userResetHits = [];
   mswState.userResetErrorMode = null;
   mswState.auditLogsHits = [];
   mswState.auditLogsResponses = [];
   mswState.auditLogsErrorMode = null;
+  mswState.rolePermissions = defaultRolePermissions();
+  mswState.rolePermissionReadHits = [];
+  mswState.rolePermissionWriteHits = [];
+  mswState.rolePermissionsErrorMode = null;
 };
 
 const ok = (data, message = "ok") =>
@@ -422,7 +446,9 @@ export const handlers = [
     );
   }),
   // Super-admin user management (access governance): list, provision,
-  // activate/suspend and trigger the reset-key email.
+  // update email/role, unlock the failed-login lockout, admin reset and
+  // deactivate. Account state (isActive + lockedUntil) is backend-
+  // managed — the mutation handlers echo the accepted change only.
   http.get("*/users", ({ request }) => {
     mswState.usersHits.push({
       url: request.url,
@@ -454,25 +480,48 @@ export const handlers = [
     return ok({
       userId: 9001,
       ...body,
-      status: "ACTIVE",
+      isActive: true,
     });
   }),
-  http.patch("*/users/:id/status", async ({ request, params }) => {
+  http.put("*/users/:id/role", async ({ request, params }) => {
     const body = await request.json().catch(() => ({}));
-    mswState.userStatusHits.push({
+    mswState.userRoleUpdateHits.push({
       id: params.id,
       body,
       authorization: request.headers.get("Authorization"),
     });
-    if (mswState.userStatusErrorMode === "server-error") {
-      return fail(500, "Internal server error");
+    if (!Object.values(ROLES).includes(body?.role)) {
+      return fail(400, "Unknown role");
     }
-    return ok({
-      userId: Number(params.id),
-      status: body?.status ?? "ACTIVE",
-    });
+    return ok({ userId: Number(params.id), role: body.role });
   }),
-  http.post("*/users/:id/password-reset", ({ request, params }) => {
+  http.put("*/users/:id/unlock", ({ request, params }) => {
+    mswState.userUnlockHits.push({
+      id: params.id,
+      authorization: request.headers.get("Authorization"),
+    });
+    return ok({ userId: Number(params.id), isActive: true, lockedUntil: null });
+  }),
+  http.put("*/users/:id", async ({ request, params }) => {
+    const body = await request.json().catch(() => ({}));
+    mswState.userEmailUpdateHits.push({
+      id: params.id,
+      body,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (typeof body?.email !== "string" || !body.email.trim()) {
+      return fail(400, "Email is required");
+    }
+    return ok({ userId: Number(params.id), email: body.email });
+  }),
+  http.delete("*/users/:id", ({ request, params }) => {
+    mswState.userDeactivateHits.push({
+      id: params.id,
+      authorization: request.headers.get("Authorization"),
+    });
+    return ok({ userId: Number(params.id), isActive: false });
+  }),
+  http.post("*/users/:id/reset-password", ({ request, params }) => {
     mswState.userResetHits.push({
       id: params.id,
       authorization: request.headers.get("Authorization"),
@@ -499,6 +548,102 @@ export const handlers = [
       return fail(404, "Not found");
     }
     return ok(mswState.auditLogsResponses.shift() ?? []);
+  }),
+  // FR003/UC3 — configurable role permissions (super-admin governance).
+  // PUT replaces the full set atomically: every policy rule must pass or
+  // the stored set stays untouched (AC5). The mock enforces BR004-006
+  // like the backend; the error mode lets tests force any single rule.
+  http.get("*/roles/:role/permissions", ({ request, params }) => {
+    mswState.rolePermissionReadHits.push({
+      role: params.role,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.rolePermissionsErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    if (mswState.rolePermissionsErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    if (
+      !(params.role in mswState.rolePermissions) ||
+      mswState.rolePermissionsErrorMode === "not-found"
+    ) {
+      return fail(404, "Unknown role");
+    }
+    return ok(
+      {
+        role: params.role,
+        permissions: [...mswState.rolePermissions[params.role]],
+      },
+      "Permissions retrieved successfully",
+    );
+  }),
+  http.put("*/roles/:role/permissions", async ({ request, params }) => {
+    const body = await request.json().catch(() => ({}));
+    const permissions = Array.isArray(body?.permissions)
+      ? body.permissions
+      : null;
+    mswState.rolePermissionWriteHits.push({
+      role: params.role,
+      permissions,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.rolePermissionsErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    if (mswState.rolePermissionsErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    if (mswState.rolePermissionsErrorMode === "forbidden") {
+      return fail(403, "Access denied");
+    }
+    if (!(params.role in mswState.rolePermissions)) {
+      return fail(404, "Unknown role");
+    }
+    if (!permissions) {
+      return fail(400, "Request body must include a permissions array");
+    }
+    const unknown = permissions.filter(
+      (code) => !PERMISSION_CODES.includes(code),
+    );
+    if (unknown.length > 0) {
+      return fail(400, `Unknown permission(s): ${unknown.join(", ")}`);
+    }
+    if (mswState.rolePermissionsErrorMode === "br004") {
+      return fail(
+        422,
+        "BR004: SYSTEM_BACKUP is a privileged permission that only the SUPER_ADMIN role may hold",
+      );
+    }
+    if (mswState.rolePermissionsErrorMode === "br005") {
+      return fail(
+        422,
+        "BR005: the SUPER_ADMIN role's own permission set cannot be modified",
+      );
+    }
+    if (mswState.rolePermissionsErrorMode === "br006") {
+      return fail(422, "BR006: a role's permission set cannot be empty");
+    }
+    if (params.role === ROLES.SUPER_ADMIN) {
+      return fail(
+        422,
+        "BR005: the SUPER_ADMIN role's own permission set cannot be modified",
+      );
+    }
+    if (permissions.length === 0) {
+      return fail(422, "BR006: a role's permission set cannot be empty");
+    }
+    if (permissions.includes("SYSTEM_BACKUP")) {
+      return fail(
+        422,
+        "BR004: SYSTEM_BACKUP is a privileged permission that only the SUPER_ADMIN role may hold",
+      );
+    }
+    mswState.rolePermissions[params.role] = [...permissions];
+    return ok(
+      { role: params.role, permissions: [...permissions] },
+      "Permissions updated successfully",
+    );
   }),
   http.get("*/reports/:id", protectedReply),
   http.get("*", ({ request }) => {

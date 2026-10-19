@@ -5,10 +5,18 @@ import apiClient from "./apiClient";
  *
  * Endpoints follow the verified API Standards envelope
  * { success, message, data } used by every other service:
- *   GET   /users                    — list every staff account
- *   POST  /users                    — provision a new account
- *   PATCH /users/{id}/status        — activate / suspend an account
- *   POST  /users/{id}/password-reset — email a temporary password link
+ *   GET    /users                     — list every staff account
+ *   POST   /users                     — provision a new account (USER_CREATE)
+ *   PUT    /users/{id}                — update email (USER_UPDATE)
+ *   PUT    /users/{id}/role           — assign role (USER_ROLE_ASSIGN)
+ *   PUT    /users/{id}/unlock         — clear lockout (USER_ROLE_ASSIGN, SA)
+ *   POST   /users/{id}/reset-password — admin reset (USER_UPDATE, SA/ADMIN)
+ *   DELETE /users/{id}                — deactivate account (USER_DELETE)
+ *
+ * Account state itself (`isActive` plus the automatic failed-login
+ * lockout in AuthServiceImpl, `lockedUntil`, cleared by a successful
+ * sign-in, a password reset or the unlock endpoint above) belongs to
+ * the backend — the adapters derive it for display only.
  *
  * The adapters normalise each record once (tolerating the camelCase /
  * snake_case drift the backend is known for, the same way extractTokens
@@ -35,6 +43,10 @@ export const adaptUserRecord = (raw) => {
   const userId = raw.userId ?? raw.id ?? raw.username;
   const username = asTrimmedString(raw.username) || String(userId);
   const isActive = raw.isActive ?? raw.active;
+  const lockedUntilDate = new Date(raw.lockedUntil ?? raw.locked_until ?? NaN);
+  const isLocked =
+    !Number.isNaN(lockedUntilDate.getTime()) &&
+    lockedUntilDate.getTime() > Date.now();
 
   return {
     userId,
@@ -45,9 +57,8 @@ export const adaptUserRecord = (raw) => {
     username,
     email: asTrimmedString(raw.email),
     role: normalizeLabel(raw.role),
-    status:
-      normalizeLabel(raw.status) ||
-      (isActive === undefined ? "ACTIVE" : isActive ? "ACTIVE" : "SUSPENDED"),
+    status: isLocked ? "LOCKED" : isActive === false ? "INACTIVE" : "ACTIVE",
+    lockedUntil: isLocked ? lockedUntilDate.toISOString() : null,
   };
 };
 
@@ -89,26 +100,53 @@ export const createUser = async (userData) => {
   return adaptUserResponse(response.data);
 };
 
-/** Activate or suspend an account (AUD-05 access-governance trail). */
-export const updateUserStatus = async (userId, status) => {
-  const response = await apiClient.patch(`/users/${userId}/status`, {
-    status: normalizeLabel(status),
+/**
+ * Admin-triggered password reset (POST, USER_UPDATE — SA/ADMIN). The
+ * backend treats this as a placeholder; the envelope message is all we
+ * get back by design.
+ */
+export const resetUserPassword = async (userId) => {
+  const response = await apiClient.post(`/users/${userId}/reset-password`);
+  return response.data;
+};
+
+/** Update the account email (PUT, USER_UPDATE). */
+export const updateUserEmail = async (userId, email) => {
+  const response = await apiClient.put(`/users/${userId}`, {
+    email: asTrimmedString(email),
   });
-  return adaptUserResponse(response.data);
+  return response.data;
+};
+
+/** Assign a new role (PUT, USER_ROLE_ASSIGN). */
+export const assignUserRole = async (userId, role) => {
+  const response = await apiClient.put(`/users/${userId}/role`, {
+    role: normalizeLabel(role),
+  });
+  return response.data;
+};
+
+/** Clear the failed-sign-in lockout (PUT, SA-only USER_ROLE_ASSIGN). */
+export const unlockUser = async (userId) => {
+  const response = await apiClient.put(`/users/${userId}/unlock`, {});
+  return response.data;
 };
 
 /**
- * Trigger the "reset key" flow: the backend emails a temporary password
- * link. The envelope message is all we get back by design.
+ * Deactivate an account (DELETE, USER_DELETE). The record stays on
+ * file — sign-in is what stops.
  */
-export const resetUserPassword = async (userId) => {
-  const response = await apiClient.post(`/users/${userId}/password-reset`);
+export const deactivateUser = async (userId) => {
+  const response = await apiClient.delete(`/users/${userId}`);
   return response.data;
 };
 
 export default {
   getUsers,
   createUser,
-  updateUserStatus,
+  updateUserEmail,
+  assignUserRole,
+  unlockUser,
   resetUserPassword,
+  deactivateUser,
 };

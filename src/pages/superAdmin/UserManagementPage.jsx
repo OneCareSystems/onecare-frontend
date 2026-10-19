@@ -20,18 +20,22 @@ import Table from "../../components/Table";
 import Toast from "../../components/Toast";
 import { ROLES } from "../../constants/roles";
 import {
+  assignUserRole,
   createUser,
+  deactivateUser,
   getUsers,
   resetUserPassword,
-  updateUserStatus,
+  unlockUser,
+  updateUserEmail,
 } from "../../services/userService";
 
 /** `GET /users` returns the whole directory, so paging is client-side. */
 const PAGE_SIZE = 10;
 
-const ALL_ROLES = "ALL";
+/** Account state mirrors the backend model (isActive + lock window). */
 const STATUS_ACTIVE = "ACTIVE";
-const STATUS_SUSPENDED = "SUSPENDED";
+const STATUS_INACTIVE = "INACTIVE";
+const STATUS_LOCKED = "LOCKED";
 
 const roleLabel = (role) => String(role ?? "").replace(/_/g, " ");
 
@@ -47,11 +51,6 @@ const ROLE_BADGE_CLASSES = {
     "border-secondary-200 bg-secondary-100 text-secondary-800",
 };
 
-/** Select renders an extra empty placeholder option; "" maps to ALL_ROLES. */
-const ROLE_FILTER_OPTIONS = Object.values(ROLES).map((role) => ({
-  value: role,
-  label: roleLabel(role),
-}));
 
 const EMPTY_FORM = {
   fullName: "",
@@ -68,14 +67,24 @@ const validateEmail = (value) =>
     : "";
 
 const matchesQuery = (user, query) =>
-  [user.fullName, user.username, user.email,].some((field) =>
-    String(field ?? "").toLowerCase().includes(query),
+  [user.fullName, user.username, user.email].some((field) =>
+    String(field ?? "").toLowerCase().includes(query)
   );
 
 /**
- * Super-admin user management (access governance): provision staff
- * accounts, assign role clearance, audit 2FA enrolment, suspend or
- * re-activate accounts and trigger the reset-key email.
+ * Super-admin user management (access governance), backed by the
+ * user endpoints:
+ *   POST   /users                    — provision an account (USER_CREATE)
+ *   PUT    /users/{id}              — update the email (USER_UPDATE)
+ *   PUT    /users/{id}/role         — assign a role (USER_ROLE_ASSIGN)
+ *   PUT    /users/{id}/unlock       — clear the sign-in lockout (SA)
+ *   POST   /users/{id}/reset-password — admin reset (SA/ADMIN)
+ *   DELETE /users/{id}              — deactivate the account (USER_DELETE)
+ *
+ * The Status column reflects what the backend models itself: the
+ * `isActive` flag plus the automatic failed-sign-in lockout
+ * (AuthServiceImpl's `lockedUntil`, cleared by a successful sign-in, a
+ * password reset or the unlock action below).
  *
  * Fetch status is `loading | ready | failed`; a failed load keeps the
  * header on screen with a retry instead of blanking the page.
@@ -87,7 +96,6 @@ const UserManagementPage = () => {
 
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
-  const [roleFilter, setRoleFilter] = useState(ALL_ROLES);
   const [page, setPage] = useState(1);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -96,9 +104,18 @@ const UserManagementPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
-  const [confirmTarget, setConfirmTarget] = useState(null);
-  const [confirmBusy, setConfirmBusy] = useState(false);
   const [resettingUserId, setResettingUserId] = useState(null);
+
+  /** { title, message, confirmLabel, variant, run } | null */
+  const [confirm, setConfirm] = useState(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
+
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState(null);
+  const [editForm, setEditForm] = useState({ email: "", role: ROLES.DOCTOR });
+  const [editAttempted, setEditAttempted] = useState(false);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState("");
 
   const [toast, setToast] = useState(null);
 
@@ -176,48 +193,151 @@ const UserManagementPage = () => {
       setReloadKey((key) => key + 1);
     } catch (error) {
       setSubmitError(
-        error?.userMessage ??
-          "Unable to create the account. Please try again.",
+        error?.userMessage ?? "Unable to create the account. Please try again."
       );
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleConfirmStatusChange = async () => {
-    const target = confirmTarget;
-    if (!target) return;
+  /** Apply an accepted change locally; the next fetch resyncs anyway. */
+  const patchUserLocally = useCallback((userId, patch) => {
+    setUsers((current) =>
+      current.map((user) =>
+        user.userId === userId ? { ...user, ...patch } : user
+      )
+    );
+  }, []);
 
-    const nextStatus =
-      target.status === STATUS_SUSPENDED ? STATUS_ACTIVE : STATUS_SUSPENDED;
-
+  const handleConfirm = async () => {
+    if (!confirm?.run) return;
     setConfirmBusy(true);
     try {
-      await updateUserStatus(target.userId, nextStatus);
-      setUsers((current) =>
-        current.map((user) =>
-          user.userId === target.userId
-            ? { ...user, status: nextStatus }
-            : user,
-        ),
-      );
-      setConfirmTarget(null);
-      setToast({
-        type: "success",
-        message:
-          nextStatus === STATUS_SUSPENDED
-            ? `${target.fullName} was suspended and can no longer sign in.`
-            : `${target.fullName} was re-activated.`,
-      });
-    } catch (error) {
-      setToast({
-        type: "error",
-        message:
-          error?.userMessage ??
-          "Unable to update the account status. Please try again.",
-      });
+      await confirm.run();
     } finally {
       setConfirmBusy(false);
+      setConfirm(null);
+    }
+  };
+
+  const requestDeactivate = useCallback(
+    (user) => {
+      setConfirm({
+        title: "Deactivate account?",
+        message: `Deactivate ${user.fullName} (${user.username})? They will no longer be able to sign in. The record stays on file.`,
+        confirmLabel: "Deactivate account",
+        variant: "danger",
+        run: async () => {
+          try {
+            await deactivateUser(user.userId);
+            patchUserLocally(user.userId, {
+              status: STATUS_INACTIVE,
+              lockedUntil: null,
+            });
+            setToast({
+              type: "success",
+              message: `${user.fullName} was deactivated and can no longer sign in.`,
+            });
+          } catch (error) {
+            setToast({
+              type: "error",
+              message:
+                error?.userMessage ??
+                "Unable to deactivate the account. Please try again.",
+            });
+          }
+        },
+      });
+    },
+    [patchUserLocally]
+  );
+
+  const requestUnlock = useCallback(
+    (user) => {
+      setConfirm({
+        title: "Clear sign-in lockout?",
+        message: `Clear the failed sign-in lockout for ${user.fullName}? They will be able to sign in again immediately.`,
+        confirmLabel: "Unlock account",
+        variant: "primary",
+        run: async () => {
+          try {
+            await unlockUser(user.userId);
+            patchUserLocally(user.userId, {
+              status: STATUS_ACTIVE,
+              lockedUntil: null,
+            });
+            setToast({
+              type: "success",
+              message: `Sign-in lockout cleared for ${user.fullName}.`,
+            });
+          } catch (error) {
+            setToast({
+              type: "error",
+              message:
+                error?.userMessage ??
+                "Unable to clear the lockout. Please try again.",
+            });
+          }
+        },
+      });
+    },
+    [patchUserLocally]
+  );
+
+  const openEdit = useCallback((user) => {
+    setEditTarget(user);
+    setEditForm({ email: user.email, role: user.role });
+    setEditAttempted(false);
+    setEditError("");
+    setIsEditOpen(true);
+  }, []);
+
+  const closeEdit = useCallback(() => {
+    if (editSubmitting) return;
+    setIsEditOpen(false);
+  }, [editSubmitting]);
+
+  const handleEditChange = useCallback((event) => {
+    const { name, value } = event.target;
+    setEditForm((current) => ({ ...current, [name]: value }));
+  }, []);
+
+  const handleEditSubmit = async (event) => {
+    event.preventDefault();
+    setEditAttempted(true);
+    setEditError("");
+
+    const email = editForm.email.trim();
+    if (!email || !EMAIL_PATTERN.test(email)) return;
+
+    const emailChanged = email !== editTarget.email;
+    const roleChanged = editForm.role !== editTarget.role;
+    if (!emailChanged && !roleChanged) {
+      setIsEditOpen(false);
+      return;
+    }
+
+    setEditSubmitting(true);
+    try {
+      if (emailChanged) {
+        await updateUserEmail(editTarget.userId, email);
+        patchUserLocally(editTarget.userId, { email });
+      }
+      if (roleChanged) {
+        await assignUserRole(editTarget.userId, editForm.role);
+        patchUserLocally(editTarget.userId, { role: editForm.role });
+      }
+      setIsEditOpen(false);
+      setToast({
+        type: "success",
+        message: `Account for ${editTarget.username} updated.`,
+      });
+    } catch (error) {
+      setEditError(
+        error?.userMessage ?? "Unable to update the account. Please try again."
+      );
+    } finally {
+      setEditSubmitting(false);
     }
   };
 
@@ -227,16 +347,15 @@ const UserManagementPage = () => {
       await resetUserPassword(user.userId);
       setToast({
         type: "success",
-        message: `Password reset link sent to ${
-          user.email || user.username
-        }.`,
+        message: `Admin password reset requested for ${user.email || user.username
+          }.`,
       });
     } catch (error) {
       setToast({
         type: "error",
         message:
           error?.userMessage ??
-          "Unable to send the password reset link. Please try again.",
+          "Unable to trigger the password reset. Please try again.",
       });
     } finally {
       setResettingUserId(null);
@@ -247,14 +366,11 @@ const UserManagementPage = () => {
   const filtered = useMemo(
     () =>
       users.filter((user) => {
-        const matchesRole =
-          roleFilter === ALL_ROLES || user.role === roleFilter;
         return (
-          matchesRole &&
           (!normalizedQuery || matchesQuery(user, normalizedQuery))
         );
       }),
-    [users, roleFilter, normalizedQuery],
+    [users, normalizedQuery]
   );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -262,7 +378,7 @@ const UserManagementPage = () => {
   const startIndex = (currentPage - 1) * PAGE_SIZE;
   const visibleUsers = useMemo(
     () => filtered.slice(startIndex, startIndex + PAGE_SIZE),
-    [filtered, startIndex],
+    [filtered, startIndex]
   );
 
   const columns = useMemo(
@@ -276,9 +392,7 @@ const UserManagementPage = () => {
               aria-hidden="true"
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-semibold text-primary-700"
             >
-              {String(row.fullName ?? "?")
-                .charAt(0)
-                .toUpperCase()}
+              {String(row.fullName ?? "?").charAt(0).toUpperCase()}
             </span>
             <div className="min-w-0">
               <span className="block font-medium text-neutral-900">
@@ -297,10 +411,9 @@ const UserManagementPage = () => {
         header: "Security role",
         render: (row) => (
           <span
-            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
-              ROLE_BADGE_CLASSES[row.role] ??
+            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${ROLE_BADGE_CLASSES[row.role] ??
               "border-neutral-200 bg-neutral-100 text-neutral-800"
-            }`}
+              }`}
           >
             {roleLabel(row.role) || "—"}
           </span>
@@ -309,18 +422,38 @@ const UserManagementPage = () => {
       {
         key: "status",
         header: "Status",
-        render: (row) =>
-          row.status === STATUS_SUSPENDED ? (
-            <StatusBadge status="danger">Suspended</StatusBadge>
-          ) : (
-            <StatusBadge status="success">Active</StatusBadge>
-          ),
+        render: (row) => {
+          if (row.status === STATUS_LOCKED) {
+            return (
+              <span
+                title="Locked by the failed sign-in counter — clears automatically after a successful sign-in or a password reset."
+                className="inline-flex"
+              >
+                <StatusBadge status="warning">Locked</StatusBadge>
+              </span>
+            );
+          }
+          if (row.status === STATUS_INACTIVE) {
+            return <StatusBadge status="danger">Inactive</StatusBadge>;
+          }
+          if (row.status === STATUS_ACTIVE) {
+            return <StatusBadge status="success">Active</StatusBadge>;
+          }
+          return (
+            <StatusBadge status="neutral">
+              {row.status || "Unknown"}
+            </StatusBadge>
+          );
+        },
       },
       {
         key: "actions",
         header: "Actions",
         render: (row) => (
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button size="sm" variant="outline" onClick={() => openEdit(row)}>
+              Edit
+            </Button>
             <Button
               size="sm"
               variant="outline"
@@ -329,67 +462,40 @@ const UserManagementPage = () => {
             >
               Reset key
             </Button>
-            <Button
-              size="sm"
-              variant={
-                row.status === STATUS_SUSPENDED ? "primary" : "danger"
-              }
-              onClick={() => setConfirmTarget(row)}
-            >
-              {row.status === STATUS_SUSPENDED ? "Activate" : "Suspend"}
-            </Button>
+            {row.status === STATUS_LOCKED && (
+              <Button
+                size="sm"
+                variant="warning"
+                onClick={() => requestUnlock(row)}
+              >
+                Unlock
+              </Button>
+            )}
+            {row.status !== STATUS_INACTIVE && (
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={() => requestDeactivate(row)}
+              >
+                Deactivate
+              </Button>
+            )}
           </div>
         ),
       },
     ],
-    [handleResetKey, resettingUserId],
+    [handleResetKey, openEdit, requestDeactivate, requestUnlock, resettingUserId]
   );
-
-  const total = users.length;
-  const countLabel =
-    normalizedQuery || roleFilter !== ALL_ROLES
-      ? `${filtered.length} of ${total} staff accounts`
-      : `${total} ${total === 1 ? "staff account" : "staff accounts"}`;
 
   const emptyTitle = "No staff accounts found.";
   const emptyMessage =
-    normalizedQuery || roleFilter !== ALL_ROLES
+    normalizedQuery 
       ? "No accounts match the current filters. Try a different search or role."
       : "There are no staff accounts yet. Use Create new account to provision the first one.";
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      {/* Header — access-governance framing + create action */}
-      <div className="flex flex-col gap-4 rounded-2xl border border-neutral-200 bg-white p-5 shadow-xs sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <span className="text-xs font-semibold uppercase tracking-wider text-primary-700">
-            Access governance
-          </span>
-          <h1 className="mt-1 text-2xl font-semibold text-neutral-900">
-            User management & role permissions
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-neutral-600">
-            Provision staff identity credentials, assign security clearance
-            levels, and audit 2FA enrolment.
-          </p>
-          {status === "ready" && (
-            <p className="mt-2 text-sm font-medium text-neutral-800">
-              {countLabel}
-            </p>
-          )}
-        </div>
 
-        <Button
-          onClick={openCreate}
-          className="inline-flex shrink-0 items-center gap-2"
-        >
-          <Icon name="plus" className="h-4 w-4" />
-          Create new account
-        </Button>
-      </div>
-
-      {/* Search + role filter */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-xs">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <SearchBar
             value={query}
@@ -399,21 +505,14 @@ const UserManagementPage = () => {
             className="w-full sm:max-w-md"
           />
 
-          <Select
-            id="role-filter"
-            name="role-filter"
-            label="Security role"
-            options={ROLE_FILTER_OPTIONS}
-            placeholder="All roles"
-            defaultValue=""
-            onChange={(event) => {
-              setRoleFilter(event.target.value || ALL_ROLES);
-              setPage(1);
-            }}
-            className="w-full sm:w-56"
-          />
+          <Button
+            onClick={openCreate}
+            className="inline-flex shrink-0 items-center gap-2"
+          >
+            <Icon name="plus" className="h-4 w-4" />
+            Create new account
+          </Button>
         </div>
-      </div>
 
       {/* User table */}
       {status === "loading" ? (
@@ -471,38 +570,22 @@ const UserManagementPage = () => {
         </section>
       )}
 
-      {/* Suspend / activate confirmation */}
+      {/* Deactivate / unlock confirmation */}
       <ConfirmDialog
-        isOpen={Boolean(confirmTarget)}
+        isOpen={Boolean(confirm)}
         onClose={() => {
-          if (!confirmBusy) setConfirmTarget(null);
+          if (!confirmBusy) setConfirm(null);
         }}
-        onConfirm={handleConfirmStatusChange}
-        title={
-          confirmTarget?.status === STATUS_SUSPENDED
-            ? "Activate account"
-            : "Suspend account"
-        }
-        message={
-          confirmTarget?.status === STATUS_SUSPENDED
-            ? `Re-activate ${confirmTarget?.fullName}? They will be able to sign in again immediately.`
-            : `Suspend ${confirmTarget?.fullName}? They will not be able to sign in until the account is re-activated.`
-        }
-        confirmLabel={
-          confirmTarget?.status === STATUS_SUSPENDED ? "Activate" : "Suspend"
-        }
-        variant={
-          confirmTarget?.status === STATUS_SUSPENDED ? "primary" : "danger"
-        }
+        onConfirm={handleConfirm}
+        title={confirm?.title ?? ""}
+        message={confirm?.message ?? ""}
+        confirmLabel={confirm?.confirmLabel}
+        variant={confirm?.variant ?? "danger"}
         loading={confirmBusy}
       />
 
       {/* Provision new account */}
-      <Modal
-        isOpen={isCreateOpen}
-        onClose={closeCreate}
-        title="Provision new user"
-      >
+      <Modal isOpen={isCreateOpen} onClose={closeCreate} title="Provision new user">
         <form onSubmit={handleCreateSubmit} className="space-y-4">
           {submitError && (
             <ErrorMessage
@@ -572,6 +655,70 @@ const UserManagementPage = () => {
             </Button>
             <Button type="submit" loading={submitting}>
               Create user
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Update email / role */}
+      <Modal
+        isOpen={isEditOpen}
+        onClose={closeEdit}
+        title={
+          editTarget ? `Edit account — ${editTarget.username}` : "Edit account"
+        }
+      >
+        <form onSubmit={handleEditSubmit} className="space-y-4">
+          {editError && (
+            <ErrorMessage
+              title="Unable to update account"
+              message={editError}
+            />
+          )}
+
+          <Input
+            id="edit-email"
+            name="email"
+            label="Clinic email address"
+            type="email"
+            value={editForm.email}
+            onChange={handleEditChange}
+            required
+            validate={validateEmail}
+            submitted={editAttempted}
+            placeholder="staff@onecare.clinic"
+          />
+
+          <Select
+            id="edit-role"
+            name="role"
+            label="Role clearance"
+            options={Object.values(ROLES).map((role) => ({
+              value: role,
+              label: roleLabel(role),
+            }))}
+            value={editForm.role}
+            onChange={handleEditChange}
+            required
+            submitted={editAttempted}
+          />
+
+          <p className="text-xs text-neutral-500">
+            Email and role changes are written to the backend immediately; role
+            changes apply from the user&apos;s next token refresh.
+          </p>
+
+          <div className="flex justify-end gap-2 border-t border-neutral-100 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={closeEdit}
+              disabled={editSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" loading={editSubmitting}>
+              Save changes
             </Button>
           </div>
         </form>

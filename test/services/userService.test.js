@@ -2,10 +2,13 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   adaptUserResponse,
   adaptUsersResponse,
+  assignUserRole,
   createUser,
+  deactivateUser,
   getUsers,
   resetUserPassword,
-  updateUserStatus,
+  unlockUser,
+  updateUserEmail,
 } from "../../src/services/userService";
 import { store } from "../../src/app/store";
 import { clearSession, setSession } from "../../src/features/auth/authSlice";
@@ -17,7 +20,7 @@ afterEach(() => {
 });
 
 describe("userService — staff account directory", () => {
-  it("adapts the paginated directory and maps isActive", () => {
+  it("adapts the paginated directory and derives account state", () => {
     expect(
       adaptUsersResponse({
         success: true,
@@ -46,6 +49,7 @@ describe("userService — staff account directory", () => {
         email: "superadmin@onecare.test",
         role: "DOCTOR",
         status: "ACTIVE",
+        lockedUntil: null,
       },
       {
         userId: 2,
@@ -53,7 +57,8 @@ describe("userService — staff account directory", () => {
         username: "disabled",
         email: "",
         role: "SUPER_ADMIN",
-        status: "SUSPENDED",
+        status: "INACTIVE",
+        lockedUntil: null,
       },
     ]);
 
@@ -65,7 +70,7 @@ describe("userService — staff account directory", () => {
     ).toThrow(/response format/i);
   });
 
-  it("adapts a single account and rejects unusable payloads", () => {
+  it("derives account state from isActive and the lock window", () => {
     expect(
       adaptUserResponse({
         success: true,
@@ -74,8 +79,7 @@ describe("userService — staff account directory", () => {
           username: "CHEN-8831",
           role: "PHARMACIST",
           dept: "Central Dispensary",
-          twoFactor: false,
-          status: "SUSPENDED",
+          isActive: false,
         },
       }),
     ).toEqual({
@@ -84,8 +88,39 @@ describe("userService — staff account directory", () => {
       username: "CHEN-8831",
       email: "",
       role: "PHARMACIST",
-      status: "SUSPENDED",
+      status: "INACTIVE",
+      lockedUntil: null,
     });
+
+    // AuthServiceImpl sets lockedUntil when the failed-login counter
+    // trips (the API answers 423 until that moment).
+    const lockedUntil = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    expect(
+      adaptUserResponse({
+        success: true,
+        data: {
+          userId: 8,
+          username: "VANCE-1102",
+          role: "ADMIN",
+          isActive: true,
+          lockedUntil,
+        },
+      }),
+    ).toMatchObject({ status: "LOCKED", lockedUntil });
+
+    // An expired lock window reads as active again.
+    expect(
+      adaptUserResponse({
+        success: true,
+        data: {
+          userId: 8,
+          username: "VANCE-1102",
+          role: "ADMIN",
+          isActive: true,
+          lockedUntil: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+        },
+      }),
+    ).toMatchObject({ status: "ACTIVE", lockedUntil: null });
 
     expect(() =>
       adaptUserResponse({ success: true, data: { fullName: "No id" } }),
@@ -117,6 +152,7 @@ describe("userService — staff account directory", () => {
         email: "",
         role: "ADMIN",
         status: "ACTIVE",
+        lockedUntil: null,
       },
     ]);
     expect(new URL(mswState.usersHits[0].url).pathname).toMatch(
@@ -149,23 +185,52 @@ describe("userService — staff account directory", () => {
     );
   });
 
-  it("toggles account status and triggers the reset-key email", async () => {
+  it("triggers the admin password reset through the authenticated client", async () => {
     store.dispatch(
       setSession({ accessToken: "u-access", role: "SUPER_ADMIN" }),
     );
 
-    const suspended = await updateUserStatus(5, "suspended");
-    expect(suspended.status).toBe("SUSPENDED");
-    expect(mswState.userStatusHits[0].id).toBe("5");
-    expect(mswState.userStatusHits[0].body).toEqual({
-      status: "SUSPENDED",
-    });
-
     await resetUserPassword(5);
+
     expect(mswState.userResetHits[0].id).toBe("5");
     expect(mswState.userResetHits[0].authorization).toBe(
       "Bearer u-access",
     );
+  });
+
+  it("updates email/role, unlocks and deactivates through the governance endpoints", async () => {
+    store.dispatch(
+      setSession({ accessToken: "u-access", role: "SUPER_ADMIN" }),
+    );
+
+    await updateUserEmail(9, "  new.email@onecare.clinic  ");
+    expect(mswState.userEmailUpdateHits[0]).toMatchObject({
+      id: "9",
+      body: { email: "new.email@onecare.clinic" },
+      authorization: "Bearer u-access",
+    });
+
+    await assignUserRole(9, "doctor");
+    expect(mswState.userRoleUpdateHits[0].body).toEqual({ role: "DOCTOR" });
+
+    await unlockUser(9);
+    expect(mswState.userUnlockHits[0]).toMatchObject({
+      id: "9",
+      authorization: "Bearer u-access",
+    });
+
+    await deactivateUser(9);
+    expect(mswState.userDeactivateHits[0]).toMatchObject({
+      id: "9",
+      authorization: "Bearer u-access",
+    });
+  });
+
+  it("rejects an unknown role assignment with 400", async () => {
+    const error = await assignUserRole(9, "PATIENT").catch((caught) => caught);
+
+    expect(error.status).toBe(400);
+    expect(mswState.userRoleUpdateHits[0].body).toEqual({ role: "PATIENT" });
   });
 
   it("propagates directory failures for callers to surface", async () => {

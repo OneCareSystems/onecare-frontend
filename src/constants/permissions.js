@@ -1,19 +1,22 @@
 import { ROLES } from "./roles";
 
 /**
- * CFG-03 — permission matrix (SDS §2.5.2, permission matrix Table 9).
+ * CFG-03 — permission catalog (SDS §2.5.2, permission matrix Table 9).
  *
- * Frontend mirror of the backend policy classes
- * `com.onecare.backend.security.Permission` and `RolePermission`.
- * There is no access-control endpoint (and none is planned yet), so the
- * matrix lives here as static data — the Java `RolePermission` switch is
- * the source of truth: when it changes, update this file to match.
+ * Catalog metadata (code, human name, description, domain) plus the
+ * factory defaults the backend ships with, mirroring
+ * `com.onecare.backend.security.Permission` / `RolePermission`.
  *
- * Every permission string in `code` exists verbatim in the Java
- * `Permission` class; `granted` mirrors exactly which roles
- * `RolePermission.getPermissions(role)` returns it for. Permissions
- * defined but granted to no role (USER_READ_OWN, AUDIT_READ,
- * REPORT_GENERATE) stay visible so the matrix never hides a scope.
+ * Runtime grants are configurable and now come from the role
+ * permissions API — GET/PUT /api/roles/{role}/permissions (FR003/UC3,
+ * see src/services/rolePermissionService.js). The `granted` lists below
+ * are only the seeded defaults (used by MSW and pinned by tests); the
+ * Access Control screen renders live sets from the API.
+ *
+ * `privileged: true` marks scopes the backend reserves for SUPER_ADMIN
+ * (rule BR004). Permissions defined but granted to no default role
+ * (USER_READ_OWN, AUDIT_READ, REPORT_GENERATE) stay visible so the
+ * matrix never hides a scope.
  */
 
 /** Human-readable domains, in display order. */
@@ -334,6 +337,33 @@ export const PERMISSION_MATRIX = Object.freeze([
     description:
       "Compile scheduled exports (defined, granted to no role yet)",
     granted: Object.freeze([]),
+  }),
+
+  // — Security & Infrastructure — governance & backups ——————————————
+  Object.freeze({
+    code: "SYSTEM_BACKUP",
+    category: "Security & Infrastructure",
+    name: "Run system backups",
+    description:
+      "Create and restore encrypted full-system backups (privileged — SUPER_ADMIN only, backend rule BR004)",
+    privileged: true,
+    granted: Object.freeze([ROLES.SUPER_ADMIN]),
+  }),
+  Object.freeze({
+    code: "ROLE_PERMISSION_READ",
+    category: "Security & Infrastructure",
+    name: "Read role permission sets",
+    description:
+      "View any role's current permission set through the governance endpoint",
+    granted: Object.freeze([ROLES.SUPER_ADMIN]),
+  }),
+  Object.freeze({
+    code: "ROLE_PERMISSION_UPDATE",
+    category: "Security & Infrastructure",
+    name: "Update role permission sets",
+    description:
+      "Rewrite a role's full permission set through the governance endpoint",
+    granted: Object.freeze([ROLES.SUPER_ADMIN]),
   }),
 ]);
 
