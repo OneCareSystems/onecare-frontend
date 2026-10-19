@@ -14,6 +14,9 @@ import { clearSession, setSession } from "../../src/features/auth/authSlice";
 import { ROLES } from "../../src/constants/roles";
 import AppRoutes from "../../src/routes/AppRoutes";
 import { mswState, resetMswState } from "../msw/handlers";
+import { server } from "../msw/server";
+import { http, HttpResponse } from "msw";
+import { ROLE_DASHBOARDS } from "../../src/constants/roles";
 
 const LocationDisplay = () => {
   const location = useLocation();
@@ -250,6 +253,64 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
       }),
     );
   };
+
+  it.each([
+    [ROLES.ADMIN, "/admin/register-patient"],
+    [ROLES.SUPER_ADMIN, "/super-admin/register-patient"],
+  ])(
+    "%s logs in through /api and can navigate to patient registration",
+    async (role, path) => {
+      const requests = [];
+      server.use(
+        http.post("*/api/auth/login", async ({ request }) => {
+          requests.push({
+            path: new URL(request.url).pathname,
+            body: await request.json(),
+          });
+          return HttpResponse.json({
+            success: true,
+            message: "Login successful",
+            data: {
+              accessToken: "test-access",
+              refreshToken: "test-refresh",
+              role,
+              redirectUrl: ROLE_DASHBOARDS[role],
+              expiresIn: 1800,
+            },
+          });
+        }),
+      );
+      renderAppAt("/login");
+      await signIn("test-user");
+      await waitFor(() => expectLocation(ROLE_DASHBOARDS[role]));
+      expect(requests).toEqual([
+        {
+          path: "/api/auth/login",
+          body: { username: "test-user", password: "secret" },
+        },
+      ]);
+      const link = screen.getByRole("link", { name: "Register Patient" });
+      expect(link).toHaveAttribute("href", path);
+      fireEvent.click(link);
+
+      expect(
+        await screen.findByRole("heading", { name: "Register New Patient" }),
+      ).toBeInTheDocument();
+      expectLocation(path);
+      expect(store.getState().auth.role).toBe(role);
+    },
+  );
+
+  it("returns ADMIN to patient registration after signing in from the protected URL", async () => {
+    mswState.loginRole = ROLES.ADMIN;
+    renderAppAt("/admin/register-patient");
+    await signIn("test-user");
+
+    expect(
+      await screen.findByRole("heading", { name: "Register New Patient" }),
+    ).toBeInTheDocument();
+    expectLocation("/admin/register-patient");
+  });
 
   it("AC1: a Doctor signs in and lands on /doctor/dashboard", async () => {
     mswState.loginRole = ROLES.DOCTOR;
