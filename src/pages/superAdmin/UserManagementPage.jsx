@@ -3,7 +3,9 @@ import {
   useDeferredValue,
   useEffect,
   useMemo,
+  useRef,
   useState,
+  memo,
 } from "react";
 
 import Button from "../../components/Button";
@@ -29,20 +31,15 @@ import {
   updateUserEmail,
 } from "../../services/userService";
 
-/** `GET /users` returns the whole directory, so paging is client-side. */
 const PAGE_SIZE = 10;
 
-/** Account state mirrors the backend model (isActive + lock window). */
 const STATUS_ACTIVE = "ACTIVE";
 const STATUS_INACTIVE = "INACTIVE";
 const STATUS_LOCKED = "LOCKED";
+const ALL_FILTER = "ALL";
 
 const roleLabel = (role) => String(role ?? "").replace(/_/g, " ");
 
-/**
- * Role colours follow the approved contrast pairs (label-on-*-subtle in
- * theme/tokens.js); SUPER_ADMIN reads as the amber "elevated" clearance.
- */
 const ROLE_BADGE_CLASSES = {
   [ROLES.SUPER_ADMIN]: "border-warning-200 bg-warning-100 text-warning-900",
   [ROLES.ADMIN]: "border-primary-200 bg-primary-100 text-primary-800",
@@ -50,7 +47,6 @@ const ROLE_BADGE_CLASSES = {
   [ROLES.PHARMACIST]:
     "border-secondary-200 bg-secondary-100 text-secondary-800",
 };
-
 
 const EMPTY_FORM = {
   fullName: "",
@@ -66,29 +62,104 @@ const validateEmail = (value) =>
     ? "Enter a valid email address."
     : "";
 
-const matchesQuery = (user, query) =>
-  [user.fullName, user.username, user.email].some((field) =>
-    String(field ?? "").toLowerCase().includes(query)
+/**
+ * Sub-component for rendering employee profile cell (Memoized for performance)
+ */
+const EmployeeCell = memo(({ fullName, username, email }) => {
+  const initial = String(fullName ?? "?")
+    .charAt(0)
+    .toUpperCase();
+
+  return (
+    <div className="flex items-center gap-3 py-1">
+      <span
+        aria-hidden="true"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-800 border border-primary-200 shadow-xs"
+      >
+        {initial}
+      </span>
+      <div className="min-w-0">
+        <span className="block font-medium text-neutral-900 truncate">
+          {fullName}
+        </span>
+        <span className="block font-mono text-xs text-neutral-500 truncate">
+          {username} {email ? `• ${email}` : ""}
+        </span>
+      </div>
+    </div>
   );
+});
+EmployeeCell.displayName = "EmployeeCell";
 
 /**
- * Super-admin user management (access governance), backed by the
- * user endpoints:
- *   POST   /users                    — provision an account (USER_CREATE)
- *   PUT    /users/{id}              — update the email (USER_UPDATE)
- *   PUT    /users/{id}/role         — assign a role (USER_ROLE_ASSIGN)
- *   PUT    /users/{id}/unlock       — clear the sign-in lockout (SA)
- *   POST   /users/{id}/reset-password — admin reset (SA/ADMIN)
- *   DELETE /users/{id}              — deactivate the account (USER_DELETE)
- *
- * The Status column reflects what the backend models itself: the
- * `isActive` flag plus the automatic failed-sign-in lockout
- * (AuthServiceImpl's `lockedUntil`, cleared by a successful sign-in, a
- * password reset or the unlock action below).
- *
- * Fetch status is `loading | ready | failed`; a failed load keeps the
- * header on screen with a retry instead of blanking the page.
+ * Sub-component for account status badges (Memoized)
  */
+const UserStatusBadge = memo(({ status }) => {
+  if (status === STATUS_LOCKED) {
+    return (
+      <span
+        title="Account locked due to consecutive failed login attempts."
+        className="inline-flex cursor-help"
+      >
+        <StatusBadge status="warning">Locked</StatusBadge>
+      </span>
+    );
+  }
+  if (status === STATUS_INACTIVE) {
+    return <StatusBadge status="danger">Inactive</StatusBadge>;
+  }
+  if (status === STATUS_ACTIVE) {
+    return <StatusBadge status="success">Active</StatusBadge>;
+  }
+  return <StatusBadge status="neutral">{status || "Unknown"}</StatusBadge>;
+});
+UserStatusBadge.displayName = "UserStatusBadge";
+
+/**
+ * Action buttons per table row (Memoized)
+ */
+const UserTableRowActions = memo(
+  ({ row, isResetting, onEdit, onResetKey, onUnlock, onDeactivate }) => {
+    return (
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button size="sm" variant="outline" onClick={() => onEdit(row)}>
+          Edit
+        </Button>
+
+        <Button
+          size="sm"
+          variant="outline"
+          loading={isResetting}
+          onClick={() => onResetKey(row)}
+        >
+          Reset key
+        </Button>
+
+        {row.status === STATUS_LOCKED && (
+          <Button
+            size="sm"
+            variant="warning"
+            onClick={() => onUnlock(row)}
+          >
+            Unlock
+          </Button>
+        )}
+
+        {row.status !== STATUS_INACTIVE && (
+          <Button
+            size="sm"
+            variant="danger"
+            onClick={() => onDeactivate(row)}
+          >
+            Deactivate
+          </Button>
+        )}
+      </div>
+    );
+  }
+);
+UserTableRowActions.displayName = "UserTableRowActions";
+
 const UserManagementPage = () => {
   const [users, setUsers] = useState([]);
   const [status, setStatus] = useState("loading");
@@ -96,6 +167,8 @@ const UserManagementPage = () => {
 
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
+  const [roleFilter, setRoleFilter] = useState(ALL_FILTER);
+  const [statusFilter, setStatusFilter] = useState(ALL_FILTER);
   const [page, setPage] = useState(1);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -106,7 +179,6 @@ const UserManagementPage = () => {
 
   const [resettingUserId, setResettingUserId] = useState(null);
 
-  /** { title, message, confirmLabel, variant, run } | null */
   const [confirm, setConfirm] = useState(null);
   const [confirmBusy, setConfirmBusy] = useState(false);
 
@@ -118,29 +190,42 @@ const UserManagementPage = () => {
   const [editError, setEditError] = useState("");
 
   const [toast, setToast] = useState(null);
+  const searchInputRef = useRef(null);
 
+  // Keyboard shortcut Ctrl/Cmd + F for quick search navigation
   useEffect(() => {
-    let cancelled = false;
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Fetch users with query race condition handling
+  useEffect(() => {
+    let isSubscribed = true;
 
     getUsers()
       .then((data) => {
-        if (cancelled) return;
-        setUsers(data);
-        setPage(1);
+        if (!isSubscribed) return;
+        setUsers(data || []);
         setStatus("ready");
       })
       .catch(() => {
-        if (!cancelled) setStatus("failed");
+        if (isSubscribed) setStatus("failed");
       });
 
     return () => {
-      cancelled = true;
+      isSubscribed = false;
     };
   }, [reloadKey]);
 
   const retry = useCallback(() => {
     setStatus("loading");
-    setReloadKey((key) => key + 1);
+    setReloadKey((k) => k + 1);
   }, []);
 
   const handleQueryChange = useCallback((value) => {
@@ -181,26 +266,31 @@ const UserManagementPage = () => {
 
     setSubmitting(true);
     try {
-      await createUser(form);
+      const newUser = await createUser(form);
       setIsCreateOpen(false);
       setForm(EMPTY_FORM);
       setSubmitAttempted(false);
+
+      // Optimistically append created user locally
+      if (newUser && newUser.userId) {
+        setUsers((prev) => [newUser, ...prev]);
+      } else {
+        setReloadKey((k) => k + 1);
+      }
+
       setToast({
         type: "success",
-        message: `Account for ${form.username.trim()} created. The temporary password was emailed to the user.`,
+        message: `Account for ${form.username.trim()} provisioned successfully. Instructions sent to email.`,
       });
-      setStatus("loading");
-      setReloadKey((key) => key + 1);
     } catch (error) {
       setSubmitError(
-        error?.userMessage ?? "Unable to create the account. Please try again."
+        error?.userMessage ?? "Unable to create user account. Please try again."
       );
     } finally {
       setSubmitting(false);
     }
   };
 
-  /** Apply an accepted change locally; the next fetch resyncs anyway. */
   const patchUserLocally = useCallback((userId, patch) => {
     setUsers((current) =>
       current.map((user) =>
@@ -224,8 +314,8 @@ const UserManagementPage = () => {
     (user) => {
       setConfirm({
         title: "Deactivate account?",
-        message: `Deactivate ${user.fullName} (${user.username})? They will no longer be able to sign in. The record stays on file.`,
-        confirmLabel: "Deactivate account",
+        message: `Are you sure you want to deactivate ${user.fullName} (${user.username})? Access will be revoked immediately while maintaining compliance audit logs.`,
+        confirmLabel: "Deactivate Account",
         variant: "danger",
         run: async () => {
           try {
@@ -236,7 +326,7 @@ const UserManagementPage = () => {
             });
             setToast({
               type: "success",
-              message: `${user.fullName} was deactivated and can no longer sign in.`,
+              message: `${user.fullName} has been deactivated.`,
             });
           } catch (error) {
             setToast({
@@ -256,8 +346,8 @@ const UserManagementPage = () => {
     (user) => {
       setConfirm({
         title: "Clear sign-in lockout?",
-        message: `Clear the failed sign-in lockout for ${user.fullName}? They will be able to sign in again immediately.`,
-        confirmLabel: "Unlock account",
+        message: `Clear authentication lockout for ${user.fullName}? The account will regain standard access privileges immediately.`,
+        confirmLabel: "Unlock Account",
         variant: "primary",
         run: async () => {
           try {
@@ -268,7 +358,7 @@ const UserManagementPage = () => {
             });
             setToast({
               type: "success",
-              message: `Sign-in lockout cleared for ${user.fullName}.`,
+              message: `Lockout cleared for ${user.fullName}.`,
             });
           } catch (error) {
             setToast({
@@ -330,11 +420,11 @@ const UserManagementPage = () => {
       setIsEditOpen(false);
       setToast({
         type: "success",
-        message: `Account for ${editTarget.username} updated.`,
+        message: `Account settings for ${editTarget.username} updated.`,
       });
     } catch (error) {
       setEditError(
-        error?.userMessage ?? "Unable to update the account. Please try again."
+        error?.userMessage ?? "Unable to update account details. Please try again."
       );
     } finally {
       setEditSubmitting(false);
@@ -347,38 +437,50 @@ const UserManagementPage = () => {
       await resetUserPassword(user.userId);
       setToast({
         type: "success",
-        message: `Admin password reset requested for ${user.email || user.username
-          }.`,
+        message: `Password reset dispatched to ${user.email || user.username}.`,
       });
     } catch (error) {
       setToast({
         type: "error",
         message:
           error?.userMessage ??
-          "Unable to trigger the password reset. Please try again.",
+          "Unable to initiate password reset sequence.",
       });
     } finally {
       setResettingUserId(null);
     }
   }, []);
 
-  const normalizedQuery = deferredQuery.trim().toLowerCase();
-  const filtered = useMemo(
-    () =>
-      users.filter((user) => {
-        return (
-          (!normalizedQuery || matchesQuery(user, normalizedQuery))
-        );
-      }),
-    [users, normalizedQuery]
-  );
+  // Filter pipeline optimized using deferred searching
+  const filteredUsers = useMemo(() => {
+    const normalizedQuery = deferredQuery.trim().toLowerCase();
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    return users.filter((user) => {
+      const matchesSearch =
+        !normalizedQuery ||
+        [user.fullName, user.username, user.email].some((field) =>
+          String(field ?? "")
+            .toLowerCase()
+            .includes(normalizedQuery)
+        );
+
+      const matchesRole =
+        roleFilter === ALL_FILTER || user.role === roleFilter;
+
+      const matchesStatus =
+        statusFilter === ALL_FILTER || user.status === statusFilter;
+
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }, [users, deferredQuery, roleFilter, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const startIndex = (currentPage - 1) * PAGE_SIZE;
+
   const visibleUsers = useMemo(
-    () => filtered.slice(startIndex, startIndex + PAGE_SIZE),
-    [filtered, startIndex]
+    () => filteredUsers.slice(startIndex, startIndex + PAGE_SIZE),
+    [filteredUsers, startIndex]
   );
 
   const columns = useMemo(
@@ -387,33 +489,22 @@ const UserManagementPage = () => {
         key: "fullName",
         header: "Employee",
         render: (row) => (
-          <div className="flex items-center gap-3">
-            <span
-              aria-hidden="true"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-semibold text-primary-700"
-            >
-              {String(row.fullName ?? "?").charAt(0).toUpperCase()}
-            </span>
-            <div className="min-w-0">
-              <span className="block font-medium text-neutral-900">
-                {row.fullName}
-              </span>
-              <span className="block font-mono text-xs text-neutral-500">
-                {row.username}
-                {row.email ? ` • ${row.email}` : ""}
-              </span>
-            </div>
-          </div>
+          <EmployeeCell
+            fullName={row.fullName}
+            username={row.username}
+            email={row.email}
+          />
         ),
       },
       {
         key: "role",
-        header: "Security role",
+        header: "Security Role",
         render: (row) => (
           <span
-            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${ROLE_BADGE_CLASSES[row.role] ??
+            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
+              ROLE_BADGE_CLASSES[row.role] ??
               "border-neutral-200 bg-neutral-100 text-neutral-800"
-              }`}
+            }`}
           >
             {roleLabel(row.role) || "—"}
           </span>
@@ -422,142 +513,176 @@ const UserManagementPage = () => {
       {
         key: "status",
         header: "Status",
-        render: (row) => {
-          if (row.status === STATUS_LOCKED) {
-            return (
-              <span
-                title="Locked by the failed sign-in counter — clears automatically after a successful sign-in or a password reset."
-                className="inline-flex"
-              >
-                <StatusBadge status="warning">Locked</StatusBadge>
-              </span>
-            );
-          }
-          if (row.status === STATUS_INACTIVE) {
-            return <StatusBadge status="danger">Inactive</StatusBadge>;
-          }
-          if (row.status === STATUS_ACTIVE) {
-            return <StatusBadge status="success">Active</StatusBadge>;
-          }
-          return (
-            <StatusBadge status="neutral">
-              {row.status || "Unknown"}
-            </StatusBadge>
-          );
-        },
+        render: (row) => <UserStatusBadge status={row.status} />,
       },
       {
         key: "actions",
         header: "Actions",
+        headerClass: "text-right",
         render: (row) => (
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <Button size="sm" variant="outline" onClick={() => openEdit(row)}>
-              Edit
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              loading={resettingUserId === row.userId}
-              onClick={() => handleResetKey(row)}
-            >
-              Reset key
-            </Button>
-            {row.status === STATUS_LOCKED && (
-              <Button
-                size="sm"
-                variant="warning"
-                onClick={() => requestUnlock(row)}
-              >
-                Unlock
-              </Button>
-            )}
-            {row.status !== STATUS_INACTIVE && (
-              <Button
-                size="sm"
-                variant="danger"
-                onClick={() => requestDeactivate(row)}
-              >
-                Deactivate
-              </Button>
-            )}
-          </div>
+          <UserTableRowActions
+            row={row}
+            isResetting={resettingUserId === row.userId}
+            onEdit={openEdit}
+            onResetKey={handleResetKey}
+            onUnlock={requestUnlock}
+            onDeactivate={requestDeactivate}
+          />
         ),
       },
     ],
-    [handleResetKey, openEdit, requestDeactivate, requestUnlock, resettingUserId]
+    [
+      resettingUserId,
+      openEdit,
+      handleResetKey,
+      requestUnlock,
+      requestDeactivate,
+    ]
   );
 
-  const emptyTitle = "No staff accounts found.";
-  const emptyMessage =
-    normalizedQuery 
-      ? "No accounts match the current filters. Try a different search or role."
-      : "There are no staff accounts yet. Use Create new account to provision the first one.";
+  const roleOptions = useMemo(
+    () => [
+      { value: ALL_FILTER, label: "All Roles" },
+      ...Object.values(ROLES).map((role) => ({
+        value: role,
+        label: roleLabel(role),
+      })),
+    ],
+    []
+  );
+
+  const statusOptions = useMemo(
+    () => [
+      { value: ALL_FILTER, label: "All Statuses" },
+      { value: STATUS_ACTIVE, label: "Active" },
+      { value: STATUS_LOCKED, label: "Locked" },
+      { value: STATUS_INACTIVE, label: "Inactive" },
+    ],
+    []
+  );
+
+  const isFiltered =
+    query || roleFilter !== ALL_FILTER || statusFilter !== ALL_FILTER;
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
+      {/* Controls Bar: Search, Role/Status Filters & Actions */}
+      <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-xs sm:p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+            <SearchBar
+              ref={searchInputRef}
+              value={query}
+              onChange={handleQueryChange}
+              placeholder="Search by name, username, email... (⌘F)"
+              searchLabel="Search staff directory"
+              className="w-full sm:max-w-xs"
+            />
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <SearchBar
-            value={query}
-            onChange={handleQueryChange}
-            placeholder="Search by name, username, email"
-            searchLabel="Search users"
-            className="w-full sm:max-w-md"
-          />
+            <div className="flex flex-wrap items-center gap-2">
+              <Select
+                id="role-filter"
+                name="roleFilter"
+                options={roleOptions}
+                value={roleFilter}
+                onChange={(e) => {
+                  setRoleFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="w-36"
+              />
+
+              <Select
+                id="status-filter"
+                name="statusFilter"
+                options={statusOptions}
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="w-36"
+              />
+
+              {isFiltered && (
+                <Button
+                  variant="tertiary"
+                  onClick={() => {
+                    setQuery("");
+                    setRoleFilter(ALL_FILTER);
+                    setStatusFilter(ALL_FILTER);
+                    setPage(1);
+                  }}
+                  className="text-xs text-neutral-500 hover:text-neutral-800"
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+          </div>
 
           <Button
             onClick={openCreate}
-            className="inline-flex shrink-0 items-center gap-2"
+            className="inline-flex shrink-0 items-center justify-center gap-2"
           >
             <Icon name="plus" className="h-4 w-4" />
-            Create new account
+            Provision New User
           </Button>
         </div>
+      </div>
 
-      {/* User table */}
+      {/* Staff Table Section */}
       {status === "loading" ? (
         <div
           role="status"
           aria-label="Loading staff accounts"
-          aria-busy="true"
-          className="motion-safe:animate-pulse space-y-3 rounded-2xl border border-neutral-200 bg-white p-5 shadow-xs"
+          className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-6 shadow-xs animate-pulse"
         >
-          {Array.from({ length: 6 }, (_, index) => (
-            <div
-              key={index}
-              className="h-4 rounded bg-neutral-100"
-              style={{ width: `${Math.max(40, 92 - index * 14)}%` }}
-            />
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <div key={idx} className="flex gap-4 items-center">
+              <div className="h-9 w-9 rounded-full bg-neutral-100 shrink-0" />
+              <div className="h-4 w-1/3 rounded bg-neutral-100" />
+              <div className="h-4 w-1/6 rounded bg-neutral-100" />
+              <div className="h-4 w-1/6 rounded bg-neutral-100" />
+            </div>
           ))}
         </div>
       ) : status === "failed" ? (
-        <div className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-5 shadow-xs">
+        <div className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-6 shadow-xs text-center">
           <ErrorMessage
-            title="Unable to load staff accounts"
-            message="Please check your connection and try again."
+            title="Unable to load staff directory"
+            message="We encountered an issue connecting to the identity provider. Please check your connection."
           />
-          <Button onClick={retry} className="inline-flex items-center gap-2">
+          <Button onClick={retry} className="inline-flex items-center gap-2 mt-2">
             <Icon name="refresh" className="h-4 w-4" />
-            Retry
+            Retry Connection
           </Button>
         </div>
       ) : (
-        <section aria-labelledby="staff-directory-heading">
-          <h2
-            id="staff-directory-heading"
-            className="mb-3 text-base font-semibold text-neutral-900"
-          >
-            All staff accounts
-          </h2>
+        <section aria-labelledby="staff-directory-heading" className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2
+              id="staff-directory-heading"
+              className="text-base font-semibold text-neutral-900"
+            >
+              Staff Directory ({filteredUsers.length})
+            </h2>
+          </div>
 
-          <Table
-            columns={columns}
-            data={visibleUsers}
-            getRowKey={(row) => row.userId}
-            emptyTitle={emptyTitle}
-            emptyMessage={emptyMessage}
-            label="All staff accounts"
-          />
+          <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-xs">
+            <Table
+              columns={columns}
+              data={visibleUsers}
+              getRowKey={(row) => row.userId}
+              emptyTitle="No accounts match criteria"
+              emptyMessage={
+                isFiltered
+                  ? "No staff accounts match the specified filter conditions. Try adjusting your search query."
+                  : "No staff accounts exist yet. Provision a new account to populate the directory."
+              }
+              label="Staff Directory Table"
+            />
+          </div>
 
           {totalPages > 1 && (
             <Pagination
@@ -570,7 +695,7 @@ const UserManagementPage = () => {
         </section>
       )}
 
-      {/* Deactivate / unlock confirmation */}
+      {/* Deactivate/Unlock Confirmation Modal */}
       <ConfirmDialog
         isOpen={Boolean(confirm)}
         onClose={() => {
@@ -584,12 +709,16 @@ const UserManagementPage = () => {
         loading={confirmBusy}
       />
 
-      {/* Provision new account */}
-      <Modal isOpen={isCreateOpen} onClose={closeCreate} title="Provision new user">
+      {/* Provision User Modal */}
+      <Modal
+        isOpen={isCreateOpen}
+        onClose={closeCreate}
+        title="Provision New User"
+      >
         <form onSubmit={handleCreateSubmit} className="space-y-4">
           {submitError && (
             <ErrorMessage
-              title="Unable to create account"
+              title="Creation Failed"
               message={submitError}
             />
           )}
@@ -597,7 +726,7 @@ const UserManagementPage = () => {
           <Input
             id="fullName"
             name="fullName"
-            label="Full legal name"
+            label="Full Legal Name"
             value={form.fullName}
             onChange={handleFormChange}
             required
@@ -608,7 +737,7 @@ const UserManagementPage = () => {
           <Input
             id="username"
             name="username"
-            label="Staff ID / username"
+            label="Staff ID / Username"
             value={form.username}
             onChange={handleFormChange}
             required
@@ -619,7 +748,7 @@ const UserManagementPage = () => {
           <Input
             id="email"
             name="email"
-            label="Clinic email address"
+            label="Clinic Email Address"
             type="email"
             value={form.email}
             onChange={handleFormChange}
@@ -627,13 +756,13 @@ const UserManagementPage = () => {
             validate={validateEmail}
             submitted={submitAttempted}
             placeholder="staff@onecare.clinic"
-            hint="The temporary password is emailed to this address."
+            hint="An onboarding password activation key will be dispatched to this email address."
           />
 
           <Select
             id="role"
             name="role"
-            label="Role clearance"
+            label="Role Clearance"
             options={Object.values(ROLES).map((role) => ({
               value: role,
               label: roleLabel(role),
@@ -644,7 +773,7 @@ const UserManagementPage = () => {
             submitted={submitAttempted}
           />
 
-          <div className="flex justify-end gap-2 border-t border-neutral-100 pt-4">
+          <div className="flex justify-end gap-2 border-t border-neutral-100 pt-4 mt-6">
             <Button
               type="button"
               variant="outline"
@@ -654,24 +783,26 @@ const UserManagementPage = () => {
               Cancel
             </Button>
             <Button type="submit" loading={submitting}>
-              Create user
+              Provision Account
             </Button>
           </div>
         </form>
       </Modal>
 
-      {/* Update email / role */}
+      {/* Edit User Modal */}
       <Modal
         isOpen={isEditOpen}
         onClose={closeEdit}
         title={
-          editTarget ? `Edit account — ${editTarget.username}` : "Edit account"
+          editTarget
+            ? `Edit Account — ${editTarget.username}`
+            : "Edit Account"
         }
       >
         <form onSubmit={handleEditSubmit} className="space-y-4">
           {editError && (
             <ErrorMessage
-              title="Unable to update account"
+              title="Update Failed"
               message={editError}
             />
           )}
@@ -679,7 +810,7 @@ const UserManagementPage = () => {
           <Input
             id="edit-email"
             name="email"
-            label="Clinic email address"
+            label="Clinic Email Address"
             type="email"
             value={editForm.email}
             onChange={handleEditChange}
@@ -692,7 +823,7 @@ const UserManagementPage = () => {
           <Select
             id="edit-role"
             name="role"
-            label="Role clearance"
+            label="Role Clearance"
             options={Object.values(ROLES).map((role) => ({
               value: role,
               label: roleLabel(role),
@@ -703,12 +834,11 @@ const UserManagementPage = () => {
             submitted={editAttempted}
           />
 
-          <p className="text-xs text-neutral-500">
-            Email and role changes are written to the backend immediately; role
-            changes apply from the user&apos;s next token refresh.
+          <p className="text-xs text-neutral-500 bg-neutral-50 p-2.5 rounded-lg border border-neutral-100">
+            Note: Role revisions take effect immediately on subsequent authentication updates or token refreshes.
           </p>
 
-          <div className="flex justify-end gap-2 border-t border-neutral-100 pt-4">
+          <div className="flex justify-end gap-2 border-t border-neutral-100 pt-4 mt-6">
             <Button
               type="button"
               variant="outline"
@@ -718,19 +848,20 @@ const UserManagementPage = () => {
               Cancel
             </Button>
             <Button type="submit" loading={editSubmitting}>
-              Save changes
+              Save Changes
             </Button>
           </div>
         </form>
       </Modal>
 
+      {/* Global Toast Component */}
       {toast && (
         <Toast
           message={toast.message}
           type={toast.type}
           onClose={() => setToast(null)}
-          duration={6000}
-          className="fixed bottom-4 right-4 z-50 max-w-sm shadow-lg"
+          duration={5000}
+          className="fixed bottom-4 right-4 z-50 max-w-sm shadow-xl"
         />
       )}
     </div>

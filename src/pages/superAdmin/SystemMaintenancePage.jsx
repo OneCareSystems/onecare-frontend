@@ -174,23 +174,11 @@ const formatUtc = (date) =>
 
 const SystemMaintenancePage = () => {
   const [journal, setJournal] = useState(INITIAL_JOURNAL);
-  const [isPinging, setIsPinging] = useState(false);
   const [runningTask, setRunningTask] = useState(null);
   const [toast, setToast] = useState(null);
   /** { title, message, confirmLabel, variant, run } | null */
   const [confirm, setConfirm] = useState(null);
 
-  const handleHealthPing = () => {
-    setIsPinging(true);
-    setTimeout(() => {
-      setIsPinging(false);
-      setToast({
-        type: "info",
-        message:
-          "Health ping simulated - the monitoring endpoint does not exist yet. All figures on this page are static previews.",
-      });
-    }, 700);
-  };
 
   const requestTask = (task) => {
     setConfirm({
@@ -352,45 +340,6 @@ const SystemMaintenancePage = () => {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      {/* Header — infrastructure orchestration + health ping */}
-      <div className="flex flex-col gap-4 rounded-2xl border border-neutral-200 bg-white p-5 shadow-xs sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <span className="inline-flex items-center gap-2">
-            <span className="rounded-full border border-warning-200 bg-warning-50 px-2.5 py-0.5 text-xs font-semibold text-warning-900">
-              Infrastructure orchestration
-            </span>
-            <span
-              aria-hidden="true"
-              className="h-2 w-2 animate-pulse rounded-full bg-success-500"
-            />
-          </span>
-          <h1 className="mt-2 text-2xl font-semibold text-neutral-900">
-            System maintenance & operational monitoring
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-neutral-600">
-            Coordinate database vacuuming, disaster-recovery snapshots,
-            microservice cycling, and storage compaction. No operations
-            endpoint exists yet - every task runs as a clearly labelled
-            local simulation.
-          </p>
-        </div>
-
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleHealthPing}
-          disabled={isPinging}
-          className="inline-flex shrink-0 items-center gap-2"
-        >
-          <Icon
-            name="refresh"
-            className={`h-4 w-4 ${
-              isPinging ? "animate-spin text-warning-700" : "text-secondary-700"
-            }`}
-          />
-          {isPinging ? "Pinging..." : "Health Ping"}
-        </Button>
-      </div>
 
       {/* Summary stats */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

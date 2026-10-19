@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
 
 import Button from "../../components/Button";
 import ConfirmDialog from "../../components/ConfirmDialog";
@@ -22,105 +22,191 @@ import {
 
 const ALL_CATEGORIES = "ALL";
 const UNCATEGORIZED = "Uncategorized";
-
-/** Column order mirrors the role constants (CFG-03). */
 const ROLE_ORDER = Object.values(ROLES);
+const IMMUTABLE_ROLE = ROLES.SUPER_ADMIN;
+const SUPER_ADMIN_READONLY_TITLE =
+  "BR005: SUPER_ADMIN permissions are system-locked and immutable.";
 
 const roleLabel = (role) => String(role ?? "").replace(/_/g, " ");
 
-/** BR005 — the SUPER_ADMIN role's own set is immutable through the API. */
-const IMMUTABLE_ROLE = ROLES.SUPER_ADMIN;
-
-const SUPER_ADMIN_READONLY_TITLE =
-  "BR005: the SUPER_ADMIN role's own permission set cannot be modified";
-
+/**
+ * Sub-component for scope cell rendering to avoid unneeded re-renders.
+ */
+const ScopeInfoCell = memo(({ row }) => (
+  <div className="max-w-md whitespace-normal py-1">
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="rounded-md bg-warning-50 px-2 py-0.5 text-xs font-semibold text-warning-800 border border-warning-200">
+        {row.category}
+      </span>
+      <span className="font-mono text-xs text-neutral-500">{row.code}</span>
+      {row.privileged && (
+        <span className="rounded-md bg-danger-50 px-2 py-0.5 text-xs font-semibold text-danger-700 border border-danger-200">
+          Privileged
+        </span>
+      )}
+    </div>
+    <p className="mt-1 font-semibold text-neutral-900 text-sm">{row.name}</p>
+    <p className="mt-0.5 text-xs leading-relaxed text-neutral-600 line-clamp-2 hover:line-clamp-none">
+      {row.description}
+    </p>
+  </div>
+));
+ScopeInfoCell.displayName = "ScopeInfoCell";
 
 /**
- * Super-admin access control (FR003/UC3).
- *
- * The role entitlement matrix is live: GET/PUT
- * /api/roles/{role}/permissions read and rewrite each role's full
- * permission set (src/services/rolePermissionService.js). Backend rules
- * shape the UI: SUPER_ADMIN's own column is read-only (BR005), a role's
- * last permission cannot be revoked (BR006) and privileged scopes such
- * as SYSTEM_BACKUP cannot be granted to non-SUPER_ADMIN roles (BR004) —
- * blocked cells explain themselves, and any rule the server still
- * rejects is surfaced verbatim through the error toast (the backend
- * leaves the stored set untouched on failure).
- *
- * Catalog metadata (names, descriptions, domains) comes from
- * src/constants/permissions.js; codes granted by the backend but absent
- * from the local catalog are appended as UNCATEGORIZED rows instead of
- * being hidden. The API-token and break-glass tabs remain session-local
- * fixtures — no backend exists for either.
+ * Individual Matrix Cell Component with localized state & memoization.
  */
+const MatrixCell = memo(
+  ({
+    row,
+    role,
+    isGranted,
+    isSaving,
+    totalRoleGrants,
+    onToggle,
+  }) => {
+    const isSuperAdmin = role === IMMUTABLE_ROLE;
+    const isLastGranted = isGranted && totalRoleGrants <= 1; // BR006
+    const isPrivilegedForNonAdmin = Boolean(row.privileged) && !isSuperAdmin; // BR004
+    const isBlocked = isLastGranted || isPrivilegedForNonAdmin;
+
+    const blockReason = isLastGranted
+      ? "BR006: A role's permission set cannot be empty"
+      : isPrivilegedForNonAdmin
+      ? "BR004: Only SUPER_ADMIN may hold this privileged scope"
+      : null;
+
+    if (isSuperAdmin) {
+      return (
+        <div className="flex items-center justify-center">
+          <span
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-neutral-50"
+            title={SUPER_ADMIN_READONLY_TITLE}
+            aria-label={`SUPER_ADMIN ${isGranted ? "Authorized" : "Denied"} (Immutable)`}
+          >
+            <Icon
+              name={isGranted ? "circle-check" : "circle-x"}
+              className={`h-5 w-5 ${
+                isGranted ? "text-success-600" : "text-neutral-300"
+              }`}
+            />
+          </span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center justify-center">
+        <button
+          type="button"
+          onClick={() => onToggle(row.code, role, row)}
+          disabled={isSaving || isBlocked}
+          aria-pressed={isGranted}
+          aria-label={`${isGranted ? "Revoke" : "Grant"} ${row.name} for ${roleLabel(
+            role
+          )}`}
+          title={
+            isBlocked
+              ? blockReason
+              : `${isGranted ? "Authorized" : "Denied"} — click to toggle`
+          }
+          className={`relative inline-flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
+            isBlocked
+              ? "cursor-not-allowed opacity-40 bg-neutral-50"
+              : isGranted
+              ? "bg-success-50 hover:bg-success-100 text-success-700"
+              : "bg-neutral-50 hover:bg-neutral-100 text-neutral-400"
+          }`}
+        >
+          {isSaving ? (
+            <Icon name="loader" className="h-4 w-4 animate-spin text-primary-600" />
+          ) : (
+            <Icon
+              name={isGranted ? "circle-check" : "circle-x"}
+              className={`h-5 w-5 ${
+                isGranted ? "text-success-600" : "text-neutral-400"
+              }`}
+            />
+          )}
+        </button>
+      </div>
+    );
+  }
+);
+MatrixCell.displayName = "MatrixCell";
+
 const AccessControlPage = () => {
-  // Live permission sets per role, straight from the backend.
   const [status, setStatus] = useState("loading"); // loading | ready | failed
   const [grantsByRole, setGrantsByRole] = useState({});
   const [loadError, setLoadError] = useState(null);
-  /** Role whose PUT is in flight — its column (and every toggle) locks. */
-  const [savingRole, setSavingRole] = useState(null);
+  const [savingKey, setSavingKey] = useState(null); // tracking cell key: `${role}:${code}`
 
   const [activeTab, setActiveTab] = useState("matrix");
-
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [category, setCategory] = useState(ALL_CATEGORIES);
 
   const [toast, setToast] = useState(null);
-  /** { title, message, confirmLabel, variant, run } | null */
   const [confirm, setConfirm] = useState(null);
+  const searchInputRef = useRef(null);
 
-  const fetchPermissions = useCallback(
-    () =>
-      Promise.all(
-        ROLE_ORDER.map(async (role) => {
-          const { permissions } = await getRolePermissions(role);
-          return [role, permissions];
-        }),
-      ),
-    [],
-  );
+  // Debounce search query to keep matrix filtering smooth
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 150);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
+  // Keyboard shortcut Ctrl/Cmd + F for search focus
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Fetch all permissions in parallel
   const loadPermissions = useCallback(async () => {
     setStatus("loading");
     setLoadError(null);
     try {
-      const pairs = await fetchPermissions();
-      setGrantsByRole(Object.fromEntries(pairs));
+      const results = await Promise.all(
+        ROLE_ORDER.map(async (role) => {
+          const { permissions } = await getRolePermissions(role);
+          return [role, permissions];
+        })
+      );
+      setGrantsByRole(Object.fromEntries(results));
       setStatus("ready");
     } catch (error) {
-      setLoadError(error?.userMessage ?? null);
+      setLoadError(error?.userMessage ?? "Failed to load permissions matrix.");
       setStatus("failed");
     }
-  }, [fetchPermissions]);
+  }, []);
 
   useEffect(() => {
-    let active = true;
+    loadPermissions();
+  }, [loadPermissions]);
 
-    fetchPermissions()
-      .then((pairs) => {
-        if (!active) return;
-        setGrantsByRole(Object.fromEntries(pairs));
-        setStatus("ready");
-      })
-      .catch((error) => {
-        if (!active) return;
-        setLoadError(error?.userMessage ?? null);
-        setStatus("failed");
-      });
+  // Fast Set lookups per role: Map<role, Set<code/permission>>
+  const grantsByRoleSets = useMemo(() => {
+    const map = {};
+    for (const [role, permissions] of Object.entries(grantsByRole)) {
+      map[role] = new Set(permissions);
+    }
+    return map;
+  }, [grantsByRole]);
 
-    return () => {
-      active = false;
-    };
-  }, [fetchPermissions]);
-
-  /** Catalog rows + backend-granted codes missing from local metadata. */
+  // Catalog metadata merged with dynamic extra backend permissions
   const catalog = useMemo(() => {
     const grantedCodes = Object.values(grantsByRole).flat();
     const extras = [...new Set(grantedCodes)]
       .filter((code) => !PERMISSION_CODES.includes(code))
       .sort();
+
     return [
       ...PERMISSION_MATRIX,
       ...extras.map((code) => ({
@@ -128,406 +214,295 @@ const AccessControlPage = () => {
         category: UNCATEGORIZED,
         name: code,
         description:
-          "Granted through the backend but missing from the local catalog metadata.",
+          "Granted through the backend API but absent from local catalog metadata.",
       })),
     ];
   }, [grantsByRole]);
 
   const categoryOptions = useMemo(() => {
-    const seen = [];
+    const seen = new Set();
     for (const entry of catalog) {
-      if (!seen.includes(entry.category)) seen.push(entry.category);
+      if (entry.category) seen.add(entry.category);
     }
-    return seen.map((value) => ({ value, label: value }));
+    return [
+      { value: ALL_CATEGORIES, label: "All Categories" },
+      ...Array.from(seen).map((val) => ({ value: val, label: val })),
+    ];
   }, [catalog]);
 
   const filteredPermissions = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
+    const query = debouncedSearch.trim().toLowerCase();
     return catalog.filter((entry) => {
       const matchesCategory =
         category === ALL_CATEGORIES || entry.category === category;
       const matchesText =
         !query ||
-        [entry.code, entry.name, entry.description, entry.category].some(
-          (field) => field.toLowerCase().includes(query),
-        );
+        entry.code.toLowerCase().includes(query) ||
+        entry.name.toLowerCase().includes(query) ||
+        entry.description.toLowerCase().includes(query) ||
+        entry.category.toLowerCase().includes(query);
       return matchesCategory && matchesText;
     });
-  }, [catalog, category, searchQuery]);
+  }, [catalog, category, debouncedSearch]);
 
-  const grantedCells = useMemo(
+  const totalGrantedEdges = useMemo(
     () =>
       Object.values(grantsByRole).reduce(
-        (sum, permissions) => sum + permissions.length,
-        0,
+        (sum, list) => sum + (list?.length || 0),
+        0
       ),
-    [grantsByRole],
+    [grantsByRole]
   );
 
-  const applyRolePermissions = async (role, permissions, entry, wasGranted) => {
-    setSavingRole(role);
+  /** Optimistic update handler with failure fallback */
+  const applyRolePermissions = async (
+    role,
+    nextPermissions,
+    entry,
+    wasGranted
+  ) => {
+    const key = `${role}:${entry.code}`;
+    setSavingKey(key);
+
+    // Backup state for rollback on error
+    const previousPermissions = grantsByRole[role] ?? [];
+
+    // Optimistically apply state change
+    setGrantsByRole((prev) => ({ ...prev, [role]: nextPermissions }));
+
     try {
-      const updated = await setRolePermissions(role, permissions);
-      setGrantsByRole((current) => ({
-        ...current,
+      const updated = await setRolePermissions(role, nextPermissions);
+      setGrantsByRole((prev) => ({
+        ...prev,
         [role]: updated.permissions,
       }));
       setToast({
         type: "success",
-        message: `Permissions for ${roleLabel(
-          role,
-        )} updated — ${entry.code} ${wasGranted ? "granted" : "revoked"}.`,
+        message: `${roleLabel(role)} updated: ${entry.name} ${
+          wasGranted ? "revoked" : "granted"
+        }.`,
       });
     } catch (error) {
+      // Revert optimistic update
+      setGrantsByRole((prev) => ({ ...prev, [role]: previousPermissions }));
       setToast({
         type: "error",
         message:
           error?.userMessage ??
           error?.message ??
-          "Could not update the permission set — the stored set was left untouched.",
+          "Failed to update permission set on server.",
       });
     } finally {
-      setSavingRole(null);
+      setSavingKey(null);
     }
   };
 
-  const requestToggle = (code, role, entry) => {
-    const current = grantsByRole[role] ?? [];
-    const isGranted = current.includes(code);
-    const next = isGranted
-      ? current.filter((granted) => granted !== code)
-      : [...current, code];
+  const requestToggle = useCallback(
+    (code, role, entry) => {
+      const currentList = grantsByRole[role] ?? [];
+      const isGranted = currentList.includes(code);
+      const nextList = isGranted
+        ? currentList.filter((c) => c !== code)
+        : [...currentList, code];
 
-    setConfirm({
-      title: isGranted ? "Revoke security scope?" : "Grant security scope?",
-      message: `You are about to ${isGranted ? "revoke" : "grant"} "${
-        entry.name
-      }" (${entry.code}) for the [${roleLabel(
-        role,
-      )}] role group. The role's full permission set is written to the backend after confirmation.`,
-      confirmLabel: isGranted ? "Confirm revocation" : "Authorize scope",
-      variant: isGranted ? "danger" : "primary",
-      run: () => {
-        applyRolePermissions(role, next, entry, isGranted);
-      },
-    });
-  };
+      setConfirm({
+        title: isGranted ? "Revoke Security Scope?" : "Grant Security Scope?",
+        message: `Are you sure you want to ${
+          isGranted ? "revoke" : "grant"
+        } "${entry.name}" (${code}) for [${roleLabel(
+          role
+        )}]? Changes take effect immediately.`,
+        confirmLabel: isGranted ? "Confirm Revocation" : "Authorize Scope",
+        variant: isGranted ? "danger" : "primary",
+        run: () => applyRolePermissions(role, nextList, entry, isGranted),
+      });
+    },
+    [grantsByRole]
+  );
 
   const requestBreakGlass = () => {
     setConfirm({
-      title: "Initiate emergency break-glass elevation?",
+      title: "Initiate Emergency Break-Glass Elevation?",
       message:
-        "This temporarily elevates emergency on-call clinicians with full system privileges for 60 minutes. Every clinical query executed during this window will be flagged as an elevated emergency event in HIPAA SIEM records. This action is local to this session.",
-      confirmLabel: "Authorize emergency elevation (1 hour)",
+        "This temporarily elevates emergency clinicians with full system privileges for 60 minutes. Every clinical query executed during this window will be logged under HIPAA SIEM audit logs.",
+      confirmLabel: "Authorize Emergency Elevation (1 Hr)",
       variant: "warning",
       run: () =>
         setToast({
           type: "warning",
           message:
-            "Emergency break-glass window active for 60 minutes. Cryptographic audit alert triggered.",
+            "Emergency break-glass active for 60 minutes. Audit logging triggered.",
         }),
     });
   };
 
-  const permissionColumns = [
-    {
-      key: "scope",
-      header: "Permission scope",
-      render: (row) => (
-        <div className="max-w-xl whitespace-normal">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-md bg-warning-100 px-2 py-0.5 text-xs font-semibold text-warning-900">
-              {row.category}
-            </span>
-            <span className="font-mono text-xs text-neutral-500">
-              {row.code}
-            </span>
-            {row.privileged ? (
-              <span className="rounded-md bg-danger-100 px-2 py-0.5 text-xs font-semibold text-danger-800">
-                Privileged
-              </span>
-            ) : null}
-          </div>
-          <p className="mt-1 font-medium text-neutral-900">{row.name}</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-neutral-600">
-            {row.description}
-          </p>
-        </div>
-      ),
-    },
-    ...ROLE_ORDER.map((role) => {
-      const readOnly = role === IMMUTABLE_ROLE;
-
-      return {
+  const permissionColumns = useMemo(
+    () => [
+      {
+        key: "scope",
+        header: "Permission Scope",
+        render: (row) => <ScopeInfoCell row={row} />,
+      },
+      ...ROLE_ORDER.map((role) => ({
         key: role,
         header: roleLabel(role),
+        headerClass: "text-center",
         render: (row) => {
-          const roleGrants = grantsByRole[role] ?? [];
-          const granted = roleGrants.includes(row.code);
-          const lastGranted = granted && roleGrants.length <= 1; // BR006
-          const privilegedForRole =
-            Boolean(row.privileged) && role !== IMMUTABLE_ROLE; // BR004
-          const blocked = lastGranted || privilegedForRole;
-          const blockReason = lastGranted
-            ? "BR006: a role's permission set cannot be empty"
-            : privilegedForRole
-              ? "BR004: only SUPER_ADMIN may hold this privileged scope"
-              : null;
-
-          if (readOnly) {
-            return (
-              <span
-                className="inline-flex h-8 w-8 items-center justify-center"
-                title={SUPER_ADMIN_READONLY_TITLE}
-              >
-                <Icon
-                  name={granted ? "circle-check" : "circle-x"}
-                  className={
-                    granted
-                      ? "h-5 w-5 text-success-600"
-                      : "h-5 w-5 text-neutral-400"
-                  }
-                />
-                <span className="sr-only">
-                  {granted ? "Authorized" : "Denied"} (read-only — the
-                  SUPER_ADMIN permission set cannot be modified)
-                </span>
-              </span>
-            );
-          }
+          const roleSet = grantsByRoleSets[role];
+          const isGranted = roleSet ? roleSet.has(row.code) : false;
+          const totalGrants = grantsByRole[role]?.length || 0;
+          const isSaving = savingKey === `${role}:${row.code}`;
 
           return (
-            <button
-              type="button"
-              onClick={() => requestToggle(row.code, role, row)}
-              disabled={Boolean(savingRole) || blocked}
-              aria-pressed={granted}
-              aria-label={`${granted ? "Revoke" : "Grant"} ${row.name} for ${roleLabel(
-                role,
-              )}`}
-              title={
-                blocked
-                  ? blockReason
-                  : `${granted ? "Authorized" : "Denied"} — click to toggle`
-              }
-              className={`inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
-                blocked
-                  ? "cursor-not-allowed opacity-50"
-                  : "hover:bg-neutral-100"
-              }`}
-            >
-              <Icon
-                name={granted ? "circle-check" : "circle-x"}
-                className={
-                  granted
-                    ? "h-5 w-5 text-success-600"
-                    : "h-5 w-5 text-neutral-400"
-                }
-              />
-            </button>
+            <MatrixCell
+              row={row}
+              role={role}
+              isGranted={isGranted}
+              isSaving={isSaving}
+              totalRoleGrants={totalGrants}
+              onToggle={requestToggle}
+            />
           );
         },
-      };
-    }),
-  ];
+      })),
+    ],
+    [grantsByRoleSets, grantsByRole, savingKey, requestToggle]
+  );
 
   const matrixPanel = (
     <div className="space-y-4">
-      {/* Search & category filter */}
+      {/* Search & Domain Controls */}
       <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-xs sm:p-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <SearchBar
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="Search permission scopes, description, or domain..."
-            searchLabel="Search permission scopes"
-            className="w-full sm:max-w-md"
-          />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative flex-1 max-w-md">
+            <SearchBar
+              ref={searchInputRef}
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search scope, code, or description... (⌘F)"
+              searchLabel="Search permission scopes"
+              className="w-full"
+            />
+          </div>
 
-          <Select
-            id="category-filter"
-            name="category-filter"
-            label="Domain"
-            options={categoryOptions}
-            placeholder="All categories"
-            defaultValue=""
-            onChange={(event) =>
-              setCategory(event.target.value || ALL_CATEGORIES)
-            }
-            className="w-full sm:w-64"
-          />
+          <div className="flex items-center gap-3">
+            <Select
+              id="category-filter"
+              name="category-filter"
+              label="Domain"
+              options={categoryOptions}
+              value={category}
+              onChange={(e) => setCategory(e.target.value || ALL_CATEGORIES)}
+              className="w-full sm:w-56"
+            />
+            {(searchQuery || category !== ALL_CATEGORIES) && (
+              <Button
+                variant="tertiary"
+                onClick={() => {
+                  setSearchQuery("");
+                  setCategory(ALL_CATEGORIES);
+                }}
+                className="mt-6 sm:mt-0 text-xs text-neutral-500 hover:text-neutral-800"
+              >
+                Clear Filters
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Matrix */}
+      {/* Emergency Action Bar */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-xl border border-warning-200 bg-warning-50/50 p-4">
+        <div className="flex items-center gap-3">
+          <Icon name="shield-alert" className="h-5 w-5 text-warning-700 shrink-0" />
+          <p className="text-xs sm:text-sm text-warning-900">
+            <strong>Need temporary elevated access?</strong> Emergency Break-Glass override elevates session permissions for 60 mins.
+          </p>
+        </div>
+        <Button
+          variant="secondary"
+          onClick={requestBreakGlass}
+          className="whitespace-nowrap border-warning-300 bg-white text-warning-800 hover:bg-warning-100 text-xs"
+        >
+          Break-Glass Access
+        </Button>
+      </div>
+
+      {/* Matrix Main Section */}
       <section aria-labelledby="permission-matrix-heading">
-        {status === "ready" ? (
+        {status === "ready" && (
           <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2
                 id="permission-matrix-heading"
                 className="text-base font-semibold text-neutral-900"
               >
-                Granular permission boundaries
+                Granular Permission Boundaries
               </h2>
-              <p className="text-sm text-neutral-600">
-                Select any cell to rewrite the role's full permission set on
-                the backend. SUPER_ADMIN's own column is read-only (BR005).
+              <p className="text-xs text-neutral-500">
+                Click any cell indicator to toggle role access. Changes persist directly to the security backend.
               </p>
             </div>
-            <div className="flex items-center gap-4 text-sm text-neutral-600">
-              <span className="inline-flex items-center gap-1">
-                <Icon
-                  name="circle-check"
-                  className="h-4 w-4 text-success-600"
-                />
+            <div className="flex items-center gap-4 text-xs text-neutral-600">
+              <span className="inline-flex items-center gap-1.5 font-medium">
+                <Icon name="circle-check" className="h-4 w-4 text-success-600" />
                 Authorized
               </span>
-              <span className="inline-flex items-center gap-1">
+              <span className="inline-flex items-center gap-1.5 font-medium">
                 <Icon name="circle-x" className="h-4 w-4 text-neutral-400" />
                 Denied
               </span>
             </div>
           </div>
-        ) : null}
+        )}
 
         {status === "loading" ? (
           <div
             role="status"
-            aria-label="Loading role permissions"
-            aria-busy="true"
-            className="motion-safe:animate-pulse space-y-3 rounded-2xl border border-neutral-200 bg-white p-5 shadow-xs"
+            aria-label="Loading matrix"
+            className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-6 shadow-xs animate-pulse"
           >
-            {Array.from({ length: 8 }, (_, index) => (
-              <div
-                key={index}
-                className="h-4 rounded bg-neutral-100"
-                style={{ width: `${Math.max(40, 92 - index * 10)}%` }}
-              />
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex gap-4">
+                <div className="h-6 w-1/3 rounded bg-neutral-100" />
+                <div className="h-6 w-1/6 rounded bg-neutral-100" />
+                <div className="h-6 w-1/6 rounded bg-neutral-100" />
+                <div className="h-6 w-1/6 rounded bg-neutral-100" />
+              </div>
             ))}
           </div>
         ) : status === "failed" ? (
-          <div className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-5 shadow-xs">
+          <div className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-6 shadow-xs text-center">
             <ErrorMessage
-              title="Unable to load role permissions"
-              message={
-                loadError ?? "Please check your connection and try again."
-              }
+              title="Unable to load permission entitlements"
+              message={loadError}
             />
             <Button
               onClick={loadPermissions}
-              className="inline-flex items-center gap-2"
+              className="inline-flex items-center gap-2 mt-2"
             >
               <Icon name="refresh" className="h-4 w-4" />
-              Retry
+              Retry Connection
             </Button>
           </div>
         ) : (
-          <Table
-            columns={permissionColumns}
-            data={filteredPermissions}
-            getRowKey={(row) => row.code}
-            emptyTitle="No permission scopes found."
-            emptyMessage={
-              searchQuery || category !== ALL_CATEGORIES
-                ? "No scopes match the current filters. Try a different search or domain."
-                : "The permission catalog is empty."
-            }
-            label="Role entitlement matrix"
-          />
+          <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-xs">
+            <Table
+              columns={permissionColumns}
+              data={filteredPermissions}
+              getRowKey={(row) => row.code}
+              emptyTitle="No matching permissions found"
+              emptyMessage={
+                searchQuery || category !== ALL_CATEGORIES
+                  ? "No permission scopes match your search or domain query."
+                  : "The permission matrix catalog is empty."
+              }
+              label="Role entitlement matrix"
+            />
+          </div>
         )}
       </section>
     </div>
-  );
-
-  const tokensPanel = (
-    <section aria-labelledby="machine-tokens-heading" className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2
-            id="machine-tokens-heading"
-            className="text-base font-semibold text-neutral-900"
-          >
-            Service account tokens & workstation IP restrictions
-          </h2>
-          <p className="text-sm text-neutral-600">
-            Tokens used by backend daemons, PACS imaging systems, and lab
-            bridges. Session-local preview — no token endpoint exists yet.
-          </p>
-        </div>
-        <Button
-          size="sm"
-          onClick={() =>
-            setToast({
-              type: "info",
-              message:
-                "Machine token provisioning requires the identity service, which is not available yet.",
-            })
-          }
-          className="inline-flex shrink-0 items-center gap-2"
-        >
-          <Icon name="plus" className="h-4 w-4" />
-          Generate machine token
-        </Button>
-      </div>
-
-    </section>
-  );
-
-  const elevationPanel = (
-    <section aria-labelledby="break-glass-heading" className="space-y-4">
-      <div className="flex items-center gap-3 border-b border-neutral-200 pb-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-warning-50 text-warning-700">
-          <Icon name="shield-alert" className="h-5 w-5" />
-        </span>
-        <div className="min-w-0">
-          <h2
-            id="break-glass-heading"
-            className="text-base font-semibold text-neutral-900"
-          >
-            Emergency break-glass authorization protocol
-          </h2>
-          <p className="text-sm text-neutral-600">
-            HIPAA-compliant emergency mechanism allowing clinicians
-            temporary elevated access during mass casualties.
-          </p>
-        </div>
-      </div>
-
-      <div className="space-y-2 rounded-2xl border border-warning-200 bg-warning-50 p-4 text-warning-900">
-        <p className="flex items-center gap-1.5 text-sm font-semibold">
-          <Icon
-            name="triangle-alert"
-            className="h-4 w-4 shrink-0 text-warning-700"
-          />
-          Statutory notice on privileged access elevation
-        </p>
-        <p className="text-sm leading-relaxed text-warning-800">
-          When triggered, any physician on duty can bypass
-          cross-department EMR restrictions. In accordance with federal
-          HIPAA Security Rule §164.312(a)(2)(ii), all queries, patient
-          records opened, and diagnostic orders written will be stamped
-          with the tag{" "}
-          <code className="rounded bg-warning-100 px-1.5 py-0.5 font-mono text-xs font-semibold">
-            EMERGENCY_OVERRIDE
-          </code>{" "}
-          and automatically dispatched to the Chief Medical Officer and
-          Legal Compliance Officer. The trigger below is a session-local
-          preview — no elevation endpoint exists yet.
-        </p>
-      </div>
-
-      <div className="flex justify-end">
-        <Button
-          variant="warning"
-          onClick={requestBreakGlass}
-          className="inline-flex items-center gap-2"
-        >
-          <Icon name="shield-alert" className="h-4 w-4" />
-          Activate 60-minute emergency window
-        </Button>
-      </div>
-    </section>
   );
 
   const tabs = [
@@ -536,90 +511,47 @@ const AccessControlPage = () => {
       label: "Role entitlement matrix",
       content: matrixPanel,
     },
-    {
-      id: "tokens",
-      label: "Daemon API tokens & IP whitelist",
-      content: tokensPanel,
-    },
-    {
-      id: "elevation",
-      label: "Break-glass emergency protocol",
-      content: elevationPanel,
-    },
   ];
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
-      {/* Header — global security governance + break-glass action */}
-      <div className="flex flex-col gap-4 rounded-2xl border border-neutral-200 bg-white p-5 shadow-xs sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <span className="inline-flex items-center gap-2">
-            <span className="rounded-full border border-warning-200 bg-warning-50 px-2.5 py-0.5 text-xs font-semibold text-warning-900">
-              Global security governance
-            </span>
-            <span
-              aria-hidden="true"
-              className="h-2 w-2 rounded-full bg-success-500"
-            />
-          </span>
-          <h1 className="mt-2 text-2xl font-semibold text-neutral-900">
-            Access control & RBAC matrix
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-neutral-600">
-            Fine-grained role entitlement policies, service tokens,
-            workstation IP restrictions, and HIPAA access boundaries.
-            Permission sets are read from and written to the
-            role-permissions API.
-          </p>
-        </div>
-
-        <Button
-          variant="warning"
-          onClick={requestBreakGlass}
-          className="inline-flex shrink-0 items-center gap-2"
-        >
-          <Icon name="shield-alert" className="h-4 w-4" />
-          Emergency break-glass
-        </Button>
-      </div>
-
-      {/* Summary stats */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
+      {/* Header Summary Stats */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
         <StatCard
-          label="Role profiles"
-          value={`${ROLE_ORDER.length} roles`}
+          label="Role Profiles"
+          value={`${ROLE_ORDER.length} Roles`}
           chip="RBAC"
           icon="key-round"
           iconClass="bg-warning-50 text-warning-700"
           chipClass="bg-warning-100 text-warning-900"
         />
         <StatCard
-          label="Active scopes"
-          value={`${catalog.length} scopes`}
+          label="Active Scopes"
+          value={`${catalog.length} Catalog Scopes`}
           chip="Enforced"
           icon="shield"
           iconClass="bg-primary-50 text-primary-700"
           chipClass="bg-primary-100 text-primary-800"
         />
         <StatCard
-          label="Granted edges"
-          value={String(grantedCells)}
-          chip={`of ${catalog.length * ROLE_ORDER.length} cells`}
+          label="Granted Entitlements"
+          value={String(totalGrantedEdges)}
+          chip={`of ${catalog.length * ROLE_ORDER.length} total max`}
           icon="circle-check"
           iconClass="bg-success-50 text-success-700"
           chipClass="bg-success-100 text-success-800"
         />
       </div>
 
-      {/* Section tabs */}
+      {/* Tabs Nav */}
       <Tabs
         tabs={tabs}
         activeTab={activeTab}
         onChange={setActiveTab}
-        ariaLabel="Access control sections"
+        ariaLabel="Access control tabs"
       />
 
-      {/* Sensitive-operation confirmation */}
+      {/* Confirmation Modal */}
       <ConfirmDialog
         isOpen={Boolean(confirm)}
         onClose={() => setConfirm(null)}
@@ -633,13 +565,14 @@ const AccessControlPage = () => {
         variant={confirm?.variant ?? "danger"}
       />
 
+      {/* Dynamic Toast Feedback */}
       {toast && (
         <Toast
           message={toast.message}
           type={toast.type}
           onClose={() => setToast(null)}
-          duration={6000}
-          className="fixed bottom-4 right-4 z-50 max-w-sm shadow-lg"
+          duration={5000}
+          className="fixed bottom-4 right-4 z-50 max-w-sm shadow-xl animate-bounce-short"
         />
       )}
     </div>

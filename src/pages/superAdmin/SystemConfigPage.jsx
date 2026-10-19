@@ -13,9 +13,6 @@ import {
   testBackendHealth,
 } from "../../services/systemConfigService";
 
-/** Vite's real build profile (development / production), not a mock. */
-const ACTIVE_PROFILE = String(import.meta.env.MODE ?? "unknown").toUpperCase();
-
 const FALLBACK_EXPIRY_MINUTES = Math.round(
   DEFAULT_EXPIRES_IN_SECONDS / 60,
 );
@@ -140,19 +137,6 @@ const SystemConfigPage = () => {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      {/* Header */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-xs">
-        <span className="text-xs font-semibold uppercase tracking-wider text-secondary-700">
-          Active profile: {ACTIVE_PROFILE}
-        </span>
-        <h1 className="mt-1 text-2xl font-semibold text-neutral-900">
-          Clinic Configuration
-        </h1>
-        <p className="mt-1 max-w-2xl text-sm text-neutral-600">
-          Spring Boot REST gateway parameters, JWT cipher policies, and
-          automated failover settings.
-        </p>
-      </div>
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Backend integration */}
