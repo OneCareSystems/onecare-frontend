@@ -62,28 +62,34 @@ const validateEmail = (value) =>
     ? "Enter a valid email address."
     : "";
 
-/**
- * Sub-component for rendering employee profile cell (Memoized for performance)
- */
-const EmployeeCell = memo(({ username, email }) => {
-  const initial = String(username ?? "?")
-    .charAt(0)
-    .toUpperCase();
+/* ------------------------------------------------------------------ */
+/* Presentational bits                                                 */
+/* ------------------------------------------------------------------ */
 
+const roleHue = (role) => {
+  let h = 0;
+  for (const ch of String(role || "")) h = (h * 31 + ch.charCodeAt(0)) % 360;
+  return h;
+};
+
+const EmployeeCell = memo(({ username, email }) => {
+  const initial = String(username ?? "?").charAt(0).toUpperCase();
+  const hue = roleHue(username);
   return (
     <div className="flex items-center gap-3 py-1">
       <span
         aria-hidden="true"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-800 border border-primary-200 shadow-xs"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white shadow-xs"
+        style={{ backgroundColor: `hsl(${hue} 55% 45%)` }}
       >
         {initial}
       </span>
       <div className="min-w-0">
-        <span className="block font-medium text-neutral-900 truncate">
+        <span className="block truncate font-medium text-neutral-900">
           {username}
         </span>
-        <span className="block font-mono text-xs text-neutral-500 truncate">
-          {email ? `${email}` : ""}
+        <span className="block truncate font-mono text-xs text-neutral-500">
+          {email || "—"}
         </span>
       </div>
     </div>
@@ -91,65 +97,142 @@ const EmployeeCell = memo(({ username, email }) => {
 });
 EmployeeCell.displayName = "EmployeeCell";
 
-/**
- * Sub-component for account status badges (Memoized)
- */
-const UserStatusBadge = memo(({ status }) => {
+const RolePill = memo(({ role }) => (
+  <span
+    className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
+      ROLE_BADGE_CLASSES[role] ??
+      "border-neutral-200 bg-neutral-100 text-neutral-800"
+    }`}
+  >
+    {roleLabel(role) || "—"}
+  </span>
+));
+RolePill.displayName = "RolePill";
+
+/** Live-updating lock countdown. */
+const LockCountdown = memo(({ lockedUntil }) => {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  if (!lockedUntil) return null;
+  const diff = new Date(lockedUntil).getTime() - now;
+  if (diff <= 0)
+    return <span className="text-[11px] text-warning-700">Lock expired — retry signing in</span>;
+  const mins = Math.ceil(diff / 60000);
+  const label = mins >= 60 ? `${Math.ceil(mins / 60)}h` : `${mins}m`;
+  return (
+    <span className="text-[11px] text-warning-700">
+      Unlocks in ~{label}
+    </span>
+  );
+});
+LockCountdown.displayName = "LockCountdown";
+
+const UserStatusBadge = memo(({ status, lockedUntil }) => {
   if (status === STATUS_LOCKED) {
     return (
-      <span
-        title="Account locked due to consecutive failed login attempts."
-        className="inline-flex cursor-help"
-      >
-        <StatusBadge status="warning">Locked</StatusBadge>
-      </span>
+      <div className="flex flex-col gap-0.5">
+        <span
+          title="Account locked due to consecutive failed login attempts."
+          className="inline-flex cursor-help"
+        >
+          <StatusBadge status="warning">Locked</StatusBadge>
+        </span>
+        <LockCountdown lockedUntil={lockedUntil} />
+      </div>
     );
   }
-  if (status === STATUS_INACTIVE) {
+  if (status === STATUS_INACTIVE)
     return <StatusBadge status="danger">Inactive</StatusBadge>;
-  }
-  if (status === STATUS_ACTIVE) {
+  if (status === STATUS_ACTIVE)
     return <StatusBadge status="success">Active</StatusBadge>;
-  }
   return <StatusBadge status="neutral">{status || "Unknown"}</StatusBadge>;
 });
 UserStatusBadge.displayName = "UserStatusBadge";
 
-/**
- * Action buttons per table row (Memoized)
- */
-const UserTableRowActions = memo(
-  ({ row, onEdit, onUnlock, onDeactivate }) => {
+/* ------------------------------------------------------------------ */
+/* Row actions (kebab menu)                                            */
+/* ------------------------------------------------------------------ */
+
+const RowActionsMenu = memo(
+  ({ row, onEdit, onUnlock, onDeactivate, onReset }) => {
+    const [open, setOpen] = useState(false);
+    const ref = useRef(null);
+
+    useEffect(() => {
+      if (!open) return;
+      const onDocClick = (e) => {
+        if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      };
+      const onKey = (e) => e.key === "Escape" && setOpen(false);
+      document.addEventListener("mousedown", onDocClick);
+      document.addEventListener("keydown", onKey);
+      return () => {
+        document.removeEventListener("mousedown", onDocClick);
+        document.removeEventListener("keydown", onKey);
+      };
+    }, [open]);
+
+    const item = (label, icon, handler, { danger, hidden } = {}) => {
+      if (hidden) return null;
+      return (
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false);
+            handler?.();
+          }}
+          className={`flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-xs transition ${
+            danger
+              ? "text-danger-700 hover:bg-danger-50"
+              : "text-neutral-700 hover:bg-neutral-50"
+          }`}
+        >
+          <Icon name={icon} className="h-3.5 w-3.5" />
+          {label}
+        </button>
+      );
+    };
+
     return (
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <Button size="sm" variant="outline" onClick={() => onEdit(row)}>
-          Edit
-        </Button>
-
-        {row.status === STATUS_LOCKED && (
-          <Button
-            size="sm"
-            variant="warning"
-            onClick={() => onUnlock(row)}
+      <div ref={ref} className="relative inline-block text-right">
+        <button
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-500 shadow-xs transition hover:border-neutral-300 hover:text-neutral-800"
+        >
+          <Icon name="more-vertical" className="h-4 w-4" />
+        </button>
+        {open && (
+          <div
+            role="menu"
+            className="absolute right-0 z-20 mt-1 w-44 rounded-lg border border-neutral-200 bg-white p-1 shadow-lg"
           >
-            Unlock
-          </Button>
-        )}
-
-        {row.status !== STATUS_INACTIVE && (
-          <Button
-            size="sm"
-            variant="danger"
-            onClick={() => onDeactivate(row)}
-          >
-            Deactivate
-          </Button>
+            {item("Edit account", "pencil", () => onEdit(row))}
+            {item("Reset password", "key-round", () => onReset(row))}
+            {item("Unlock account", "unlock", () => onUnlock(row), {
+              hidden: row.status !== STATUS_LOCKED,
+            })}
+            <div className="my-1 h-px bg-neutral-100" />
+            {item("Deactivate account", "ban", () => onDeactivate(row), {
+              danger: true,
+              hidden: row.status === STATUS_INACTIVE,
+            })}
+          </div>
         )}
       </div>
     );
   }
 );
-UserTableRowActions.displayName = "UserTableRowActions";
+RowActionsMenu.displayName = "RowActionsMenu";
+
+/* ------------------------------------------------------------------ */
+/* Main page                                                           */
+/* ------------------------------------------------------------------ */
 
 const UserManagementPage = () => {
   const [users, setUsers] = useState([]);
@@ -161,6 +244,8 @@ const UserManagementPage = () => {
   const [roleFilter, setRoleFilter] = useState(ALL_FILTER);
   const [statusFilter, setStatusFilter] = useState(ALL_FILTER);
   const [page, setPage] = useState(1);
+  const [density, setDensity] = useState("comfortable");
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -181,36 +266,46 @@ const UserManagementPage = () => {
   const [editError, setEditError] = useState("");
 
   const [toast, setToast] = useState(null);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const searchInputRef = useRef(null);
 
-  // Keyboard shortcut Ctrl/Cmd + F for quick search navigation
+  /* ---- shortcuts ---- */
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
+    const onKey = (e) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key.toLowerCase() === "f") {
         e.preventDefault();
         searchInputRef.current?.focus();
+      } else if (mod && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setShowShortcuts((v) => !v);
+      } else if (mod && e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        openCreate();
+      } else if (e.key === "/" && document.activeElement?.tagName !== "INPUT") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      } else if (e.key === "Escape") {
+        setShowShortcuts(false);
       }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fetch users with query race condition handling
+  /* ---- fetch ---- */
   useEffect(() => {
-    let isSubscribed = true;
-
+    let active = true;
     getUsers()
       .then((data) => {
-        if (!isSubscribed) return;
+        if (!active) return;
         setUsers(data || []);
         setStatus("ready");
       })
-      .catch(() => {
-        if (isSubscribed) setStatus("failed");
-      });
-
+      .catch(() => active && setStatus("failed"));
     return () => {
-      isSubscribed = false;
+      active = false;
     };
   }, [reloadKey]);
 
@@ -219,8 +314,8 @@ const UserManagementPage = () => {
     setReloadKey((k) => k + 1);
   }, []);
 
-  const handleQueryChange = useCallback((value) => {
-    setQuery(value);
+  const handleQueryChange = useCallback((v) => {
+    setQuery(v);
     setPage(1);
   }, []);
 
@@ -236,43 +331,37 @@ const UserManagementPage = () => {
     setIsCreateOpen(false);
   }, [submitting]);
 
-  const handleFormChange = useCallback((event) => {
-    const { name, value } = event.target;
-    setForm((current) => ({ ...current, [name]: value }));
+  const handleFormChange = useCallback((e) => {
+    const { name, value } = e.target;
+    setForm((c) => ({ ...c, [name]: value }));
   }, []);
 
   const handleCreateSubmit = async (event) => {
     event.preventDefault();
     setSubmitAttempted(true);
     setSubmitError("");
-
     if (
       !form.password.trim() ||
       !form.username.trim() ||
       !form.email.trim() ||
       !EMAIL_PATTERN.test(form.email.trim())
-    ) {
+    )
       return;
-    }
 
     setSubmitting(true);
     try {
-      console.log(form)
       const newUser = await createUser(form);
       setIsCreateOpen(false);
       setForm(EMPTY_FORM);
       setSubmitAttempted(false);
-
-      // Optimistically append created user locally
       if (newUser && newUser.userId) {
         setUsers((prev) => [newUser, ...prev]);
       } else {
         setReloadKey((k) => k + 1);
       }
-
       setToast({
         type: "success",
-        message: `Account for ${form.username.trim()} provisioned successfully. Instructions sent to email.`,
+        message: `Account for ${form.username.trim()} provisioned. Onboarding email dispatched.`,
       });
     } catch (error) {
       setSubmitError(
@@ -285,9 +374,7 @@ const UserManagementPage = () => {
 
   const patchUserLocally = useCallback((userId, patch) => {
     setUsers((current) =>
-      current.map((user) =>
-        user.userId === userId ? { ...user, ...patch } : user
-      )
+      current.map((u) => (u.userId === userId ? { ...u, ...patch } : u))
     );
   }, []);
 
@@ -306,26 +393,28 @@ const UserManagementPage = () => {
     (user) => {
       setConfirm({
         title: "Deactivate account?",
-        message: `Are you sure you want to deactivate ${user.username}? Access will be revoked immediately while maintaining compliance audit logs.`,
+        message: `Deactivate ${user.username}? Access is revoked immediately; all actions remain in the compliance audit log.`,
         confirmLabel: "Deactivate Account",
         variant: "danger",
         run: async () => {
+          const prev = user.status;
+          patchUserLocally(user.userId, {
+            status: STATUS_INACTIVE,
+            lockedUntil: null,
+          });
           try {
             await deactivateUser(user.userId);
-            patchUserLocally(user.userId, {
-              status: STATUS_INACTIVE,
-              lockedUntil: null,
-            });
             setToast({
               type: "success",
               message: `${user.username} has been deactivated.`,
             });
           } catch (error) {
+            patchUserLocally(user.userId, { status: prev });
             setToast({
               type: "error",
               message:
                 error?.userMessage ??
-                "Unable to deactivate the account. Please try again.",
+                "Unable to deactivate the account. State rolled back.",
             });
           }
         },
@@ -338,26 +427,28 @@ const UserManagementPage = () => {
     (user) => {
       setConfirm({
         title: "Clear sign-in lockout?",
-        message: `Clear authentication lockout for ${user.username}? The account will regain standard access privileges immediately.`,
+        message: `Clear authentication lockout for ${user.username}? They will be able to sign in immediately.`,
         confirmLabel: "Unlock Account",
         variant: "primary",
         run: async () => {
+          const prev = { status: user.status, lockedUntil: user.lockedUntil };
+          patchUserLocally(user.userId, {
+            status: STATUS_ACTIVE,
+            lockedUntil: null,
+          });
           try {
             await unlockUser(user.userId);
-            patchUserLocally(user.userId, {
-              status: STATUS_ACTIVE,
-              lockedUntil: null,
-            });
             setToast({
               type: "success",
               message: `Lockout cleared for ${user.username}.`,
             });
           } catch (error) {
+            patchUserLocally(user.userId, prev);
             setToast({
               type: "error",
               message:
                 error?.userMessage ??
-                "Unable to clear the lockout. Please try again.",
+                "Unable to clear the lockout. State rolled back.",
             });
           }
         },
@@ -365,6 +456,25 @@ const UserManagementPage = () => {
     },
     [patchUserLocally]
   );
+
+  const handleResetKey = useCallback(async (user) => {
+    setResettingUserId(user.userId);
+    try {
+      await resetUserPassword(user.userId);
+      setToast({
+        type: "success",
+        message: `Password reset dispatched to ${user.email || user.username}.`,
+      });
+    } catch (error) {
+      setToast({
+        type: "error",
+        message:
+          error?.userMessage ?? "Unable to initiate password reset sequence.",
+      });
+    } finally {
+      setResettingUserId(null);
+    }
+  }, []);
 
   const openEdit = useCallback((user) => {
     setEditTarget(user);
@@ -379,26 +489,23 @@ const UserManagementPage = () => {
     setIsEditOpen(false);
   }, [editSubmitting]);
 
-  const handleEditChange = useCallback((event) => {
-    const { name, value } = event.target;
-    setEditForm((current) => ({ ...current, [name]: value }));
+  const handleEditChange = useCallback((e) => {
+    const { name, value } = e.target;
+    setEditForm((c) => ({ ...c, [name]: value }));
   }, []);
 
   const handleEditSubmit = async (event) => {
     event.preventDefault();
     setEditAttempted(true);
     setEditError("");
-
     const email = editForm.email.trim();
     if (!email || !EMAIL_PATTERN.test(email)) return;
-
     const emailChanged = email !== editTarget.email;
     const roleChanged = editForm.role !== editTarget.role;
     if (!emailChanged && !roleChanged) {
       setIsEditOpen(false);
       return;
     }
-
     setEditSubmitting(true);
     try {
       if (emailChanged) {
@@ -416,52 +523,34 @@ const UserManagementPage = () => {
       });
     } catch (error) {
       setEditError(
-        error?.userMessage ?? "Unable to update account details. Please try again."
+        error?.userMessage ??
+          "Unable to update account details. Please try again."
       );
     } finally {
       setEditSubmitting(false);
     }
   };
 
-  const handleResetKey = useCallback(async (user) => {
-    setResettingUserId(user.userId);
-    try {
-      await resetUserPassword(user.userId);
-      setToast({
-        type: "success",
-        message: `Password reset dispatched to ${user.email || user.username}.`,
-      });
-    } catch (error) {
-      setToast({
-        type: "error",
-        message:
-          error?.userMessage ??
-          "Unable to initiate password reset sequence.",
-      });
-    } finally {
-      setResettingUserId(null);
-    }
-  }, []);
+  /* ---- bulk selection ---- */
+  const toggleSelectOne = (userId) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(userId) ? next.delete(userId) : next.add(userId);
+      return next;
+    });
 
-  // Filter pipeline optimized using deferred searching
+  /* ---- derived ---- */
   const filteredUsers = useMemo(() => {
-    const normalizedQuery = deferredQuery.trim().toLowerCase();
-
+    const q = deferredQuery.trim().toLowerCase();
     return users.filter((user) => {
       const matchesSearch =
-        !normalizedQuery ||
-        [user.username, user.username, user.email].some((field) =>
-          String(field ?? "")
-            .toLowerCase()
-            .includes(normalizedQuery)
+        !q ||
+        [user.username, user.email].some((f) =>
+          String(f ?? "").toLowerCase().includes(q)
         );
-
-      const matchesRole =
-        roleFilter === ALL_FILTER || user.role === roleFilter;
-
+      const matchesRole = roleFilter === ALL_FILTER || user.role === roleFilter;
       const matchesStatus =
         statusFilter === ALL_FILTER || user.status === statusFilter;
-
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [users, deferredQuery, roleFilter, statusFilter]);
@@ -469,79 +558,114 @@ const UserManagementPage = () => {
   const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const startIndex = (currentPage - 1) * PAGE_SIZE;
-
   const visibleUsers = useMemo(
     () => filteredUsers.slice(startIndex, startIndex + PAGE_SIZE),
     [filteredUsers, startIndex]
   );
 
+  const counts = useMemo(() => {
+    let active = 0,
+      locked = 0,
+      inactive = 0;
+    for (const u of users) {
+      if (u.status === STATUS_ACTIVE) active++;
+      else if (u.status === STATUS_LOCKED) locked++;
+      else if (u.status === STATUS_INACTIVE) inactive++;
+    }
+    return { total: users.length, active, locked, inactive };
+  }, [users]);
+
+  const allOnPageSelected =
+    visibleUsers.length > 0 &&
+    visibleUsers.every((u) => selectedIds.has(u.userId));
+
+  const toggleSelectAllOnPage = () =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allOnPageSelected) {
+        visibleUsers.forEach((u) => next.delete(u.userId));
+      } else {
+        visibleUsers.forEach((u) => next.add(u.userId));
+      }
+      return next;
+    });
+
+  /* ---- columns ---- */
   const columns = useMemo(
     () => [
+      {
+        key: "select",
+        header: (
+          <input
+            type="checkbox"
+            aria-label="Select all on page"
+            checked={allOnPageSelected}
+            onChange={toggleSelectAllOnPage}
+            className="h-3.5 w-3.5 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+          />
+        ),
+        headerClass: "w-8",
+        render: (row) => (
+          <input
+            type="checkbox"
+            aria-label={`Select ${row.username}`}
+            checked={selectedIds.has(row.userId)}
+            onChange={() => toggleSelectOne(row.userId)}
+            className="h-3.5 w-3.5 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+          />
+        ),
+      },
       {
         key: "fullName",
         header: "Employee",
         render: (row) => (
-          <EmployeeCell
-            username={row.username}
-            email={row.email}
-          />
+          <EmployeeCell username={row.username} email={row.email} />
         ),
       },
       {
         key: "role",
         header: "Security Role",
-        render: (row) => (
-          <span
-            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
-              ROLE_BADGE_CLASSES[row.role] ??
-              "border-neutral-200 bg-neutral-100 text-neutral-800"
-            }`}
-          >
-            {roleLabel(row.role) || "—"}
-          </span>
-        ),
+        render: (row) => <RolePill role={row.role} />,
       },
       {
         key: "status",
         header: "Status",
-        render: (row) => <UserStatusBadge status={row.status} />,
+        render: (row) => (
+          <UserStatusBadge status={row.status} lockedUntil={row.lockedUntil} />
+        ),
       },
       {
         key: "actions",
-        header: "Actions",
-        headerClass: "text-right",
+        header: "",
+        headerClass: "text-right w-12",
         render: (row) => (
-          <UserTableRowActions
+          <RowActionsMenu
             row={row}
-            isResetting={resettingUserId === row.userId}
             onEdit={openEdit}
-            onResetKey={handleResetKey}
             onUnlock={requestUnlock}
             onDeactivate={requestDeactivate}
+            onReset={handleResetKey}
           />
         ),
       },
     ],
     [
-      resettingUserId,
+      allOnPageSelected,
+      selectedIds,
       openEdit,
-      handleResetKey,
       requestUnlock,
       requestDeactivate,
+      handleResetKey,
     ]
   );
 
   const roleOptions = useMemo(
     () => [
       { value: ALL_FILTER, label: "All Roles" },
-      ...Object.values(ROLES).map((role) => ({
-        value: role,
-        label: roleLabel(role),
-      })),
+      ...Object.values(ROLES).map((r) => ({ value: r, label: roleLabel(r) })),
     ],
     []
   );
-
   const statusOptions = useMemo(
     () => [
       { value: ALL_FILTER, label: "All Statuses" },
@@ -555,20 +679,145 @@ const UserManagementPage = () => {
   const isFiltered =
     query || roleFilter !== ALL_FILTER || statusFilter !== ALL_FILTER;
 
+  /* ---- render ---- */
   return (
-    <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
-      {/* Controls Bar: Search, Role/Status Filters & Actions */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-xs sm:p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+    <div className="mx-auto max-w-7xl space-y-5 p-4 sm:p-6">
+      {/* ============ Hero ============ */}
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+            <Icon name="users" className="h-3.5 w-3.5" />
+            Identity · Staff directory
+          </p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-neutral-900">
+            User Management
+          </h1>
+          <p className="mt-1 text-sm text-neutral-500">
+            Provision, edit, and lock down staff accounts. All actions are
+            audited.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-lg border border-neutral-200 bg-neutral-50 p-0.5">
+            {[
+              { id: "comfortable", label: "Comfortable" },
+              { id: "compact", label: "Compact" },
+            ].map((d) => (
+              <button
+                key={d.id}
+                type="button"
+                onClick={() => setDensity(d.id)}
+                aria-pressed={density === d.id}
+                className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition ${
+                  density === d.id
+                    ? "bg-white text-neutral-900 shadow-xs"
+                    : "text-neutral-500 hover:text-neutral-800"
+                }`}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowShortcuts((v) => !v)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-medium text-neutral-600 transition hover:border-neutral-300 hover:text-neutral-900"
+          >
+            <kbd className="rounded bg-neutral-100 px-1 font-mono text-[10px]">
+              ⌘K
+            </kbd>
+            Shortcuts
+          </button>
+          <Button
+            onClick={openCreate}
+            className="inline-flex shrink-0 items-center gap-1.5"
+          >
+            <Icon name="plus" className="h-4 w-4" />
+            Create User
+          </Button>
+        </div>
+      </header>
+
+      {/* ============ Stat strip ============ */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          {
+            key: ALL_FILTER,
+            label: "All accounts",
+            value: counts.total,
+            tone: "neutral",
+          },
+          {
+            key: STATUS_ACTIVE,
+            label: "Active",
+            value: counts.active,
+            tone: "success",
+          },
+          {
+            key: STATUS_LOCKED,
+            label: "Locked",
+            value: counts.locked,
+            tone: "warning",
+          },
+          {
+            key: STATUS_INACTIVE,
+            label: "Inactive",
+            value: counts.inactive,
+            tone: "danger",
+          },
+        ].map((c) => {
+          const tone =
+            c.tone === "success"
+              ? "text-success-700 bg-success-50 ring-success-200"
+              : c.tone === "warning"
+              ? "text-warning-800 bg-warning-50 ring-warning-200"
+              : c.tone === "danger"
+              ? "text-danger-700 bg-danger-50 ring-danger-200"
+              : "text-neutral-700 bg-neutral-50 ring-neutral-200";
+          const active = statusFilter === c.key;
+          return (
+            <button
+              key={c.key}
+              type="button"
+              onClick={() => {
+                setStatusFilter(c.key);
+                setPage(1);
+              }}
+              className={`flex items-center justify-between rounded-2xl border bg-white p-3.5 text-left shadow-xs transition hover:shadow-sm ${
+                active
+                  ? "border-neutral-900 ring-1 ring-neutral-900"
+                  : "border-neutral-200"
+              }`}
+            >
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+                  {c.label}
+                </p>
+                <p className="mt-1 text-xl font-semibold text-neutral-900">
+                  {c.value}
+                </p>
+              </div>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${tone}`}
+              >
+                {active ? "Filtered" : "View"}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ============ Sticky filter bar ============ */}
+      <div className="sticky top-3 z-20 rounded-2xl border border-neutral-200 bg-white/95 p-3 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/80 sm:p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
             <SearchBar
               ref={searchInputRef}
               value={query}
               onChange={handleQueryChange}
-              placeholder="Search by name, username, email... (⌘F)"
+              placeholder="Search by name or email…  ( / )"
               className="w-full sm:max-w-xs"
             />
-
             <div className="flex flex-wrap items-center gap-2">
               <Select
                 id="role-filter"
@@ -581,7 +830,6 @@ const UserManagementPage = () => {
                 }}
                 className="w-36"
               />
-
               <Select
                 id="status-filter"
                 name="statusFilter"
@@ -593,7 +841,6 @@ const UserManagementPage = () => {
                 }}
                 className="w-36"
               />
-
               {isFiltered && (
                 <Button
                   variant="tertiary"
@@ -605,32 +852,30 @@ const UserManagementPage = () => {
                   }}
                   className="text-xs text-neutral-500 hover:text-neutral-800"
                 >
-                  Clear Filters
+                  Clear
                 </Button>
               )}
             </div>
           </div>
-
-          <Button
-            onClick={openCreate}
-            className="inline-flex shrink-0 items-center justify-center gap-2"
-          >
-            <Icon name="plus" className="h-4 w-4" />
-            Provision New User
-          </Button>
+          <span className="text-xs text-neutral-500">
+            {filteredUsers.length === users.length
+              ? `${users.length} accounts`
+              : `${filteredUsers.length} of ${users.length} shown`}
+          </span>
         </div>
+
       </div>
 
-      {/* Staff Table Section */}
+      {/* ============ Table ============ */}
       {status === "loading" ? (
         <div
           role="status"
           aria-label="Loading staff accounts"
-          className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-6 shadow-xs animate-pulse"
+          className="animate-pulse space-y-3 rounded-2xl border border-neutral-200 bg-white p-6 shadow-xs"
         >
           {Array.from({ length: 6 }).map((_, idx) => (
-            <div key={idx} className="flex gap-4 items-center">
-              <div className="h-9 w-9 rounded-full bg-neutral-100 shrink-0" />
+            <div key={idx} className="flex items-center gap-4">
+              <div className="h-9 w-9 shrink-0 rounded-full bg-neutral-100" />
               <div className="h-4 w-1/3 rounded bg-neutral-100" />
               <div className="h-4 w-1/6 rounded bg-neutral-100" />
               <div className="h-4 w-1/6 rounded bg-neutral-100" />
@@ -638,42 +883,40 @@ const UserManagementPage = () => {
           ))}
         </div>
       ) : status === "failed" ? (
-        <div className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-6 shadow-xs text-center">
+        <div className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-6 text-center shadow-xs">
           <ErrorMessage
             title="Unable to load staff directory"
-            message="We encountered an issue connecting to the identity provider. Please check your connection."
+            message="We encountered an issue connecting to the identity provider."
           />
-          <Button onClick={retry} className="inline-flex items-center gap-2 mt-2">
+          <Button onClick={retry} className="mt-2 inline-flex items-center gap-2">
             <Icon name="refresh" className="h-4 w-4" />
-            Retry Connection
+            Retry
           </Button>
         </div>
       ) : (
         <section aria-labelledby="staff-directory-heading" className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2
-              id="staff-directory-heading"
-              className="text-base font-semibold text-neutral-900"
-            >
-              Staff Directory ({filteredUsers.length})
-            </h2>
-          </div>
-
+          <h2
+            id="staff-directory-heading"
+            className="text-sm font-semibold text-neutral-900"
+          >
+            Staff Directory
+          </h2>
           <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-xs">
             <Table
               columns={columns}
               data={visibleUsers}
               getRowKey={(row) => row.userId}
+              stickyHeader
+              density={density}
               emptyTitle="No accounts match criteria"
               emptyMessage={
                 isFiltered
-                  ? "No staff accounts match the specified filter conditions. Try adjusting your search query."
-                  : "No staff accounts exist yet. Provision a new account to populate the directory."
+                  ? "No staff accounts match the specified filter conditions."
+                  : "No staff accounts exist yet. Create a new account to populate the directory."
               }
               label="Staff Directory Table"
             />
           </div>
-
           {totalPages > 1 && (
             <Pagination
               className="mt-4"
@@ -685,12 +928,43 @@ const UserManagementPage = () => {
         </section>
       )}
 
-      {/* Deactivate/Unlock Confirmation Modal */}
+      {/* ============ Shortcuts popover ============ */}
+      {showShortcuts && (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-neutral-900/30 p-4 backdrop-blur-sm"
+          onClick={() => setShowShortcuts(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-sm font-semibold text-neutral-900">
+              Keyboard shortcuts
+            </h3>
+            <ul className="mt-3 space-y-2 text-sm">
+              {[
+                ["⌘ / Ctrl + F", "Focus search"],
+                ["/", "Focus search"],
+                ["⌘ / Ctrl + N", "Create new user"],
+                ["⌘ / Ctrl + K", "Toggle shortcuts"],
+                ["Esc", "Close drawer / dialog"],
+              ].map(([k, label]) => (
+                <li key={k} className="flex items-center justify-between">
+                  <span className="text-neutral-600">{label}</span>
+                  <kbd className="rounded border border-neutral-200 bg-neutral-50 px-2 py-0.5 font-mono text-[11px] text-neutral-700">
+                    {k}
+                  </kbd>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {/* ============ Confirm ============ */}
       <ConfirmDialog
         isOpen={Boolean(confirm)}
-        onClose={() => {
-          if (!confirmBusy) setConfirm(null);
-        }}
+        onClose={() => !confirmBusy && setConfirm(null)}
         onConfirm={handleConfirm}
         title={confirm?.title ?? ""}
         message={confirm?.message ?? ""}
@@ -699,19 +973,14 @@ const UserManagementPage = () => {
         loading={confirmBusy}
       />
 
-      {/* Provision User Modal */}
+      {/* ============ Create modal ============ */}
       <Modal
         isOpen={isCreateOpen}
         onClose={closeCreate}
-        title="Provision New User"
+        title="Create New User"
       >
         <form onSubmit={handleCreateSubmit} className="space-y-4">
-          {submitError && (
-            <ErrorMessage
-              title="Creation Failed"
-              message={submitError}
-            />
-          )}
+          {submitError && <ErrorMessage title="Creation Failed" message={submitError} />}
 
           <Input
             id="username"
@@ -723,7 +992,6 @@ const UserManagementPage = () => {
             submitted={submitAttempted}
             placeholder="e.g. PENDELTON-3312"
           />
-
           <Input
             id="email"
             name="email"
@@ -737,7 +1005,6 @@ const UserManagementPage = () => {
             placeholder="staff@onecare.clinic"
             hint="An onboarding password activation key will be dispatched to this email address."
           />
-
           <Input
             id="password"
             name="password"
@@ -749,55 +1016,38 @@ const UserManagementPage = () => {
             submitted={submitAttempted}
             placeholder="e.g. **********"
           />
-
           <Select
             id="role"
             name="role"
             label="Role Clearance"
-            options={Object.values(ROLES).map((role) => ({
-              value: role,
-              label: roleLabel(role),
+            options={Object.values(ROLES).map((r) => ({
+              value: r,
+              label: roleLabel(r),
             }))}
             value={form.role}
             onChange={handleFormChange}
             required
             submitted={submitAttempted}
           />
-
-          <div className="flex justify-end gap-2 border-t border-neutral-100 pt-4 mt-6">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={closeCreate}
-              disabled={submitting}
-            >
+          <div className="mt-6 flex justify-end gap-2 border-t border-neutral-100 pt-4">
+            <Button type="button" variant="outline" onClick={closeCreate} disabled={submitting}>
               Cancel
             </Button>
             <Button type="submit" loading={submitting}>
-              Provision Account
+              Create Account
             </Button>
           </div>
         </form>
       </Modal>
 
-      {/* Edit User Modal */}
+      {/* ============ Edit modal ============ */}
       <Modal
         isOpen={isEditOpen}
         onClose={closeEdit}
-        title={
-          editTarget
-            ? `Edit Account — ${editTarget.username}`
-            : "Edit Account"
-        }
+        title={editTarget ? `Edit — ${editTarget.username}` : "Edit Account"}
       >
         <form onSubmit={handleEditSubmit} className="space-y-4">
-          {editError && (
-            <ErrorMessage
-              title="Update Failed"
-              message={editError}
-            />
-          )}
-
+          {editError && <ErrorMessage title="Update Failed" message={editError} />}
           <Input
             id="edit-email"
             name="email"
@@ -810,32 +1060,25 @@ const UserManagementPage = () => {
             submitted={editAttempted}
             placeholder="staff@onecare.clinic"
           />
-
           <Select
             id="edit-role"
             name="role"
             label="Role Clearance"
-            options={Object.values(ROLES).map((role) => ({
-              value: role,
-              label: roleLabel(role),
+            options={Object.values(ROLES).map((r) => ({
+              value: r,
+              label: roleLabel(r),
             }))}
             value={editForm.role}
             onChange={handleEditChange}
             required
             submitted={editAttempted}
           />
-
-          <p className="text-xs text-neutral-500 bg-neutral-50 p-2.5 rounded-lg border border-neutral-100">
-            Note: Role revisions take effect immediately on subsequent authentication updates or token refreshes.
+          <p className="rounded-lg border border-neutral-100 bg-neutral-50 p-2.5 text-xs text-neutral-500">
+            Role revisions take effect on subsequent authentication updates or
+            token refreshes.
           </p>
-
-          <div className="flex justify-end gap-2 border-t border-neutral-100 pt-4 mt-6">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={closeEdit}
-              disabled={editSubmitting}
-            >
+          <div className="mt-6 flex justify-end gap-2 border-t border-neutral-100 pt-4">
+            <Button type="button" variant="outline" onClick={closeEdit} disabled={editSubmitting}>
               Cancel
             </Button>
             <Button type="submit" loading={editSubmitting}>
@@ -845,7 +1088,7 @@ const UserManagementPage = () => {
         </form>
       </Modal>
 
-      {/* Global Toast Component */}
+      {/* ============ Toast ============ */}
       {toast && (
         <Toast
           message={toast.message}
