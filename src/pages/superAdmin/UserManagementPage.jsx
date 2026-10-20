@@ -119,20 +119,11 @@ UserStatusBadge.displayName = "UserStatusBadge";
  * Action buttons per table row (Memoized)
  */
 const UserTableRowActions = memo(
-  ({ row, isResetting, onEdit, onResetKey, onUnlock, onDeactivate }) => {
+  ({ row, onEdit, onUnlock, onDeactivate }) => {
     return (
       <div className="flex flex-wrap items-center justify-end gap-2">
         <Button size="sm" variant="outline" onClick={() => onEdit(row)}>
           Edit
-        </Button>
-
-        <Button
-          size="sm"
-          variant="outline"
-          loading={isResetting}
-          onClick={() => onResetKey(row)}
-        >
-          Reset key
         </Button>
 
         {row.status === STATUS_LOCKED && (
@@ -575,7 +566,6 @@ const UserManagementPage = () => {
               value={query}
               onChange={handleQueryChange}
               placeholder="Search by name, username, email... (⌘F)"
-              searchLabel="Search staff directory"
               className="w-full sm:max-w-xs"
             />
 

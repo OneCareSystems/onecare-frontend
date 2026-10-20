@@ -136,7 +136,6 @@ const AccessControlPage = () => {
   const [loadError, setLoadError] = useState(null);
   const [savingKey, setSavingKey] = useState(null); // tracking cell key: `${role}:${code}`
 
-  const [activeTab, setActiveTab] = useState("matrix");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [category, setCategory] = useState(ALL_CATEGORIES);
@@ -334,22 +333,6 @@ const AccessControlPage = () => {
     },
     [applyRolePermissions, grantsByRole]
   );
-
-  const requestBreakGlass = () => {
-    setConfirm({
-      title: "Initiate Emergency Break-Glass Elevation?",
-      message:
-        "This temporarily elevates emergency clinicians with full system privileges for 60 minutes. Every clinical query executed during this window will be logged under HIPAA SIEM audit logs.",
-      confirmLabel: "Authorize Emergency Elevation (1 Hr)",
-      variant: "warning",
-      run: () =>
-        setToast({
-          type: "warning",
-          message:
-            "Emergency break-glass active for 60 minutes. Audit logging triggered.",
-        }),
-    });
-  };
 
   const permissionColumns = useMemo(
     () => [

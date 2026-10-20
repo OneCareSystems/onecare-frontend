@@ -114,6 +114,14 @@ export const PERMISSION_MATRIX = Object.freeze([
     description: "Author and amend clinical notes during consultations",
     granted: Object.freeze([ROLES.DOCTOR]),
   }),
+  Object.freeze({
+    code: "SCHEDULE_MANAGE",
+    category: "Clinical EMR",
+    name: "Manage doctor schedules",
+    description:
+      "Set the working days and time slots that drive booking availability (FR009)",
+    granted: Object.freeze([ROLES.SUPER_ADMIN]),
+  }),
 
   // — Pharmacy & Dispensary — medicines ——————————————————————————
   Object.freeze({

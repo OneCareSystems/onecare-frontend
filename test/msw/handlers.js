@@ -1,7 +1,78 @@
 import { http, HttpResponse } from "msw";
 
-import { PERMISSION_CODES, PERMISSION_MATRIX } from "../../src/constants/permissions";
+import {
+  PERMISSION_CODES,
+  PERMISSION_MATRIX,
+} from "../../src/constants/permissions";
+import {
+  WORKING_DAYS,
+  findConflictingSlots,
+  isValidTime,
+} from "../../src/constants/schedule";
 import { ROLE_DASHBOARDS, ROLES } from "../../src/constants/roles";
+
+/** FR009/UC4 — seeded from the spec example; "5" has no schedule yet. */
+const defaultDoctorSchedules = () =>
+  JSON.parse(
+    JSON.stringify({
+      "4": {
+        workingDays: [
+          "MONDAY",
+          "TUESDAY",
+          "WEDNESDAY",
+          "THURSDAY",
+          "FRIDAY",
+        ],
+        timeSlots: [
+          { start: "09:00", end: "12:00" },
+          { start: "13:00", end: "17:00" },
+        ],
+      },
+      "5": { workingDays: [], timeSlots: [] },
+    }),
+  );
+
+/** Audit trail seed mirroring the real /api/audit-logs Page response. */
+const defaultAuditLogs = () => [
+  {
+    logId: 2,
+    userId: 1,
+    username: "superadmin",
+    actionType: "LOGIN",
+    entityType: "AUTH",
+    entityId: null,
+    description: "LOGIN outcome=SUCCESS target=AuthServiceImpl.login",
+    ipAddress: "0:0:0:0:0:0:0:1",
+    timestamp: "2026-10-20T10:54:46",
+  },
+  {
+    logId: 1,
+    userId: 1,
+    username: "superadmin",
+    actionType: "TOKEN_REFRESH",
+    entityType: "AUTH",
+    entityId: null,
+    description: "TOKEN_REFRESH outcome=SUCCESS target=AuthServiceImpl.refresh",
+    ipAddress: "0:0:0:0:0:0:0:1",
+    timestamp: "2026-10-20T10:52:21",
+  },
+];
+
+/** FR010/UC5 — seeded backup metadata; backupId 2 is the newest. */
+const defaultSystemBackups = () => [
+  {
+    backupId: 2,
+    createdAt: "2026-10-19T10:15:30.123",
+    filename: "onecare-backup-20261019T101530.backup",
+    sizeBytes: 48213,
+  },
+  {
+    backupId: 1,
+    createdAt: "2026-10-12T03:00:08.902",
+    filename: "onecare-backup-20261012T030008.backup",
+    sizeBytes: 46880,
+  },
+];
 
 /** Mock backend state seeded from the factory defaults (permissions.js). */
 const defaultRolePermissions = () =>
@@ -64,13 +135,24 @@ export const mswState = {
   userDeactivateHits: [],
   userResetHits: [],
   userResetErrorMode: null,
+  auditLogs: defaultAuditLogs(),
   auditLogsHits: [],
-  auditLogsResponses: [],
   auditLogsErrorMode: null,
   rolePermissions: defaultRolePermissions(),
   rolePermissionReadHits: [],
   rolePermissionWriteHits: [],
   rolePermissionsErrorMode: null,
+  doctorSchedules: defaultDoctorSchedules(),
+  doctorScheduleHits: [],
+  doctorScheduleWriteHits: [],
+  doctorScheduleErrorMode: null,
+  systemBackups: defaultSystemBackups(),
+  systemBackupHits: [],
+  systemBackupCreateHits: [],
+  systemBackupDownloadHits: [],
+  systemBackupsErrorMode: null,
+  systemRestoreHits: [],
+  systemRestoreErrorMode: null,
 };
 
 export const resetMswState = () => {
@@ -123,13 +205,24 @@ export const resetMswState = () => {
   mswState.userDeactivateHits = [];
   mswState.userResetHits = [];
   mswState.userResetErrorMode = null;
+  mswState.auditLogs = defaultAuditLogs();
   mswState.auditLogsHits = [];
-  mswState.auditLogsResponses = [];
   mswState.auditLogsErrorMode = null;
   mswState.rolePermissions = defaultRolePermissions();
   mswState.rolePermissionReadHits = [];
   mswState.rolePermissionWriteHits = [];
   mswState.rolePermissionsErrorMode = null;
+  mswState.doctorSchedules = defaultDoctorSchedules();
+  mswState.doctorScheduleHits = [];
+  mswState.doctorScheduleWriteHits = [];
+  mswState.doctorScheduleErrorMode = null;
+  mswState.systemBackups = defaultSystemBackups();
+  mswState.systemBackupHits = [];
+  mswState.systemBackupCreateHits = [];
+  mswState.systemBackupDownloadHits = [];
+  mswState.systemBackupsErrorMode = null;
+  mswState.systemRestoreHits = [];
+  mswState.systemRestoreErrorMode = null;
 };
 
 const ok = (data, message = "ok") =>
@@ -531,8 +624,134 @@ export const handlers = [
     }
     return ok(null, "Password reset instructions sent");
   }),
-  // Planned audit trail (endpoint not yet implemented server-side —
-  // "not-implemented" mirrors the 404 the real backend serves today).
+  // FR010/UC5 — system backup & restore (Super Admin, AC1/AC4). The
+  // mock stores backup metadata only; downloads stream fake encrypted
+  // bytes and restore mirrors the confirm-first / checksum rules.
+  http.get("*/system/backups", ({ request }) => {
+    mswState.systemBackupHits.push({
+      url: request.url,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.systemBackupsErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    if (mswState.systemBackupsErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    if (mswState.systemBackupsErrorMode === "forbidden") {
+      return fail(403, "Access denied");
+    }
+    return ok(
+      [...mswState.systemBackups].sort((a, b) => b.backupId - a.backupId),
+      "Backups retrieved successfully",
+    );
+  }),
+  http.post("*/system/backups", ({ request }) => {
+    mswState.systemBackupCreateHits.push({
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.systemBackupsErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    if (mswState.systemBackupsErrorMode === "forbidden") {
+      return fail(403, "Access denied");
+    }
+    const lastId = mswState.systemBackups.reduce(
+      (max, backup) => Math.max(max, backup.backupId),
+      0,
+    );
+    const createdAt = new Date().toISOString();
+    const compactStamp = createdAt.replace(/[-:]/g, "").replace(/\..+$/, "");
+    const record = {
+      backupId: lastId + 1,
+      createdAt,
+      filename: `onecare-backup-${compactStamp}.backup`,
+      sizeBytes: 45000 + (lastId + 1) * 1137,
+    };
+    mswState.systemBackups = [record, ...mswState.systemBackups];
+    return HttpResponse.json(
+      {
+        success: true,
+        message: "Backup created successfully",
+        data: record,
+      },
+      { status: 201 },
+    );
+  }),
+  http.get("*/system/backups/:backupId/download", ({ request, params }) => {
+    mswState.systemBackupDownloadHits.push({
+      id: params.backupId,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.systemBackupsErrorMode === "forbidden") {
+      return fail(403, "Access denied");
+    }
+    const backup = mswState.systemBackups.find(
+      (item) => String(item.backupId) === String(params.backupId),
+    );
+    if (!backup) {
+      return fail(404, "Backup not found");
+    }
+    return new HttpResponse(
+      `MOCK-ENCRYPTED-BACKUP ${backup.filename} ${backup.sizeBytes}`,
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/octet-stream",
+          "Content-Disposition": `attachment; filename="${backup.filename}"`,
+        },
+      },
+    );
+  }),
+  http.post("*/system/restore", async ({ request }) => {
+    const form = await request.formData().catch(() => null);
+    const uploaded = form?.get("file");
+    mswState.systemRestoreHits.push({
+      backupId: form?.get("backupId") ?? null,
+      fileName:
+        uploaded && typeof uploaded === "object" ? uploaded.name : null,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.systemRestoreErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    if (mswState.systemRestoreErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    if (mswState.systemRestoreErrorMode === "forbidden") {
+      return fail(403, "Access denied");
+    }
+    if (!form) {
+      return fail(400, "Multipart form data required");
+    }
+    if (form.get("confirm") !== "true") {
+      return fail(400, "Explicit confirmation required");
+    }
+    const backupId = form.get("backupId");
+    const hasFile = Boolean(uploaded && typeof uploaded === "object");
+    if (!backupId && !hasFile) {
+      return fail(
+        400,
+        "Provide a backupId or an uploaded backup file to restore",
+      );
+    }
+    if (backupId) {
+      const known = mswState.systemBackups.some(
+        (item) => String(item.backupId) === String(backupId),
+      );
+      if (!known) return fail(404, "Unknown backupId");
+    }
+    if (mswState.systemRestoreErrorMode === "corrupt") {
+      return fail(400, "Checksum mismatch — the backup payload is corrupted");
+    }
+    return ok(
+      { users: 12, patients: 340, appointments: 1250 },
+      "Restore completed successfully",
+    );
+  }),
+  // Audit trail — Spring `Page` contract (GET /api/audit-logs). Newest
+  // first; `?page=` (0-based) and `?size=` slice the seeded trail and
+  // the envelope mirrors the real pageable/total* metadata.
   http.get("*/audit-logs", ({ request }) => {
     mswState.auditLogsHits.push({
       url: request.url,
@@ -544,10 +763,45 @@ export const handlers = [
     if (mswState.auditLogsErrorMode === "server-error") {
       return fail(500, "Internal server error");
     }
-    if (mswState.auditLogsErrorMode === "not-implemented") {
-      return fail(404, "Not found");
-    }
-    return ok(mswState.auditLogsResponses.shift() ?? []);
+    const url = new URL(request.url);
+    const requestedPage = Number(url.searchParams.get("page") ?? 0);
+    const requestedSize = Number(url.searchParams.get("size") ?? 20);
+    const page =
+      Number.isFinite(requestedPage) && requestedPage >= 0
+        ? requestedPage
+        : 0;
+    const size =
+      Number.isFinite(requestedSize) && requestedSize > 0
+        ? requestedSize
+        : 20;
+    const sorted = [...mswState.auditLogs].sort((a, b) => b.logId - a.logId);
+    const totalElements = sorted.length;
+    const totalPages = Math.max(1, Math.ceil(totalElements / size));
+    const content = sorted.slice(page * size, page * size + size);
+    const pageSort = { empty: false, unsorted: false, sorted: true };
+    return ok(
+      {
+        content,
+        pageable: {
+          pageNumber: page,
+          pageSize: size,
+          sort: pageSort,
+          offset: page * size,
+          unpaged: false,
+          paged: true,
+        },
+        last: page >= totalPages - 1,
+        totalPages,
+        totalElements,
+        size,
+        number: page,
+        sort: pageSort,
+        numberOfElements: content.length,
+        first: page === 0,
+        empty: content.length === 0,
+      },
+      "Audit logs retrieved successfully",
+    );
   }),
   // FR003/UC3 — configurable role permissions (super-admin governance).
   // PUT replaces the full set atomically: every policy rule must pass or
@@ -643,6 +897,103 @@ export const handlers = [
     return ok(
       { role: params.role, permissions: [...permissions] },
       "Permissions updated successfully",
+    );
+  }),
+  // FR009/UC4 — doctor working schedules (booking availability). PUT
+  // replaces the whole schedule and mirrors the backend's atomic rules:
+  // empty sets, malformed HH:mm, end ≤ start, or overlapping slots
+  // (400 "Time slot conflict" carrying data.conflictingSlots).
+  http.get("*/doctors/:doctorId/schedule", ({ request, params }) => {
+    mswState.doctorScheduleHits.push({
+      id: params.doctorId,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.doctorScheduleErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    if (mswState.doctorScheduleErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    if (mswState.doctorScheduleErrorMode === "forbidden") {
+      return fail(403, "Access denied");
+    }
+    const stored = mswState.doctorSchedules[params.doctorId];
+    if (!stored) {
+      return fail(404, "Doctor not found");
+    }
+    return ok(
+      {
+        doctorId: Number(params.doctorId),
+        workingDays: [...stored.workingDays],
+        timeSlots: stored.timeSlots.map((slot) => ({ ...slot })),
+      },
+      "Schedule retrieved successfully",
+    );
+  }),
+  http.put("*/doctors/:doctorId/schedule", async ({ request, params }) => {
+    const body = await request.json().catch(() => ({}));
+    mswState.doctorScheduleWriteHits.push({
+      id: params.doctorId,
+      body,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.doctorScheduleErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    if (mswState.doctorScheduleErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    if (mswState.doctorScheduleErrorMode === "forbidden") {
+      return fail(403, "Access denied");
+    }
+    if (!(params.doctorId in mswState.doctorSchedules)) {
+      return fail(404, "Doctor not found");
+    }
+    const workingDays = Array.isArray(body?.workingDays)
+      ? body.workingDays
+      : null;
+    const timeSlots = Array.isArray(body?.timeSlots) ? body.timeSlots : null;
+    if (!workingDays || !timeSlots) {
+      return fail(400, "workingDays and timeSlots are required");
+    }
+    if (workingDays.length === 0 || timeSlots.length === 0) {
+      return fail(400, "Working days and time slots cannot be empty");
+    }
+    if (workingDays.some((day) => !WORKING_DAYS.includes(day))) {
+      return fail(400, "Unknown working day");
+    }
+    if (
+      timeSlots.some(
+        (slot) => !isValidTime(slot?.start) || !isValidTime(slot?.end),
+      )
+    ) {
+      return fail(400, "Time slots must use HH:mm");
+    }
+    if (timeSlots.some((slot) => slot.end <= slot.start)) {
+      return fail(400, "A time slot must end after it starts");
+    }
+    const conflicts = findConflictingSlots(timeSlots);
+    if (conflicts.length > 0) {
+      return HttpResponse.json(
+        {
+          success: false,
+          message: "Time slot conflict",
+          data: { conflictingSlots: conflicts },
+        },
+        { status: 400 },
+      );
+    }
+    mswState.doctorSchedules[params.doctorId] = {
+      workingDays: [...workingDays],
+      timeSlots: timeSlots.map((slot) => ({ start: slot.start, end: slot.end })),
+    };
+    return ok(
+      {
+        doctorId: Number(params.doctorId),
+        workingDays,
+        timeSlots,
+      },
+      "Schedule saved successfully",
     );
   }),
   http.get("*/reports/:id", protectedReply),

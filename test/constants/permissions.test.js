@@ -16,9 +16,9 @@ import {
  */
 describe("permission matrix — CFG-03 backend mirror", () => {
   it("mirrors every Permission constant exactly once", () => {
-    expect(PERMISSION_MATRIX).toHaveLength(38);
+    expect(PERMISSION_MATRIX).toHaveLength(39);
     expect(new Set(PERMISSION_CODES).size).toBe(PERMISSION_CODES.length);
-    expect(PERMISSION_CODES).toHaveLength(38);
+    expect(PERMISSION_CODES).toHaveLength(39);
 
     for (const entry of PERMISSION_MATRIX) {
       // Java constant naming: UPPER_SNAKE_CASE.
@@ -58,18 +58,18 @@ describe("permission matrix — CFG-03 backend mirror", () => {
         .map((entry) => entry.code)
         .sort();
 
-    expect(grantsFor(ROLES.SUPER_ADMIN)).toHaveLength(29);
+    expect(grantsFor(ROLES.SUPER_ADMIN)).toHaveLength(30);
     expect(grantsFor(ROLES.ADMIN)).toHaveLength(23);
     expect(grantsFor(ROLES.DOCTOR)).toHaveLength(14);
     expect(grantsFor(ROLES.PHARMACIST)).toHaveLength(14);
 
-    // 38 scopes × 4 roles = 152 cells, 80 of them granted by default.
+    // 39 scopes × 4 roles = 156 cells, 81 of them granted by default.
     const grantedCells = PERMISSION_MATRIX.reduce(
       (sum, entry) => sum + entry.granted.length,
       0,
     );
-    expect(PERMISSION_MATRIX.length * Object.keys(ROLES).length).toBe(152);
-    expect(grantedCells).toBe(80);
+    expect(PERMISSION_MATRIX.length * Object.keys(ROLES).length).toBe(156);
+    expect(grantedCells).toBe(81);
   });
 
   it("keeps the sharp edges of the Java policy intact", () => {
@@ -112,6 +112,9 @@ describe("permission matrix — CFG-03 backend mirror", () => {
     expect(rolesWith("SYSTEM_BACKUP")).toEqual([ROLES.SUPER_ADMIN]);
     expect(rolesWith("ROLE_PERMISSION_READ")).toEqual([ROLES.SUPER_ADMIN]);
     expect(rolesWith("ROLE_PERMISSION_UPDATE")).toEqual([ROLES.SUPER_ADMIN]);
+    // Clinic configuration: only SUPER_ADMIN writes doctor schedules
+    // (FR009/UC4 requires SCHEDULE_MANAGE).
+    expect(rolesWith("SCHEDULE_MANAGE")).toEqual([ROLES.SUPER_ADMIN]);
     expect(
       PERMISSION_MATRIX.find((entry) => entry.code === "SYSTEM_BACKUP")
         .privileged,

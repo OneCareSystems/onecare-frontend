@@ -26,7 +26,7 @@ import PatientDetails from "../pages/doctor/PatientDetails";
 import KnowledgeBasePage from "../pages/doctor/KnowledgeBasePage";
 import UserManagementPage from "../pages/superAdmin/UserManagementPage";
 import AccessControlPage from "../pages/superAdmin/AccessControlPage";
-import SystemConfigPage from "../pages/superAdmin/SystemConfigPage";
+import ClinicConfigPage from "../pages/superAdmin/ClinicConfigPage";
 import SystemMaintenancePage from "../pages/superAdmin/SystemMaintenancePage";
 import AuditLogsPage from "../pages/superAdmin/AuditLogsPage";
 
@@ -97,7 +97,7 @@ const AppRoutes = () => {
           <Route path="dashboard" element={<SuperAdminDashboardPage />} />
           <Route path="user-management" element={<UserManagementPage />} />
           <Route path="access-control" element={<AccessControlPage />} />
-          <Route path="clinic-configuration" element={<SystemConfigPage />} />
+          <Route path="clinic-configuration" element={<ClinicConfigPage />} />
           <Route
             path="system-maintenance"
             element={<SystemMaintenancePage />}

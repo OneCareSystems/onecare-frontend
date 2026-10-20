@@ -1,58 +1,34 @@
 import {
+  memo,
   useCallback,
   useDeferredValue,
   useEffect,
   useMemo,
   useRef,
   useState,
-  memo,
 } from "react";
 
 import Button from "../../components/Button";
-import EmptyState from "../../components/EmptyState";
 import ErrorMessage from "../../components/ErrorMessage";
 import Icon from "../../components/Icon";
 import Pagination from "../../components/Pagination";
 import SearchBar from "../../components/SearchBar";
 import Select from "../../components/Select";
 import StatCard from "../../components/StatCard";
-import StatusBadge from "../../components/StatusBadge";
 import Table from "../../components/Table";
-import Toast from "../../components/Toast";
-import {
-  getAuditLogs,
-  isAuditTrailUnavailable,
-  SEVERITY_LEVELS,
-} from "../../services/auditService";
+import { DEFAULT_PAGE_SIZE, getAuditLogs } from "../../services/auditService";
 
-const PAGE_SIZE = 10;
-const ALL_SEVERITIES = "ALL";
+const ALL_ACTIONS = "ALL";
 
-const SEVERITY_BADGE_VARIANT = {
-  INFO: "info",
-  WARNING: "warning",
-  CRITICAL: "danger",
-};
-
-const SEVERITY_FILTER_OPTIONS = [
-  { value: ALL_SEVERITIES, label: "All Severities" },
-  ...SEVERITY_LEVELS.map((severity) => ({
-    value: severity,
-    label: severity,
-  })),
-];
-
-/**
- * Principal actor details renderer (Memoized)
- */
-const PrincipalActorCell = memo(({ user, ip }) => (
+/** Principal actor details renderer (memoized). */
+const PrincipalActorCell = memo(({ username, ipAddress }) => (
   <div className="min-w-0 py-1">
-    <span className="block font-medium text-neutral-900 truncate">
-      {user || "—"}
+    <span className="block truncate font-medium text-neutral-900">
+      {username || "—"}
     </span>
-    {ip && (
-      <span className="block font-mono text-xs text-neutral-500 truncate">
-        {ip}
+    {ipAddress && (
+      <span className="block truncate font-mono text-xs text-neutral-500">
+        {ipAddress}
       </span>
     )}
   </div>
@@ -60,49 +36,33 @@ const PrincipalActorCell = memo(({ user, ip }) => (
 PrincipalActorCell.displayName = "PrincipalActorCell";
 
 /**
- * Copyable Hash Cell component for security verification (Memoized)
+ * Super-admin audit trail (/api/audit-logs, Spring `Page` contract).
+ *
+ * Pagination is server-driven (?page=&size=, 0-based page). The backend
+ * exposes no filtering parameters, so the search box and the action
+ * dropdown filter the rows of the loaded page client-side — the hint
+ * under the filter bar says exactly that. Timestamps render as the
+ * server sends them (no zone offset on the wire, so none is claimed).
  */
-const IntegrityHashCell = memo(({ hash, onCopy }) => {
-  if (!hash) return <span className="text-neutral-400">—</span>;
-
-  const truncatedHash =
-    hash.length > 16 ? `${hash.slice(0, 8)}...${hash.slice(-6)}` : hash;
-
-  return (
-    <button
-      type="button"
-      onClick={() => onCopy(hash)}
-      title={`Click to copy full hash: ${hash}`}
-      className="group inline-flex items-center gap-1.5 rounded-md bg-neutral-100 hover:bg-neutral-200 px-2 py-1 font-mono text-xs text-neutral-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-    >
-      <span>{truncatedHash}</span>
-      <Icon
-        name="copy"
-        className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-neutral-500"
-      />
-    </button>
-  );
-});
-IntegrityHashCell.displayName = "IntegrityHashCell";
-
 const AuditLogsPage = () => {
-  const [logs, setLogs] = useState([]);
+  /** Server page: { content, page, size, totalElements, totalPages, … } */
+  const [pageData, setPageData] = useState(null);
   const [status, setStatus] = useState("loading");
   const [reloadKey, setReloadKey] = useState(0);
+  /** 1-based UI page number (Spring pages are 0-based on the wire). */
+  const [page, setPage] = useState(1);
 
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
-  const [severityFilter, setSeverityFilter] = useState(ALL_SEVERITIES);
-  const [page, setPage] = useState(1);
+  const [actionFilter, setActionFilter] = useState(ALL_ACTIONS);
 
-  const [toast, setToast] = useState(null);
   const searchInputRef = useRef(null);
 
-  // Keyboard shortcut Ctrl/Cmd + F for search autofocus
+  // Ctrl/Cmd + F focuses the search input.
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
-        e.preventDefault();
+    const handleKeyDown = (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "f") {
+        event.preventDefault();
         searchInputRef.current?.focus();
       }
     };
@@ -110,25 +70,25 @@ const AuditLogsPage = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Fetch audit logs with unmount protection
+  // Fetch one server page (unmount-safe).
   useEffect(() => {
     let cancelled = false;
+    setStatus("loading");
 
-    getAuditLogs()
-      .then((data) => {
+    getAuditLogs({ page: page - 1, size: DEFAULT_PAGE_SIZE })
+      .then((result) => {
         if (cancelled) return;
-        setLogs(data || []);
+        setPageData(result);
         setStatus("ready");
       })
-      .catch((error) => {
-        if (cancelled) return;
-        setStatus(isAuditTrailUnavailable(error) ? "unavailable" : "failed");
+      .catch(() => {
+        if (!cancelled) setStatus("failed");
       });
 
     return () => {
       cancelled = true;
     };
-  }, [reloadKey]);
+  }, [page, reloadKey]);
 
   const retry = useCallback(() => {
     setStatus("loading");
@@ -137,137 +97,145 @@ const AuditLogsPage = () => {
 
   const handleQueryChange = useCallback((value) => {
     setQuery(value);
-    setPage(1);
   }, []);
 
-  const handleCopyHash = useCallback((hash) => {
-    navigator.clipboard.writeText(hash);
-    setToast({
-      type: "success",
-      message: "Integrity hash signature copied to clipboard.",
-    });
-  }, []);
-
+  const logs = pageData?.content ?? [];
   const normalizedQuery = deferredQuery.trim().toLowerCase();
 
-  const filteredLogs = useMemo(() => {
-    return logs.filter((log) => {
-      const matchesSeverity =
-        severityFilter === ALL_SEVERITIES || log.severity === severityFilter;
-
-      const matchesSearch =
-        !normalizedQuery ||
-        [log.action, log.user, log.target, log.ip, log.hash].some((field) =>
-          String(field ?? "")
-            .toLowerCase()
-            .includes(normalizedQuery)
-        );
-
-      return matchesSeverity && matchesSearch;
-    });
-  }, [logs, severityFilter, normalizedQuery]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const startIndex = (currentPage - 1) * PAGE_SIZE;
-
-  const visibleLogs = useMemo(
-    () => filteredLogs.slice(startIndex, startIndex + PAGE_SIZE),
-    [filteredLogs, startIndex]
+  // Client-side filtering over the loaded page only.
+  const filteredLogs = useMemo(
+    () =>
+      logs.filter((log) => {
+        const matchesAction =
+          actionFilter === ALL_ACTIONS || log.actionType === actionFilter;
+        const matchesSearch =
+          !normalizedQuery ||
+          [
+            log.username,
+            log.actionType,
+            log.entityType,
+            log.entityId,
+            log.description,
+            log.ipAddress,
+            log.logId,
+          ].some((field) =>
+            String(field ?? "").toLowerCase().includes(normalizedQuery),
+          );
+        return matchesAction && matchesSearch;
+      }),
+    [logs, actionFilter, normalizedQuery],
   );
 
-  // Ledger summary statistics
-  const metrics = useMemo(() => {
-    const total = logs.length;
-    const criticals = logs.filter((l) => l.severity === "CRITICAL").length;
-    const uniqueUsers = new Set(logs.map((l) => l.user).filter(Boolean)).size;
-    return { total, criticals, uniqueUsers };
+  // Action options come from the rows actually loaded on this page.
+  const actionOptions = useMemo(() => {
+    const actions = [
+      ...new Set(logs.map((log) => log.actionType).filter(Boolean)),
+    ].sort();
+    return [
+      { value: ALL_ACTIONS, label: "All Actions" },
+      ...actions.map((action) => ({ value: action, label: action })),
+    ];
   }, [logs]);
+
+  // Unique principals on the loaded page.
+  const uniqueUsers = useMemo(
+    () => new Set(logs.map((log) => log.username).filter(Boolean)).size,
+    [logs],
+  );
+
+  const totalPages = pageData?.totalPages ?? 1;
+  const totalElements = pageData?.totalElements ?? 0;
+  const isFiltering = Boolean(normalizedQuery) || actionFilter !== ALL_ACTIONS;
 
   const columns = useMemo(
     () => [
       {
-        key: "timestamp",
-        header: "Timestamp (UTC)",
+        key: "logId",
+        header: "Log ID / Time",
         render: (row) => (
-          <span className="font-mono text-xs text-neutral-900 whitespace-nowrap">
-            {row.timestamp || "—"}
-          </span>
+          <div className="min-w-0 whitespace-normal">
+            <span className="block font-mono text-xs font-semibold text-neutral-900">
+              #{row.logId}
+            </span>
+            <span className="mt-0.5 block text-xs text-neutral-500">
+              {row.timestamp.replace("T", " ")}
+            </span>
+          </div>
         ),
       },
       {
-        key: "user",
+        key: "username",
         header: "Principal Actor",
-        render: (row) => <PrincipalActorCell user={row.user} ip={row.ip} />,
+        render: (row) => (
+          <PrincipalActorCell
+            username={row.username}
+            ipAddress={row.ipAddress}
+          />
+        ),
       },
       {
-        key: "action",
-        header: "Action Event",
+        key: "actionType",
+        header: "Action",
         render: (row) => (
-          <span className="font-semibold text-primary-700 font-mono text-xs">
-            {row.action || "—"}
+          <span className="font-mono text-xs font-semibold text-primary-700">
+            {row.actionType || "—"}
           </span>
         ),
       },
       {
-        key: "target",
-        header: "Target Resource",
+        key: "entity",
+        header: "Entity",
         render: (row) => (
-          <span className="text-neutral-800 text-xs font-medium">
-            {row.target || "—"}
+          <div className="min-w-0 whitespace-normal">
+            <span className="block text-xs font-medium text-neutral-800">
+              {row.entityType || "—"}
+            </span>
+            {row.entityId && (
+              <span className="mt-0.5 block font-mono text-xs text-neutral-500">
+                #{row.entityId}
+              </span>
+            )}
+          </div>
+        ),
+      },
+      {
+        key: "description",
+        header: "Description",
+        render: (row) => (
+          <span className="block max-w-md whitespace-normal text-xs leading-relaxed text-neutral-600">
+            {row.description || "—"}
           </span>
-        ),
-      },
-      {
-        key: "severity",
-        header: "Severity",
-        render: (row) => (
-          <StatusBadge
-            status={SEVERITY_BADGE_VARIANT[row.severity] ?? "neutral"}
-          >
-            {row.severity || "—"}
-          </StatusBadge>
-        ),
-      },
-      {
-        key: "hash",
-        header: "Integrity Hash",
-        render: (row) => (
-          <IntegrityHashCell hash={row.hash} onCopy={handleCopyHash} />
         ),
       },
     ],
-    [handleCopyHash]
+    [],
   );
-
-  const isFiltering =
-    Boolean(normalizedQuery) || severityFilter !== ALL_SEVERITIES;
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
-      {/* Summary Stat Counters */}
+      {/* Summary counters (server totals + current-page facts) */}
       {status === "ready" && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <StatCard
             label="Total Trail Events"
-            value={`${metrics.total} Logged`}
-            chip="Immutable"
-            icon="shield-check"
+            value={`${totalElements} Logged`}
+            chip="All pages"
+            icon="activity"
             iconClass="bg-primary-50 text-primary-700"
             chipClass="bg-primary-100 text-primary-800"
           />
           <StatCard
-            label="Critical Alerts"
-            value={`${metrics.criticals} Recorded`}
-            chip="Audited"
-            icon="alert-triangle"
-            iconClass="bg-danger-50 text-danger-700"
-            chipClass="bg-danger-100 text-danger-800"
+            label="This Page"
+            value={`${logs.length} Entries`}
+            chip={`Page ${page} of ${totalPages}`}
+            icon="inbox"
+            iconClass="bg-secondary-50 text-secondary-700"
+            chipClass="bg-secondary-100 text-secondary-800"
           />
           <StatCard
-            label="Active Principal Actors"
-            value={`${metrics.uniqueUsers} Users`}
-            chip="Identity"
+            label="Principal Actors"
+            value={`${uniqueUsers} Users`}
+            chip="On this page"
             icon="users"
             iconClass="bg-teal-50 text-teal-700"
             chipClass="bg-teal-100 text-teal-800"
@@ -275,58 +243,60 @@ const AuditLogsPage = () => {
         </div>
       )}
 
-      {/* Filter Controls Bar */}
+      {/* Filter bar — search & action filter cover the loaded page only */}
       <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-xs sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <SearchBar
             ref={searchInputRef}
             value={query}
             onChange={handleQueryChange}
-            placeholder="Search event, target, principal user, IP, or hash... (⌘F)"
+            placeholder="Search user, action, entity, description or IP... (⌘F)"
             searchLabel="Search audit logs"
             className="w-full sm:max-w-xl"
           />
-
           <div className="flex items-center gap-3">
             <Select
-              id="severity-filter"
-              name="severity-filter"
-              label="Severity"
-              options={SEVERITY_FILTER_OPTIONS}
-              value={severityFilter}
-              onChange={(e) => {
-                setSeverityFilter(e.target.value || ALL_SEVERITIES);
-                setPage(1);
+              id="action-filter"
+              name="action-filter"
+              label="Action"
+              options={actionOptions}
+              value={actionFilter}
+              onChange={(event) => {
+                setActionFilter(event.target.value || ALL_ACTIONS);
               }}
               className="w-full sm:w-48"
             />
-
             {isFiltering && (
               <Button
                 variant="tertiary"
                 onClick={() => {
                   setQuery("");
-                  setSeverityFilter(ALL_SEVERITIES);
-                  setPage(1);
+                  setActionFilter(ALL_ACTIONS);
                 }}
-                className="mt-6 sm:mt-0 text-xs text-neutral-500 hover:text-neutral-800"
+                className="mt-6 text-xs text-neutral-500 hover:text-neutral-800 sm:mt-0"
               >
                 Clear Filters
               </Button>
             )}
           </div>
         </div>
+        {isFiltering && (
+          <p className="mt-2 text-xs text-neutral-500">
+            Search and filters apply to page {page} only — clear them to see
+            every row on this page.
+          </p>
+        )}
       </div>
 
-      {/* Main Ledger Event Content */}
+      {/* Ledger */}
       {status === "loading" ? (
         <div
           role="status"
           aria-label="Loading audit trail"
-          className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-6 shadow-xs animate-pulse"
+          className="animate-pulse space-y-3 rounded-2xl border border-neutral-200 bg-white p-6 shadow-xs"
         >
-          {Array.from({ length: 8 }).map((_, idx) => (
-            <div key={idx} className="flex gap-4 items-center">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <div key={index} className="flex items-center gap-4">
               <div className="h-4 w-1/6 rounded bg-neutral-100" />
               <div className="h-4 w-1/4 rounded bg-neutral-100" />
               <div className="h-4 w-1/4 rounded bg-neutral-100" />
@@ -334,32 +304,18 @@ const AuditLogsPage = () => {
             </div>
           ))}
         </div>
-      ) : status === "unavailable" ? (
-        <div className="rounded-2xl border border-neutral-200 bg-white shadow-xs">
-          <EmptyState
-            title="Audit trail service not connected"
-            message="The SIEM immutable audit-log endpoint is currently inactive or unreachable in this environment."
-            action={
-              <Button
-                variant="outline"
-                onClick={retry}
-                className="inline-flex items-center gap-2"
-              >
-                <Icon name="refresh" className="h-4 w-4" />
-                Check Service Status
-              </Button>
-            }
-          />
-        </div>
       ) : status === "failed" ? (
-        <div className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-6 shadow-xs text-center">
+        <div className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-6 text-center shadow-xs">
           <ErrorMessage
-            title="Unable to load security audit trail"
-            message="We could not establish a connection to the audit service. Please try again later."
+            title="Unable to load the audit trail"
+            message="The audit-log service did not answer. Check the API connection and retry."
           />
-          <Button onClick={retry} className="inline-flex items-center gap-2 mt-2">
+          <Button
+            onClick={retry}
+            className="mt-2 inline-flex items-center gap-2"
+          >
             <Icon name="refresh" className="h-4 w-4" />
-            Retry Connection
+            Retry
           </Button>
         </div>
       ) : (
@@ -369,20 +325,25 @@ const AuditLogsPage = () => {
               id="audit-trail-heading"
               className="text-base font-semibold text-neutral-900"
             >
-              Event Ledger ({filteredLogs.length})
+              Event Ledger
             </h2>
+            <span className="text-sm text-neutral-500">
+              {filteredLogs.length === logs.length
+                ? `${logs.length} of ${totalElements} events`
+                : `${filteredLogs.length} of ${logs.length} on this page · ${totalElements} total`}
+            </span>
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-xs">
             <Table
               columns={columns}
-              data={visibleLogs}
-              getRowKey={(row) => row.id}
+              data={filteredLogs}
+              getRowKey={(row) => row.logId}
               emptyTitle="No audit entries found"
               emptyMessage={
                 isFiltering
-                  ? "No ledger entries match the specified search or severity criteria."
-                  : "The security audit trail has not recorded any system events yet."
+                  ? "No entries on this page match the current search or action filter."
+                  : "The audit trail has not recorded any events yet."
               }
               label="Audit trail event ledger"
             />
@@ -391,23 +352,12 @@ const AuditLogsPage = () => {
           {totalPages > 1 && (
             <Pagination
               className="mt-4"
-              currentPage={currentPage}
+              currentPage={page}
               totalPages={totalPages}
               onPageChange={setPage}
             />
           )}
         </section>
-      )}
-
-      {/* Global Toast Notification */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-          duration={4000}
-          className="fixed bottom-4 right-4 z-50 max-w-sm shadow-xl"
-        />
       )}
     </div>
   );

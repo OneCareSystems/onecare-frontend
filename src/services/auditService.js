@@ -1,71 +1,102 @@
 import apiClient from "./apiClient";
 
 /**
- * Audit-log service (super-admin immutable security trail).
+ * Super-admin audit trail (immutable security log).
  *
- * Planned backend contract (not yet implemented server-side — until it
- * ships, `getAuditLogs` rejects with status 404/501 and pages should use
- * `isAuditTrailUnavailable` to render a friendly notice instead of an
- * error):
- *   GET /audit-logs — { success, message, data: AuditLog[] }
+ * GET /audit-logs — Spring Data `Page` envelope:
+ *   { success, message, data: { content: AuditLog[], totalElements,
+ *     totalPages, number, size, first, last, pageable, sort, ... } }
  *
- * AuditLog wire shape (normalised once in `adaptAuditLog`, tolerating
- * the camelCase / snake_case drift extractTokens already handles in
- * apiClient):
- *   { id, timestamp, user/actor, ip, action, target, severity, hash }
+ * Wire shape (data.content[]):
+ *   { logId, userId, username, actionType, entityType, entityId,
+ *     description, ipAddress, timestamp }
+ *   // timestamp: "2026-10-20T10:54:46" (no zone offset on the wire)
  *
- * Severities the ledger uses; the page builds its filter from this.
+ * Pagination follows Spring's convention — `?page=` (0-based) and
+ * `?size=` — confirmed by the pageable/size/number fields the server
+ * echoes back. No server-side filtering parameters are documented, so
+ * the page filters the loaded rows client-side and labels it.
  */
-export const SEVERITY_LEVELS = Object.freeze(["INFO", "WARNING", "CRITICAL"]);
+export const DEFAULT_PAGE_SIZE = 20;
 
 const asTrimmedString = (value) =>
   typeof value === "string" ? value.trim() : "";
 
-/** An entry is usable when it carries some stable identifier. */
-const hasIdentity = (raw) => {
-  if (!raw || typeof raw !== "object") return false;
-  const candidate = raw.id ?? raw.logId ?? raw.eventId;
-  return asTrimmedString(String(candidate ?? "")) !== "";
-};
+const asNullableString = (value) =>
+  value === null || value === undefined || value === "" ? null : String(value);
 
 /** Normalise one wire record into the shape the UI renders. */
 export const adaptAuditLog = (raw) => ({
-  id: raw.id ?? raw.logId ?? raw.eventId,
-  timestamp: asTrimmedString(raw.timestamp ?? raw.createdAt ?? raw.created_at),
-  user: asTrimmedString(raw.user ?? raw.actor ?? raw.username ?? raw.principal),
-  ip: asTrimmedString(raw.ip ?? raw.ipAddress ?? raw.ip_address),
-  action: asTrimmedString(raw.action ?? raw.event),
-  target: asTrimmedString(raw.target ?? raw.resource ?? raw.targetResource),
-  severity: asTrimmedString(raw.severity).toUpperCase(),
-  hash: asTrimmedString(raw.hash ?? raw.integrityHash ?? raw.integrity_hash),
+  logId: Number(raw.logId),
+  userId:
+    raw.userId === null || raw.userId === undefined ? null : Number(raw.userId),
+  username: asTrimmedString(raw.username),
+  actionType: asTrimmedString(raw.actionType).toUpperCase(),
+  entityType: asTrimmedString(raw.entityType).toUpperCase(),
+  entityId: asNullableString(raw.entityId),
+  description: asTrimmedString(raw.description),
+  ipAddress: asTrimmedString(raw.ipAddress),
+  timestamp: asTrimmedString(raw.timestamp),
 });
 
-export const adaptAuditLogsResponse = (payload) => {
-  if (payload?.success !== true || !Array.isArray(payload.data)) {
+/** A row is usable when it carries its server-assigned log id. */
+const hasIdentity = (raw) =>
+  Boolean(raw) && raw.logId !== null && raw.logId !== undefined;
+
+/** Page response → { content, page, size, totalElements, totalPages, … }. */
+export const adaptAuditLogsPageResponse = (payload) => {
+  const data = payload?.data;
+  if (payload?.success !== true || !data || !Array.isArray(data.content)) {
     throw new Error("Unexpected audit logs response format");
   }
-  return payload.data.filter(hasIdentity).map(adaptAuditLog);
+  const content = data.content.filter(hasIdentity).map(adaptAuditLog);
+  const rawPage = Number(data.number);
+  const rawSize = Number(data.size);
+  const rawTotalElements = Number(data.totalElements);
+  const rawTotalPages = Number(data.totalPages);
+  const page = Number.isFinite(rawPage) && rawPage >= 0 ? rawPage : 0;
+  const size =
+    Number.isFinite(rawSize) && rawSize > 0
+      ? rawSize
+      : content.length || DEFAULT_PAGE_SIZE;
+  const totalElements =
+    Number.isFinite(rawTotalElements) && rawTotalElements >= 0
+      ? rawTotalElements
+      : content.length;
+  const totalPages =
+    Number.isFinite(rawTotalPages) && rawTotalPages > 0 ? rawTotalPages : 1;
+  return {
+    content,
+    page,
+    size,
+    totalElements,
+    totalPages,
+    first: typeof data.first === "boolean" ? data.first : page === 0,
+    last:
+      typeof data.last === "boolean" ? data.last : page >= totalPages - 1,
+  };
 };
 
 /**
- * The endpoint has not been built yet: a 404/501 means "not connected",
- * which callers surface as a notice rather than a failure. Transport and
- * server errors keep status null / 5xx and stay retryable errors.
+ * Fetch one page of the trail. `page` is 0-based (Spring convention);
+ * the backend applies its own default sort (newest first in practice).
  */
-export const isAuditTrailUnavailable = (error) =>
-  error?.status === 404 || error?.status === 501;
-
-/** Fetch the whole security trail (ordering is the backend's contract). */
-export const getAuditLogs = async ({ signal } = {}) => {
+export const getAuditLogs = async ({
+  page = 0,
+  size = DEFAULT_PAGE_SIZE,
+  signal,
+} = {}) => {
   // API_BASE_URL already includes the `/api` prefix.
-  const response = await apiClient.get("/audit-logs", { signal });
-  return adaptAuditLogsResponse(response.data);
+  const response = await apiClient.get("/audit-logs", {
+    params: { page, size },
+    signal,
+  });
+  return adaptAuditLogsPageResponse(response.data);
 };
 
 export default {
-  SEVERITY_LEVELS,
+  DEFAULT_PAGE_SIZE,
   getAuditLogs,
   adaptAuditLog,
-  adaptAuditLogsResponse,
-  isAuditTrailUnavailable,
+  adaptAuditLogsPageResponse,
 };
