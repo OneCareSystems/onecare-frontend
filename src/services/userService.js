@@ -92,7 +92,7 @@ export const getUsers = async ({ signal } = {}) => {
  */
 export const createUser = async (userData) => {
   const response = await apiClient.post("/users", {
-    fullName: asTrimmedString(userData.fullName),
+    password: asTrimmedString(userData.password),
     username: asTrimmedString(userData.username),
     email: asTrimmedString(userData.email),
     role: normalizeLabel(userData.role),

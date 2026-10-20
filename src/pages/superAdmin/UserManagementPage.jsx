@@ -49,7 +49,7 @@ const ROLE_BADGE_CLASSES = {
 };
 
 const EMPTY_FORM = {
-  fullName: "",
+  password: "",
   username: "",
   email: "",
   role: ROLES.DOCTOR,
@@ -65,8 +65,8 @@ const validateEmail = (value) =>
 /**
  * Sub-component for rendering employee profile cell (Memoized for performance)
  */
-const EmployeeCell = memo(({ fullName, username, email }) => {
-  const initial = String(fullName ?? "?")
+const EmployeeCell = memo(({ username, email }) => {
+  const initial = String(username ?? "?")
     .charAt(0)
     .toUpperCase();
 
@@ -80,10 +80,10 @@ const EmployeeCell = memo(({ fullName, username, email }) => {
       </span>
       <div className="min-w-0">
         <span className="block font-medium text-neutral-900 truncate">
-          {fullName}
+          {username}
         </span>
         <span className="block font-mono text-xs text-neutral-500 truncate">
-          {username} {email ? `• ${email}` : ""}
+          {email ? `${email}` : ""}
         </span>
       </div>
     </div>
@@ -247,7 +247,7 @@ const UserManagementPage = () => {
     setSubmitError("");
 
     if (
-      !form.fullName.trim() ||
+      !form.password.trim() ||
       !form.username.trim() ||
       !form.email.trim() ||
       !EMAIL_PATTERN.test(form.email.trim())
@@ -257,6 +257,7 @@ const UserManagementPage = () => {
 
     setSubmitting(true);
     try {
+      console.log(form)
       const newUser = await createUser(form);
       setIsCreateOpen(false);
       setForm(EMPTY_FORM);
@@ -305,7 +306,7 @@ const UserManagementPage = () => {
     (user) => {
       setConfirm({
         title: "Deactivate account?",
-        message: `Are you sure you want to deactivate ${user.fullName} (${user.username})? Access will be revoked immediately while maintaining compliance audit logs.`,
+        message: `Are you sure you want to deactivate ${user.username}? Access will be revoked immediately while maintaining compliance audit logs.`,
         confirmLabel: "Deactivate Account",
         variant: "danger",
         run: async () => {
@@ -317,7 +318,7 @@ const UserManagementPage = () => {
             });
             setToast({
               type: "success",
-              message: `${user.fullName} has been deactivated.`,
+              message: `${user.username} has been deactivated.`,
             });
           } catch (error) {
             setToast({
@@ -337,7 +338,7 @@ const UserManagementPage = () => {
     (user) => {
       setConfirm({
         title: "Clear sign-in lockout?",
-        message: `Clear authentication lockout for ${user.fullName}? The account will regain standard access privileges immediately.`,
+        message: `Clear authentication lockout for ${user.username}? The account will regain standard access privileges immediately.`,
         confirmLabel: "Unlock Account",
         variant: "primary",
         run: async () => {
@@ -349,7 +350,7 @@ const UserManagementPage = () => {
             });
             setToast({
               type: "success",
-              message: `Lockout cleared for ${user.fullName}.`,
+              message: `Lockout cleared for ${user.username}.`,
             });
           } catch (error) {
             setToast({
@@ -449,7 +450,7 @@ const UserManagementPage = () => {
     return users.filter((user) => {
       const matchesSearch =
         !normalizedQuery ||
-        [user.fullName, user.username, user.email].some((field) =>
+        [user.username, user.username, user.email].some((field) =>
           String(field ?? "")
             .toLowerCase()
             .includes(normalizedQuery)
@@ -481,7 +482,6 @@ const UserManagementPage = () => {
         header: "Employee",
         render: (row) => (
           <EmployeeCell
-            fullName={row.fullName}
             username={row.username}
             email={row.email}
           />
@@ -714,17 +714,6 @@ const UserManagementPage = () => {
           )}
 
           <Input
-            id="fullName"
-            name="fullName"
-            label="Full Legal Name"
-            value={form.fullName}
-            onChange={handleFormChange}
-            required
-            submitted={submitAttempted}
-            placeholder="e.g. Dr. Arthur Pendelton"
-          />
-
-          <Input
             id="username"
             name="username"
             label="Staff ID / Username"
@@ -747,6 +736,18 @@ const UserManagementPage = () => {
             submitted={submitAttempted}
             placeholder="staff@onecare.clinic"
             hint="An onboarding password activation key will be dispatched to this email address."
+          />
+
+          <Input
+            id="password"
+            name="password"
+            label="Password"
+            type="password"
+            value={form.password}
+            onChange={handleFormChange}
+            required
+            submitted={submitAttempted}
+            placeholder="e.g. **********"
           />
 
           <Select
