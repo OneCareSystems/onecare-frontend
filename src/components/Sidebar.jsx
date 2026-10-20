@@ -29,9 +29,9 @@ const Sidebar = () => {
                 to={item.to}
                 className={({ isActive }) =>
                   [
-                    "flex items-center gap-3 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold",
+                    "flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold",
                     isActive
-                      ? "bg-primary-50 text-primary-700"
+                      ? "bg-gradient-to-r from-primary-800 to-primary-600 text-white shadow-sm"
                       : "text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900",
                   ].join(" ")
                 }

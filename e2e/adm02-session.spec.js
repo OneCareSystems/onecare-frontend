@@ -167,9 +167,9 @@ for (const scenario of cases) {
         page.getByText("Your session has expired. Please sign in again."),
       ).toBeVisible();
     } else if (scenario.status === 201 && !scenario.refreshStatus) {
-      await expect(
-        page.getByText("Patient registered successfully"),
-      ).toBeVisible();
+      await expect(page.getByRole("status")).toContainText(
+        "Patient registered successfully",
+      );
     } else {
       await expect(page.getByRole("alert").first()).toBeVisible();
       if (scenario.refreshStatus) {

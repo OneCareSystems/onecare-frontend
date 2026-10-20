@@ -123,7 +123,9 @@ describe("ADM-02 session and registration errors", () => {
       );
       await signIn(role);
       save();
-      await screen.findByText("Patient registered successfully");
+      expect(await screen.findByRole("status")).toHaveTextContent(
+        "Patient registered successfully",
+      );
       expect(authorized).toBe(true);
       expect(store.getState().auth.role).toBe(role);
     },
@@ -154,7 +156,9 @@ describe("ADM-02 session and registration errors", () => {
     );
     await signIn();
     save();
-    await screen.findByText("Patient registered successfully");
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Patient registered successfully",
+    );
     expect([posts, refreshes, authorized, publicRefresh]).toEqual([
       2,
       1,

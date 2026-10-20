@@ -9,10 +9,10 @@ import { ROLES } from "../../src/constants/roles";
 import { NAV_ITEMS } from "../../src/constants/navigation";
 import Sidebar from "../../src/components/Sidebar";
 
-const renderSidebar = () =>
+const renderSidebar = (path = "/doctor/dashboard") =>
   render(
     <Provider store={store}>
-      <MemoryRouter initialEntries={["/doctor/dashboard"]}>
+      <MemoryRouter initialEntries={[path]}>
         <Sidebar />
       </MemoryRouter>
     </Provider>,
@@ -23,6 +23,26 @@ beforeEach(() => {
 });
 
 describe("Sidebar — CFG-04 role-driven navigation", () => {
+  it.each(Object.values(ROLES))(
+    "shares active gradient and typography for %s",
+    (role) => {
+      store.dispatch(setSession({ accessToken: "a", role }));
+      const dashboard = NAV_ITEMS[role].find((item) => item.id === "dashboard");
+      renderSidebar(dashboard.to);
+      const active = screen.getByRole("link", { name: "Dashboard" });
+      expect(active).toHaveClass(
+        "bg-gradient-to-r",
+        "from-primary-800",
+        "to-primary-600",
+        "text-white",
+        "shadow-sm",
+      );
+      for (const link of screen.getAllByRole("link")) {
+        expect(link).toHaveClass("text-sm", "gap-2");
+        if (link !== active) expect(link).not.toHaveClass("bg-gradient-to-r");
+      }
+    },
+  );
   it("renders the signed-in role's menu entries as links", () => {
     store.dispatch(setSession({ accessToken: "a", role: ROLES.DOCTOR }));
 
