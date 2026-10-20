@@ -16,6 +16,8 @@ import SearchBar from "../../components/SearchBar";
 import Select from "../../components/Select";
 import StatCard from "../../components/StatCard";
 import Table from "../../components/Table";
+import { SuperAdminPageHeader } from "../../features/superAdmin/SuperAdminPageHeader";
+import AuditLogDetailDrawer from "../../features/superAdmin/AuditLogDetailDrawer";
 import { DEFAULT_PAGE_SIZE, getAuditLogs } from "../../services/auditService";
 
 const ALL_ACTIONS = "ALL";
@@ -109,108 +111,6 @@ const RelativeTime = memo(({ iso }) => {
   );
 });
 RelativeTime.displayName = "RelativeTime";
-
-/* ------------------------------------------------------------------ */
-/* Row detail drawer                                                   */
-/* ------------------------------------------------------------------ */
-
-const DetailRow = ({ label, value, mono }) => (
-  <div className="flex flex-col gap-0.5 border-b border-neutral-100 py-2.5 last:border-0">
-    <span className="text-[11px] font-medium uppercase tracking-wide text-neutral-400">
-      {label}
-    </span>
-    <span
-      className={`break-words text-sm text-neutral-800 ${mono ? "font-mono text-xs" : ""}`}
-    >
-      {value || "—"}
-    </span>
-  </div>
-);
-
-const DetailDrawer = ({ log, onClose }) => {
-  useEffect(() => {
-    if (!log) return;
-    const onKey = (e) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [log, onClose]);
-
-  if (!log) return null;
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex justify-end bg-neutral-900/30 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Audit event detail"
-      onClick={onClose}
-    >
-      <div
-        className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <header className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
-              Event #{log.logId}
-            </p>
-            <h3 className="mt-0.5 text-base font-semibold text-neutral-900">
-              Event Detail
-            </h3>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close details"
-            className="rounded-lg p-2 text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-800"
-          >
-            <Icon name="x" className="h-4 w-4" />
-          </button>
-        </header>
-
-        <div className="flex-1 overflow-y-auto px-5 py-4">
-          <div className="mb-4 flex items-center gap-3">
-            <ActorAvatar username={log.username} />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-neutral-900">
-                {log.username || "Unknown actor"}
-              </p>
-              {log.ipAddress && (
-                <p className="truncate font-mono text-xs text-neutral-500">
-                  {log.ipAddress}
-                </p>
-              )}
-            </div>
-            <div className="ml-auto">
-              <ActionBadge action={log.actionType} />
-            </div>
-          </div>
-
-          <DetailRow label="Timestamp" value={log.timestamp?.replace("T", " ")} mono />
-          <DetailRow label="Entity Type" value={log.entityType} />
-          <DetailRow label="Entity ID" value={log.entityId} mono />
-          <DetailRow label="Description" value={log.description} />
-          <DetailRow label="Log ID" value={log.logId} mono />
-
-          <div className="mt-6 rounded-xl bg-neutral-50 p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
-              Raw payload
-            </p>
-            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words text-[11px] leading-relaxed text-neutral-700">
-{JSON.stringify(log, null, 2)}
-            </pre>
-          </div>
-        </div>
-
-        <footer className="border-t border-neutral-200 px-5 py-3">
-          <Button onClick={onClose} variant="tertiary" className="w-full">
-            Close
-          </Button>
-        </footer>
-      </div>
-    </div>
-  );
-};
 
 /* ------------------------------------------------------------------ */
 /* Timeline view                                                       */
@@ -504,47 +404,39 @@ const AuditLogsPage = () => {
   return (
     <div className="mx-auto max-w-7xl space-y-5 p-4 sm:p-6">
       {/* ============ Hero header ============ */}
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-            </span>
-            Live audit trail
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-neutral-900">
-            Audit Logs
-          </h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            Every privileged action across the platform, in one ledger.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {lastUpdated && (
-            <span className="text-xs text-neutral-500">
-              Updated {lastUpdated.toLocaleTimeString()}
-            </span>
-          )}
-          <Button
-            variant="tertiary"
-            onClick={retry}
-            className="inline-flex items-center gap-1.5"
-          >
-            <Icon name="refresh" className="h-3.5 w-3.5" />
-            Refresh
-          </Button>
-          <Button
-            variant="tertiary"
-            onClick={exportCsv}
-            className="inline-flex items-center gap-1.5"
-          >
-            <Icon name="download" className="h-3.5 w-3.5" />
-            Export CSV
-          </Button>
-        </div>
-      </header>
+      <SuperAdminPageHeader
+        icon="clipboard"
+        badgeText="Live audit trail · Security"
+        title="Audit Logs"
+        description="Every privileged action across the platform, in one ledger."
+        actions={
+          <>
+            {lastUpdated && (
+              <span className="text-xs text-neutral-500">
+                Updated {lastUpdated.toLocaleTimeString()}
+              </span>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={retry}
+              className="inline-flex items-center gap-1.5 bg-white"
+            >
+              <Icon name="refresh" className="h-3.5 w-3.5" />
+              Refresh
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportCsv}
+              className="inline-flex items-center gap-1.5 bg-white"
+            >
+              <Icon name="download" className="h-3.5 w-3.5" />
+              Export CSV
+            </Button>
+          </>
+        }
+      />
 
       {/* ============ Stat cards ============ */}
       {status === "ready" && (
@@ -766,7 +658,12 @@ const AuditLogsPage = () => {
       )}
 
       {/* ============ Detail drawer ============ */}
-      <DetailDrawer log={selectedLog} onClose={() => setSelectedLog(null)} />
+      <AuditLogDetailDrawer
+        log={selectedLog}
+        onClose={() => setSelectedLog(null)}
+        ActorAvatar={ActorAvatar}
+        ActionBadge={ActionBadge}
+      />
     </div>
   );
 };

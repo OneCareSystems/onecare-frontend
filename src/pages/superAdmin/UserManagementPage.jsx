@@ -12,14 +12,15 @@ import Button from "../../components/Button";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import ErrorMessage from "../../components/ErrorMessage";
 import Icon from "../../components/Icon";
-import Input from "../../components/Input";
-import Modal from "../../components/Modal";
 import Pagination from "../../components/Pagination";
 import SearchBar from "../../components/SearchBar";
 import Select from "../../components/Select";
 import StatusBadge from "../../components/StatusBadge";
 import Table from "../../components/Table";
 import Toast from "../../components/Toast";
+import { SuperAdminPageHeader } from "../../features/superAdmin/SuperAdminPageHeader";
+import UserCreateModal from "../../features/superAdmin/UserCreateModal";
+import UserEditModal from "../../features/superAdmin/UserEditModal";
 import { ROLES } from "../../constants/roles";
 import {
   assignUserRole,
@@ -56,11 +57,6 @@ const EMPTY_FORM = {
 };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-const validateEmail = (value) =>
-  !EMAIL_PATTERN.test(String(value ?? "").trim())
-    ? "Enter a valid email address."
-    : "";
 
 /* ------------------------------------------------------------------ */
 /* Presentational bits                                                 */
@@ -252,8 +248,6 @@ const UserManagementPage = () => {
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
-
-  const [resettingUserId, setResettingUserId] = useState(null);
 
   const [confirm, setConfirm] = useState(null);
   const [confirmBusy, setConfirmBusy] = useState(false);
@@ -458,7 +452,6 @@ const UserManagementPage = () => {
   );
 
   const handleResetKey = useCallback(async (user) => {
-    setResettingUserId(user.userId);
     try {
       await resetUserPassword(user.userId);
       setToast({
@@ -472,7 +465,7 @@ const UserManagementPage = () => {
           error?.userMessage ?? "Unable to initiate password reset sequence.",
       });
     } finally {
-      setResettingUserId(null);
+
     }
   }, []);
 
@@ -683,60 +676,53 @@ const UserManagementPage = () => {
   return (
     <div className="mx-auto max-w-7xl space-y-5 p-4 sm:p-6">
       {/* ============ Hero ============ */}
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
-            <Icon name="users" className="h-3.5 w-3.5" />
-            Identity · Staff directory
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-neutral-900">
-            User Management
-          </h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            Provision, edit, and lock down staff accounts. All actions are
-            audited.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-lg border border-neutral-200 bg-neutral-50 p-0.5">
-            {[
-              { id: "comfortable", label: "Comfortable" },
-              { id: "compact", label: "Compact" },
-            ].map((d) => (
-              <button
-                key={d.id}
-                type="button"
-                onClick={() => setDensity(d.id)}
-                aria-pressed={density === d.id}
-                className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition ${
-                  density === d.id
-                    ? "bg-white text-neutral-900 shadow-xs"
-                    : "text-neutral-500 hover:text-neutral-800"
-                }`}
-              >
-                {d.label}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowShortcuts((v) => !v)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-medium text-neutral-600 transition hover:border-neutral-300 hover:text-neutral-900"
-          >
-            <kbd className="rounded bg-neutral-100 px-1 font-mono text-[10px]">
-              ⌘K
-            </kbd>
-            Shortcuts
-          </button>
-          <Button
-            onClick={openCreate}
-            className="inline-flex shrink-0 items-center gap-1.5"
-          >
-            <Icon name="plus" className="h-4 w-4" />
-            Create User
-          </Button>
-        </div>
-      </header>
+      <SuperAdminPageHeader
+        icon="users"
+        badgeText="Identity · Staff directory"
+        title="User Management"
+        description="Provision, edit, and lock down staff accounts. All actions are audited."
+        actions={
+          <>
+            <div className="inline-flex rounded-lg border border-neutral-200 bg-neutral-50 p-0.5">
+              {[
+                { id: "comfortable", label: "Comfortable" },
+                { id: "compact", label: "Compact" },
+              ].map((d) => (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => setDensity(d.id)}
+                  aria-pressed={density === d.id}
+                  className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition ${
+                    density === d.id
+                      ? "bg-white text-neutral-900 shadow-xs"
+                      : "text-neutral-500 hover:text-neutral-800"
+                  }`}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowShortcuts((v) => !v)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-medium text-neutral-600 transition hover:border-neutral-300 hover:text-neutral-900"
+            >
+              <kbd className="rounded bg-neutral-100 px-1 font-mono text-[10px]">
+                ⌘K
+              </kbd>
+              Shortcuts
+            </button>
+            <Button
+              onClick={openCreate}
+              className="inline-flex shrink-0 items-center gap-1.5"
+            >
+              <Icon name="plus" className="h-4 w-4" />
+              Create User
+            </Button>
+          </>
+        }
+      />
 
       {/* ============ Stat strip ============ */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -974,119 +960,29 @@ const UserManagementPage = () => {
       />
 
       {/* ============ Create modal ============ */}
-      <Modal
+      <UserCreateModal
         isOpen={isCreateOpen}
         onClose={closeCreate}
-        title="Create New User"
-      >
-        <form onSubmit={handleCreateSubmit} className="space-y-4">
-          {submitError && <ErrorMessage title="Creation Failed" message={submitError} />}
-
-          <Input
-            id="username"
-            name="username"
-            label="Staff ID / Username"
-            value={form.username}
-            onChange={handleFormChange}
-            required
-            submitted={submitAttempted}
-            placeholder="e.g. PENDELTON-3312"
-          />
-          <Input
-            id="email"
-            name="email"
-            label="Clinic Email Address"
-            type="email"
-            value={form.email}
-            onChange={handleFormChange}
-            required
-            validate={validateEmail}
-            submitted={submitAttempted}
-            placeholder="staff@onecare.clinic"
-            hint="An onboarding password activation key will be dispatched to this email address."
-          />
-          <Input
-            id="password"
-            name="password"
-            label="Password"
-            type="password"
-            value={form.password}
-            onChange={handleFormChange}
-            required
-            submitted={submitAttempted}
-            placeholder="e.g. **********"
-          />
-          <Select
-            id="role"
-            name="role"
-            label="Role Clearance"
-            options={Object.values(ROLES).map((r) => ({
-              value: r,
-              label: roleLabel(r),
-            }))}
-            value={form.role}
-            onChange={handleFormChange}
-            required
-            submitted={submitAttempted}
-          />
-          <div className="mt-6 flex justify-end gap-2 border-t border-neutral-100 pt-4">
-            <Button type="button" variant="outline" onClick={closeCreate} disabled={submitting}>
-              Cancel
-            </Button>
-            <Button type="submit" loading={submitting}>
-              Create Account
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        form={form}
+        onChange={handleFormChange}
+        onSubmit={handleCreateSubmit}
+        isSubmitting={submitting}
+        error={submitError}
+        attempted={submitAttempted}
+      />
 
       {/* ============ Edit modal ============ */}
-      <Modal
+      <UserEditModal
         isOpen={isEditOpen}
         onClose={closeEdit}
-        title={editTarget ? `Edit — ${editTarget.username}` : "Edit Account"}
-      >
-        <form onSubmit={handleEditSubmit} className="space-y-4">
-          {editError && <ErrorMessage title="Update Failed" message={editError} />}
-          <Input
-            id="edit-email"
-            name="email"
-            label="Clinic Email Address"
-            type="email"
-            value={editForm.email}
-            onChange={handleEditChange}
-            required
-            validate={validateEmail}
-            submitted={editAttempted}
-            placeholder="staff@onecare.clinic"
-          />
-          <Select
-            id="edit-role"
-            name="role"
-            label="Role Clearance"
-            options={Object.values(ROLES).map((r) => ({
-              value: r,
-              label: roleLabel(r),
-            }))}
-            value={editForm.role}
-            onChange={handleEditChange}
-            required
-            submitted={editAttempted}
-          />
-          <p className="rounded-lg border border-neutral-100 bg-neutral-50 p-2.5 text-xs text-neutral-500">
-            Role revisions take effect on subsequent authentication updates or
-            token refreshes.
-          </p>
-          <div className="mt-6 flex justify-end gap-2 border-t border-neutral-100 pt-4">
-            <Button type="button" variant="outline" onClick={closeEdit} disabled={editSubmitting}>
-              Cancel
-            </Button>
-            <Button type="submit" loading={editSubmitting}>
-              Save Changes
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        targetUser={editTarget}
+        editForm={editForm}
+        onChange={handleEditChange}
+        onSubmit={handleEditSubmit}
+        isSubmitting={editSubmitting}
+        error={editError}
+        attempted={editAttempted}
+      />
 
       {/* ============ Toast ============ */}
       {toast && (

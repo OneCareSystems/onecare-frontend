@@ -8,6 +8,7 @@ import Select from "../../components/Select";
 import StatCard from "../../components/StatCard";
 import Table from "../../components/Table";
 import Toast from "../../components/Toast";
+import { SuperAdminPageHeader } from "../../features/superAdmin/SuperAdminPageHeader";
 import {
   PERMISSION_CODES,
   PERMISSION_MATRIX,
@@ -581,51 +582,44 @@ const AccessControlPage = () => {
   return (
     <div className="mx-auto max-w-7xl space-y-5 p-4 sm:p-6">
       {/* ============ Hero ============ */}
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
-            <Icon name="shield" className="h-3.5 w-3.5" />
-            Access control · RBAC
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-neutral-900">
-            Role Permission Matrix
-          </h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            Toggle entitlements per role. Every change is persisted and audited.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowHelp((v) => !v)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-medium text-neutral-600 transition hover:border-neutral-300 hover:text-neutral-900"
-          >
-            <Icon name="info" className="h-3.5 w-3.5" />
-            How this works
-          </button>
-          <div className="inline-flex rounded-lg border border-neutral-200 bg-neutral-50 p-0.5">
-            {[
-              { id: "comfortable", label: "Comfortable" },
-              { id: "compact", label: "Compact" },
-            ].map((d) => (
-              <button
-                key={d.id}
-                type="button"
-                onClick={() => setDensity(d.id)}
-                aria-pressed={density === d.id}
-                className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition ${
-                  density === d.id
-                    ? "bg-white text-neutral-900 shadow-xs"
-                    : "text-neutral-500 hover:text-neutral-800"
-                }`}
-              >
-                {d.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </header>
+      <SuperAdminPageHeader
+        icon="shield"
+        badgeText="Access control · RBAC"
+        title="Role Permission Matrix"
+        description="Toggle entitlements per role. Every change is persisted and audited."
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowHelp((v) => !v)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-medium text-neutral-600 transition hover:border-neutral-300 hover:text-neutral-900"
+            >
+              <Icon name="info" className="h-3.5 w-3.5" />
+              How this works
+            </button>
+            <div className="inline-flex rounded-lg border border-neutral-200 bg-neutral-50 p-0.5">
+              {[
+                { id: "comfortable", label: "Comfortable" },
+                { id: "compact", label: "Compact" },
+              ].map((d) => (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => setDensity(d.id)}
+                  aria-pressed={density === d.id}
+                  className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition ${
+                    density === d.id
+                      ? "bg-white text-neutral-900 shadow-xs"
+                      : "text-neutral-500 hover:text-neutral-800"
+                  }`}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+          </>
+        }
+      />
 
       {/* ============ Stats ============ */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">

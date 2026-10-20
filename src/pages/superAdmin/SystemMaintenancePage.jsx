@@ -6,6 +6,9 @@ import ErrorMessage from "../../components/ErrorMessage";
 import Icon from "../../components/Icon";
 import Table from "../../components/Table";
 import Toast from "../../components/Toast";
+import { SuperAdminPageHeader } from "../../features/superAdmin/SuperAdminPageHeader";
+import BackupScheduleEditor from "../../features/superAdmin/BackupScheduleEditor";
+import BackupDetailDrawer from "../../features/superAdmin/BackupDetailDrawer";
 
 import {
   createBackup,
@@ -181,90 +184,6 @@ const SafetyBanner = memo(({ latestBackupAt, nextRun, creating, onRunBackup }) =
 SafetyBanner.displayName = "SafetyBanner";
 
 /* ------------------------------------------------------------------ */
-/* Backup detail drawer                                                */
-/* ------------------------------------------------------------------ */
-
-const BackupDrawer = ({ backup, onClose }) => {
-  useEffect(() => {
-    if (!backup) return;
-    const onKey = (e) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [backup, onClose]);
-
-  if (!backup) return null;
-  return (
-    <div
-      className="fixed inset-0 z-50 flex justify-end bg-neutral-900/30 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-    >
-      <div
-        className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <header className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
-              Backup #{backup.backupId}
-            </p>
-            <h3 className="mt-0.5 text-base font-semibold text-neutral-900">
-              Backup details
-            </h3>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="rounded-lg p-2 text-neutral-500 hover:bg-neutral-100"
-          >
-            <Icon name="x" className="h-4 w-4" />
-          </button>
-        </header>
-
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-          {[
-            ["Filename", backup.filename, true],
-            ["Created", backup.createdAt ? new Date(backup.createdAt).toLocaleString() : "—"],
-            ["Age", relTime(backup.createdAt)],
-            ["Size", fmtSize(backup.sizeBytes)],
-            ["Encryption", "AES-256-GCM"],
-            ["Checksum", backup.checksum || "—", true],
-            ["Region", backup.region || "—"],
-            ["Created by", backup.createdBy || "system"],
-          ].map(([label, value, mono]) => (
-            <div key={label} className="border-b border-neutral-100 pb-2 last:border-0">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
-                {label}
-              </p>
-              <p className={`mt-0.5 break-words text-sm text-neutral-800 ${mono ? "font-mono text-xs" : ""}`}>
-                {value}
-              </p>
-            </div>
-          ))}
-
-          <div className="mt-4 rounded-xl bg-neutral-50 p-3">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
-              Raw record
-            </p>
-            <pre className="mt-1.5 overflow-x-auto whitespace-pre-wrap break-words text-[11px] leading-relaxed text-neutral-700">
-{JSON.stringify(backup, null, 2)}
-            </pre>
-          </div>
-        </div>
-
-        <footer className="border-t border-neutral-200 px-5 py-3">
-          <Button variant="tertiary" onClick={onClose} className="w-full">
-            Close
-          </Button>
-        </footer>
-      </div>
-    </div>
-  );
-};
-
-/* ------------------------------------------------------------------ */
 /* Upcoming runs strip                                                 */
 /* ------------------------------------------------------------------ */
 
@@ -317,151 +236,6 @@ const UpcomingRuns = memo(({ schedule }) => {
   );
 });
 UpcomingRuns.displayName = "UpcomingRuns";
-
-/* ------------------------------------------------------------------ */
-/* Schedule editor                                                     */
-/* ------------------------------------------------------------------ */
-
-const ScheduleEditor = ({
-  schedule,
-  loading,
-  error,
-  saving,
-  scheduleMessage,
-  onSave,
-  onRetry,
-}) => {
-  const [dayOfMonth, setDayOfMonth] = useState(
-    () => String(schedule?.dayOfMonth ?? "28")
-  );
-
-  useEffect(() => {
-    if (schedule) setDayOfMonth(String(schedule.dayOfMonth));
-  }, [schedule]);
-
-  const changed =
-    schedule && Number(dayOfMonth) !== Number(schedule.dayOfMonth);
-
-  if (loading) {
-    return (
-      <div className="animate-pulse space-y-3">
-        <div className="h-10 rounded-lg bg-neutral-100" />
-        <div className="h-10 rounded-lg bg-neutral-100" />
-      </div>
-    );
-  }
-  if (!schedule) {
-    return (
-      <div className="space-y-3">
-        <ErrorMessage
-          title="Could not load backup schedule"
-          message={error || "The schedule service did not return any data."}
-        />
-        <Button size="sm" variant="outline" onClick={onRetry}>
-          <Icon name="refresh" className="mr-1 h-4 w-4" /> Retry
-        </Button>
-      </div>
-    );
-  }
-
-  const daysInMonth = new Date(
-    new Date().getFullYear(),
-    new Date().getMonth() + 1,
-    0
-  ).getDate();
-
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSave(Number(dayOfMonth));
-      }}
-      className="space-y-4"
-    >
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <label
-            htmlFor="backup-day-of-month"
-            className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-neutral-500"
-          >
-            Day of month
-          </label>
-          <select
-            id="backup-day-of-month"
-            value={dayOfMonth}
-            onChange={(e) => setDayOfMonth(e.target.value)}
-            required
-            className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 shadow-xs focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-          >
-            {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-              <option key={d} value={String(d)}>
-                {ordinal(d)}
-                {d > daysInMonth ? " (clamps to month end)" : ""}
-              </option>
-            ))}
-          </select>
-          <p className="mt-1 text-xs text-neutral-500">
-            If a month is shorter, the last day is used instead.
-          </p>
-        </div>
-
-        <div>
-          <label
-            htmlFor="backup-execution-time"
-            className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-neutral-500"
-          >
-            Execution time
-          </label>
-          <div className="flex items-center gap-2">
-            <input
-              id="backup-execution-time"
-              type="time"
-              value={schedule.executionTime ?? "23:59"}
-              readOnly
-              className="w-full cursor-not-allowed rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-600"
-            />
-            <span
-              title="The backend controls execution time"
-              className="inline-flex items-center gap-1 rounded-md bg-neutral-100 px-2 py-1 text-[11px] font-medium text-neutral-600"
-            >
-              <Icon name="lock" className="h-3 w-3" /> Fixed
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {error && (
-        <p className="rounded-lg bg-danger-50 p-2 text-xs text-danger-800 ring-1 ring-inset ring-danger-200">
-          {error}
-        </p>
-      )}
-      {scheduleMessage && (
-        <p className="rounded-lg bg-emerald-50 p-2 text-xs text-emerald-800 ring-1 ring-inset ring-emerald-200">
-          {scheduleMessage}
-        </p>
-      )}
-
-      <div className="flex items-center justify-between border-t border-neutral-100 pt-3">
-        <p className="text-xs text-neutral-500">
-          {changed ? (
-            <>
-              Pending change:{" "}
-              <span className="font-semibold text-neutral-800">
-                {ordinal(schedule.dayOfMonth)} → {ordinal(Number(dayOfMonth))}
-              </span>
-            </>
-          ) : (
-            `Currently runs on the ${ordinal(schedule.dayOfMonth)} of every month.`
-          )}
-        </p>
-        <Button type="submit" size="sm" loading={saving} disabled={saving || !changed}>
-          <Icon name="save" className="mr-1 h-3.5 w-3.5" />
-          Save
-        </Button>
-      </div>
-    </form>
-  );
-};
 
 /* ------------------------------------------------------------------ */
 /* Backup row actions                                                  */
@@ -730,31 +504,24 @@ const SystemMaintenancePage = () => {
   return (
     <div className="mx-auto max-w-7xl space-y-5 p-4 sm:p-6">
       {/* Hero */}
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
-            <Icon name="settings" className="h-3.5 w-3.5" />
-            System maintenance
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-neutral-900">
-            Backup & Recovery
-          </h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            Timestamped, encrypted snapshots of your clinic data — plus the
-            automatic backup cadence.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setShowShortcuts((v) => !v)}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-medium text-neutral-600 transition hover:border-neutral-300 hover:text-neutral-900"
-        >
-          <kbd className="rounded bg-neutral-100 px-1 font-mono text-[10px]">
-            ⌘K
-          </kbd>
-          Shortcuts
-        </button>
-      </header>
+      <SuperAdminPageHeader
+        icon="settings"
+        badgeText="System maintenance · Operations"
+        title="Backup & Recovery"
+        description="Timestamped, encrypted snapshots of your clinic data — plus the automatic backup cadence."
+        actions={
+          <button
+            type="button"
+            onClick={() => setShowShortcuts((v) => !v)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-medium text-neutral-600 transition hover:border-neutral-300 hover:text-neutral-900"
+          >
+            <kbd className="rounded bg-neutral-100 px-1 font-mono text-[10px]">
+              ⌘K
+            </kbd>
+            Shortcuts
+          </button>
+        }
+      />
 
       {/* Safety banner */}
       <SafetyBanner
@@ -817,7 +584,7 @@ const SystemMaintenancePage = () => {
             </p>
           </div>
 
-          <ScheduleEditor
+          <BackupScheduleEditor
             schedule={schedule}
             loading={scheduleLoading}
             error={scheduleError}
@@ -921,7 +688,10 @@ const SystemMaintenancePage = () => {
       )}
 
       {/* Drawer + confirm + toast */}
-      <BackupDrawer backup={selectedBackup} onClose={() => setSelectedBackup(null)} />
+      <BackupDetailDrawer
+        backup={selectedBackup}
+        onClose={() => setSelectedBackup(null)}
+      />
 
       <ConfirmDialog
         isOpen={Boolean(confirm)}
