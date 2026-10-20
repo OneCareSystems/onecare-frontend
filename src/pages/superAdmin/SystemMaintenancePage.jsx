@@ -3,16 +3,11 @@ import Button from "../../components/Button";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import ErrorMessage from "../../components/ErrorMessage";
 import Icon from "../../components/Icon";
-import StatCard from "../../components/StatCard";
-import StatusBadge from "../../components/StatusBadge";
 import Table from "../../components/Table";
 import Toast from "../../components/Toast";
 import {
   createBackup,
-  downloadBackup,
-  formatBytes,
   listBackups,
-  restoreBackup,
 } from "../../services/systemBackupService";
 
 /**
@@ -29,12 +24,8 @@ import {
  * are appended to the journal as completed entries.
  */
 
-const formatUtc = (date) =>
-  `${date.toISOString().replace("T", " ").slice(0, 16)} UTC`;
 
 const SystemMaintenancePage = () => {
-  const [journal, setJournal] = useState();
-  const [runningTask, setRunningTask] = useState(null);
   const [toast, setToast] = useState(null);
   /** { title, message, confirmLabel, variant, run } | null */
   const [confirm, setConfirm] = useState(null);
@@ -45,17 +36,13 @@ const SystemMaintenancePage = () => {
   const [backupsReload, setBackupsReload] = useState(0);
   const [creatingBackup, setCreatingBackup] = useState(false);
 
-  const [restoreFile, setRestoreFile] = useState(null);
-  const [restoring, setRestoring] = useState(false);
-  /** Per-table restored row counts from the last successful restore. */
-  const [restoreResult, setRestoreResult] = useState(null);
-  const [restoreError, setRestoreError] = useState(null);
-
   useEffect(() => {
     let cancelled = false;
     setBackupsStatus("loading");
     listBackups()
       .then((records) => {
+        console.log("Backups returned:", records);
+        console.log("Is array:", Array.isArray(records));
         if (cancelled) return;
         setBackups(records);
         setBackupsStatus("ready");
@@ -89,46 +76,28 @@ const SystemMaintenancePage = () => {
     }
   };
 
-
-  const performRestore = async ({ backupId, file, label }) => {
-    setRestoring(true);
-    setRestoreError(null);
-    setRestoreResult(null);
-    try {
-      const counts = await restoreBackup({ backupId, file, confirm: true });
-      setRestoreResult(counts);
-      setRestoreFile(null);
-      setToast({
-        type: "success",
-        message:
-          "Restore completed — all exported tables were replaced in a single transaction.",
-      });
-    } catch (error) {
-      setRestoreError(
-        error?.userMessage ??
-          error?.message ??
-          "Could not complete the restore. Nothing was changed.",
-      );
-    } finally {
-      setRestoring(false);
-    }
-  };
-
-
-  const requestRestoreFromFile = () => {
-    if (!restoreFile) {
-      setRestoreError("Choose an encrypted .backup file to restore first.");
-      return;
-    }
-    setConfirm({
-      title: "Restore from uploaded file? (destructive)",
-      message: `Restore ${restoreFile.name}? Every exported table is replaced inside a single database transaction. The backend verifies the file checksum first and rejects corrupted payloads. A SYSTEM_RESTORE audit entry is written on completion.`,
-      confirmLabel: "Confirm restore (overwrites data)",
-      variant: "danger",
-      run: () =>
-        performRestore({ file: restoreFile, label: restoreFile.name }),
-    });
-  };
+  const backupColumns = [
+    {
+      key: "backupId",
+      header: "Backup ID",
+    },
+    {
+      key: "createdAt",
+      header: "Created At",
+      render: (backup) =>
+        new Date(backup.createdAt).toLocaleString(),
+    },
+    {
+      key: "filename",
+      header: "Filename",
+    },
+    {
+      key: "sizeBytes",
+      header: "Size",
+      render: (backup) =>
+        `${(backup.sizeBytes / 1024).toFixed(2)} KB`,
+    },
+  ];
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -163,37 +132,6 @@ const SystemMaintenancePage = () => {
           </Button>
         </div>
 
-        {/* Restore result */}
-        {restoreResult ? (
-          <div
-            role="status"
-            className="mt-4 flex items-start gap-2.5 rounded-2xl border border-success-200 bg-success-50 p-3.5 text-sm text-success-900"
-          >
-            <Icon
-              name="circle-check"
-              className="mt-0.5 h-4 w-4 shrink-0 text-success-700"
-            />
-            <div className="min-w-0">
-              <p className="font-semibold">Restore completed successfully</p>
-              <p className="mt-0.5 text-xs leading-relaxed opacity-90">
-                Restored row counts per table:{" "}
-                {Object.entries(restoreResult)
-                  .map(([table, count]) => `${table} ${count}`)
-                  .join(" · ")}
-                . All exported tables were replaced inside one transaction and
-                a SYSTEM_RESTORE audit entry was written (AC4). Operational
-                target NFRR-005: restore completes within 4 hours.
-              </p>
-            </div>
-          </div>
-        ) : null}
-
-        {restoreError ? (
-          <div className="mt-4">
-            <ErrorMessage title="Restore refused" message={restoreError} />
-          </div>
-        ) : null}
-
         {/* Stored backups */}
         <div className="mt-4">
           {backupsStatus === "loading" ? (
@@ -225,13 +163,17 @@ const SystemMaintenancePage = () => {
               </div>
             </div>
           ) : (
+
+
             <Table
+              columns={backupColumns}
               data={backups}
               getRowKey={(backup) => backup.backupId}
               emptyTitle="No backups stored."
               emptyMessage="Run a backup now to create the first encrypted snapshot."
               label="Stored backups"
             />
+
           )}
         </div>
 
