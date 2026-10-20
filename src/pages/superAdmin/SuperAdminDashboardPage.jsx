@@ -35,7 +35,8 @@ const SuperAdminDashboardPage = () => {
       ]);
 
       const userList = users.status === "fulfilled" ? users.value || [] : [];
-      const backupList = backups.status === "fulfilled" ? backups.value || [] : [];
+      const backupList =
+        backups.status === "fulfilled" ? backups.value || [] : [];
       const auditPayload = logs.status === "fulfilled" ? logs.value || {} : {};
       const auditList = auditPayload.content || [];
       const feeAmount =
@@ -133,10 +134,7 @@ const SuperAdminDashboardPage = () => {
       />
 
       {error && (
-        <ErrorMessage
-          title="Data Synchronization Notice"
-          message={error}
-        />
+        <ErrorMessage title="Data Synchronization Notice" message={error} />
       )}
 
       {/* Overview Stat Cards */}
@@ -148,10 +146,18 @@ const SuperAdminDashboardPage = () => {
           <StatCard
             label="Total Staff"
             value={loading ? "…" : stats.totalUsers}
-            chip={stats.lockedUsers > 0 ? `${stats.lockedUsers} Locked` : `${stats.activeUsers} Active`}
+            chip={
+              stats.lockedUsers > 0
+                ? `${stats.lockedUsers} Locked`
+                : `${stats.activeUsers} Active`
+            }
             icon="users"
             iconClass="bg-primary-50 text-primary-700"
-            chipClass={stats.lockedUsers > 0 ? "bg-warning-100 text-warning-900" : "bg-emerald-100 text-emerald-800"}
+            chipClass={
+              stats.lockedUsers > 0
+                ? "bg-warning-100 text-warning-900"
+                : "bg-emerald-100 text-emerald-800"
+            }
           />
           <StatCard
             label="Consultation Fee"
@@ -182,7 +188,10 @@ const SuperAdminDashboardPage = () => {
 
       {/* Navigation & Operational Hub */}
       <section className="space-y-3" aria-labelledby="quick-actions-heading">
-        <h2 id="quick-actions-heading" className="text-sm font-semibold text-neutral-900">
+        <h2
+          id="quick-actions-heading"
+          className="text-sm font-semibold text-neutral-900"
+        >
           Governance Modules
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -194,7 +203,9 @@ const SuperAdminDashboardPage = () => {
             >
               <div>
                 <div className="flex items-center justify-between">
-                  <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${item.color}`}>
+                  <span
+                    className={`flex h-10 w-10 items-center justify-center rounded-xl ${item.color}`}
+                  >
                     <Icon name={item.icon} className="h-5 w-5" />
                   </span>
                   <Icon
@@ -222,7 +233,10 @@ const SuperAdminDashboardPage = () => {
       {/* Recent System Activity Preview */}
       <section className="space-y-3" aria-labelledby="recent-activity-heading">
         <div className="flex items-center justify-between">
-          <h2 id="recent-activity-heading" className="text-sm font-semibold text-neutral-900">
+          <h2
+            id="recent-activity-heading"
+            className="text-sm font-semibold text-neutral-900"
+          >
             Recent Audit Activity
           </h2>
           <Link
@@ -235,15 +249,22 @@ const SuperAdminDashboardPage = () => {
         <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-xs">
           {recentLogs.length === 0 ? (
             <div className="py-8 text-center text-sm text-neutral-500">
-              {loading ? "Loading audit trail..." : "No recent audit activity records found."}
+              {loading
+                ? "Loading audit trail..."
+                : "No recent audit activity records found."}
             </div>
           ) : (
             <ul className="divide-y divide-neutral-100">
               {recentLogs.map((log) => (
-                <li key={log.logId || log.id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between hover:bg-neutral-50">
+                <li
+                  key={log.logId || log.id}
+                  className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between hover:bg-neutral-50"
+                >
                   <div className="flex items-center gap-3">
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-xs font-bold text-neutral-700">
-                      {String(log.username || "?").charAt(0).toUpperCase()}
+                      {String(log.username || "?")
+                        .charAt(0)
+                        .toUpperCase()}
                     </span>
                     <div>
                       <p className="text-sm font-medium text-neutral-900">
@@ -253,7 +274,9 @@ const SuperAdminDashboardPage = () => {
                         </span>
                       </p>
                       <p className="font-mono text-xs text-neutral-400">
-                        {log.timestamp ? new Date(log.timestamp).toLocaleString() : "—"}
+                        {log.timestamp
+                          ? new Date(log.timestamp).toLocaleString()
+                          : "—"}
                       </p>
                     </div>
                   </div>

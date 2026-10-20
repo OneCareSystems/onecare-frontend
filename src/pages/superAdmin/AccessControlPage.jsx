@@ -90,40 +90,38 @@ SavedPulse.displayName = "SavedPulse";
 /* Scope cell                                                          */
 /* ------------------------------------------------------------------ */
 
-const ScopeInfoCell = memo(
-  ({ row, query, selected, onSelect, bulkMode }) => (
-    <div className="max-w-md whitespace-normal py-1">
-      <div className="flex flex-wrap items-center gap-1.5">
-        {bulkMode && (
-          <input
-            type="checkbox"
-            checked={selected}
-            onChange={() => onSelect?.(row.code)}
-            aria-label={`Select scope ${row.name}`}
-            className="h-3.5 w-3.5 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
-          />
-        )}
-        <span className="rounded-md border border-warning-200 bg-warning-50 px-2 py-0.5 text-xs font-semibold text-warning-800">
-          <Highlight text={row.category} query={query} />
+const ScopeInfoCell = memo(({ row, query, selected, onSelect, bulkMode }) => (
+  <div className="max-w-md whitespace-normal py-1">
+    <div className="flex flex-wrap items-center gap-1.5">
+      {bulkMode && (
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onSelect?.(row.code)}
+          aria-label={`Select scope ${row.name}`}
+          className="h-3.5 w-3.5 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+        />
+      )}
+      <span className="rounded-md border border-warning-200 bg-warning-50 px-2 py-0.5 text-xs font-semibold text-warning-800">
+        <Highlight text={row.category} query={query} />
+      </span>
+      <span className="font-mono text-xs text-neutral-500">
+        <Highlight text={row.code} query={query} />
+      </span>
+      {row.privileged && (
+        <span className="rounded-md border border-danger-200 bg-danger-50 px-2 py-0.5 text-xs font-semibold text-danger-700">
+          Privileged
         </span>
-        <span className="font-mono text-xs text-neutral-500">
-          <Highlight text={row.code} query={query} />
-        </span>
-        {row.privileged && (
-          <span className="rounded-md border border-danger-200 bg-danger-50 px-2 py-0.5 text-xs font-semibold text-danger-700">
-            Privileged
-          </span>
-        )}
-      </div>
-      <p className="mt-1 text-sm font-semibold text-neutral-900">
-        <Highlight text={row.name} query={query} />
-      </p>
-      <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-neutral-600 hover:line-clamp-none">
-        <Highlight text={row.description} query={query} />
-      </p>
+      )}
     </div>
-  )
-);
+    <p className="mt-1 text-sm font-semibold text-neutral-900">
+      <Highlight text={row.name} query={query} />
+    </p>
+    <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-neutral-600 hover:line-clamp-none">
+      <Highlight text={row.description} query={query} />
+    </p>
+  </div>
+));
 ScopeInfoCell.displayName = "ScopeInfoCell";
 
 /* ------------------------------------------------------------------ */
@@ -148,8 +146,8 @@ const MatrixCell = memo(
     const blockReason = isLastGranted
       ? "BR006: A role's permission set cannot be empty"
       : isPrivilegedForNonAdmin
-      ? "BR004: Only SUPER_ADMIN may hold this privileged scope"
-      : null;
+        ? "BR004: Only SUPER_ADMIN may hold this privileged scope"
+        : null;
 
     const size = density === "compact" ? "h-7 w-7" : "h-9 w-9";
 
@@ -183,7 +181,7 @@ const MatrixCell = memo(
             disabled={isSaving || isBlocked}
             aria-pressed={isGranted}
             aria-label={`${isGranted ? "Revoke" : "Grant"} ${row.name} for ${roleLabel(
-              role
+              role,
             )}`}
             title={
               isBlocked
@@ -194,8 +192,8 @@ const MatrixCell = memo(
               isBlocked
                 ? "cursor-not-allowed bg-neutral-50 opacity-50"
                 : isGranted
-                ? "bg-success-50 text-success-700 hover:bg-success-100"
-                : "bg-neutral-50 text-neutral-400 hover:bg-neutral-100"
+                  ? "bg-success-50 text-success-700 hover:bg-success-100"
+                  : "bg-neutral-50 text-neutral-400 hover:bg-neutral-100"
             }`}
           >
             {isSaving ? (
@@ -217,7 +215,7 @@ const MatrixCell = memo(
         </SavedPulse>
       </div>
     );
-  }
+  },
 );
 MatrixCell.displayName = "MatrixCell";
 
@@ -283,9 +281,9 @@ const AccessControlPage = () => {
         ROLE_ORDER.map(async (role) => {
           const { permissions } = await getRolePermissions(role);
           return [role, permissions];
-        })
+        }),
       ),
-    []
+    [],
   );
 
   const loadPermissions = useCallback(async () => {
@@ -311,7 +309,9 @@ const AccessControlPage = () => {
       })
       .catch((error) => {
         if (!active) return;
-        setLoadError(error?.userMessage ?? "Failed to load permissions matrix.");
+        setLoadError(
+          error?.userMessage ?? "Failed to load permissions matrix.",
+        );
         setStatus("failed");
       });
     return () => {
@@ -373,9 +373,9 @@ const AccessControlPage = () => {
     () =>
       Object.values(grantsByRole).reduce(
         (sum, list) => sum + (list?.length || 0),
-        0
+        0,
       ),
-    [grantsByRole]
+    [grantsByRole],
   );
 
   /* ---- mutations ---- */
@@ -403,7 +403,7 @@ const AccessControlPage = () => {
               at: new Date(),
             },
             ...prev,
-          ].slice(0, 5)
+          ].slice(0, 5),
         );
 
         setToast({
@@ -425,7 +425,7 @@ const AccessControlPage = () => {
         setSavingKey(null);
       }
     },
-    [grantsByRole]
+    [grantsByRole],
   );
 
   const requestToggle = useCallback(
@@ -441,14 +441,14 @@ const AccessControlPage = () => {
         message: `Are you sure you want to ${
           isGranted ? "revoke" : "grant"
         } "${entry.name}" (${code}) for [${roleLabel(
-          role
+          role,
         )}]? Changes take effect immediately.`,
         confirmLabel: isGranted ? "Confirm Revocation" : "Authorize Scope",
         variant: isGranted ? "danger" : "primary",
         run: () => applyRolePermissions(role, nextList, entry, isGranted),
       });
     },
-    [applyRolePermissions, grantsByRole]
+    [applyRolePermissions, grantsByRole],
   );
 
   /* ---- bulk apply ---- */
@@ -490,7 +490,7 @@ const AccessControlPage = () => {
                   at: new Date(),
                 },
                 ...prevList,
-              ].slice(0, 5)
+              ].slice(0, 5),
             );
             setSelectedCodes(new Set());
             setBulkMode(false);
@@ -507,7 +507,7 @@ const AccessControlPage = () => {
         },
       });
     },
-    [selectedCodes, grantsByRole]
+    [selectedCodes, grantsByRole],
   );
 
   /* ---- columns ---- */
@@ -573,7 +573,7 @@ const AccessControlPage = () => {
       bulkMode,
       selectedCodes,
       density,
-    ]
+    ],
   );
 
   const isFiltering = Boolean(debouncedSearch) || category !== ALL_CATEGORIES;
@@ -775,11 +775,17 @@ const AccessControlPage = () => {
             </div>
             <div className="flex items-center gap-3 text-[11px] text-neutral-600">
               <span className="inline-flex items-center gap-1">
-                <Icon name="circle-check" className="h-3.5 w-3.5 text-success-600" />
+                <Icon
+                  name="circle-check"
+                  className="h-3.5 w-3.5 text-success-600"
+                />
                 Authorized
               </span>
               <span className="inline-flex items-center gap-1">
-                <Icon name="circle-x" className="h-3.5 w-3.5 text-neutral-400" />
+                <Icon
+                  name="circle-x"
+                  className="h-3.5 w-3.5 text-neutral-400"
+                />
                 Denied
               </span>
               <span className="inline-flex items-center gap-1">
@@ -863,21 +869,30 @@ const AccessControlPage = () => {
             </div>
             <ul className="mt-3 space-y-2.5 text-sm text-neutral-700">
               <li className="flex gap-2">
-                <Icon name="circle-check" className="mt-0.5 h-4 w-4 shrink-0 text-success-600" />
+                <Icon
+                  name="circle-check"
+                  className="mt-0.5 h-4 w-4 shrink-0 text-success-600"
+                />
                 <span>
                   <strong>Authorized</strong> — role currently holds this scope.
                   Click to revoke.
                 </span>
               </li>
               <li className="flex gap-2">
-                <Icon name="circle-x" className="mt-0.5 h-4 w-4 shrink-0 text-neutral-400" />
+                <Icon
+                  name="circle-x"
+                  className="mt-0.5 h-4 w-4 shrink-0 text-neutral-400"
+                />
                 <span>
                   <strong>Denied</strong> — role does not hold this scope. Click
                   to grant.
                 </span>
               </li>
               <li className="flex gap-2">
-                <Icon name="lock" className="mt-0.5 h-4 w-4 shrink-0 text-neutral-400" />
+                <Icon
+                  name="lock"
+                  className="mt-0.5 h-4 w-4 shrink-0 text-neutral-400"
+                />
                 <span>
                   <strong>Blocked</strong> — protected by rule{" "}
                   <code className="rounded bg-neutral-100 px-1 font-mono text-[11px]">
@@ -891,7 +906,10 @@ const AccessControlPage = () => {
                 </span>
               </li>
               <li className="flex gap-2">
-                <Icon name="shield" className="mt-0.5 h-4 w-4 shrink-0 text-primary-600" />
+                <Icon
+                  name="shield"
+                  className="mt-0.5 h-4 w-4 shrink-0 text-primary-600"
+                />
                 <span>
                   <strong>SUPER_ADMIN</strong> is immutable (rule{" "}
                   <code className="rounded bg-neutral-100 px-1 font-mono text-[11px]">

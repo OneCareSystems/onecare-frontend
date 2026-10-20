@@ -103,8 +103,7 @@ export const PERMISSION_MATRIX = Object.freeze([
     code: "APPOINTMENT_READ_CLINICAL_NOTES",
     category: "Clinical EMR",
     name: "Read consultation clinical notes",
-    description:
-      "Open the PHI consultation notes attached to an appointment",
+    description: "Open the PHI consultation notes attached to an appointment",
     granted: Object.freeze([ROLES.DOCTOR, ROLES.PHARMACIST]),
   }),
   Object.freeze({
@@ -129,44 +128,28 @@ export const PERMISSION_MATRIX = Object.freeze([
     category: "Pharmacy & Dispensary",
     name: "Add medicine to formulary",
     description: "Register new drugs with dosage and interaction data",
-    granted: Object.freeze([
-      ROLES.SUPER_ADMIN,
-      ROLES.ADMIN,
-      ROLES.PHARMACIST,
-    ]),
+    granted: Object.freeze([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.PHARMACIST]),
   }),
   Object.freeze({
     code: "MEDICINE_READ_ALL",
     category: "Pharmacy & Dispensary",
     name: "View full medicine catalog",
     description: "Browse the entire formulary including stock levels",
-    granted: Object.freeze([
-      ROLES.SUPER_ADMIN,
-      ROLES.ADMIN,
-      ROLES.PHARMACIST,
-    ]),
+    granted: Object.freeze([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.PHARMACIST]),
   }),
   Object.freeze({
     code: "MEDICINE_READ",
     category: "Pharmacy & Dispensary",
     name: "View medicine details",
     description: "Read one drug record, its lots and expiry data",
-    granted: Object.freeze([
-      ROLES.SUPER_ADMIN,
-      ROLES.ADMIN,
-      ROLES.PHARMACIST,
-    ]),
+    granted: Object.freeze([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.PHARMACIST]),
   }),
   Object.freeze({
     code: "MEDICINE_UPDATE",
     category: "Pharmacy & Dispensary",
     name: "Update medicine details",
     description: "Edit pricing, strength, storage and reorder thresholds",
-    granted: Object.freeze([
-      ROLES.SUPER_ADMIN,
-      ROLES.ADMIN,
-      ROLES.PHARMACIST,
-    ]),
+    granted: Object.freeze([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.PHARMACIST]),
   }),
   Object.freeze({
     code: "MEDICINE_DELETE",
@@ -219,8 +202,7 @@ export const PERMISSION_MATRIX = Object.freeze([
     code: "PRESCRIPTION_DISPENSE",
     category: "Pharmacy & Dispensary",
     name: "Verify & dispense medications",
-    description:
-      "Run interaction checks, label bottles and deduct inventory",
+    description: "Run interaction checks, label bottles and deduct inventory",
     granted: Object.freeze([ROLES.PHARMACIST]),
   }),
   Object.freeze({
@@ -237,44 +219,28 @@ export const PERMISSION_MATRIX = Object.freeze([
     category: "Financial & Billing",
     name: "Create invoices",
     description: "Raise invoices for consultations, drugs and procedures",
-    granted: Object.freeze([
-      ROLES.SUPER_ADMIN,
-      ROLES.ADMIN,
-      ROLES.PHARMACIST,
-    ]),
+    granted: Object.freeze([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.PHARMACIST]),
   }),
   Object.freeze({
     code: "INVOICE_READ",
     category: "Financial & Billing",
     name: "View invoices",
     description: "Read invoice lines, payment status and AR balances",
-    granted: Object.freeze([
-      ROLES.SUPER_ADMIN,
-      ROLES.ADMIN,
-      ROLES.PHARMACIST,
-    ]),
+    granted: Object.freeze([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.PHARMACIST]),
   }),
   Object.freeze({
     code: "INVOICE_UPDATE",
     category: "Financial & Billing",
     name: "Edit invoices",
     description: "Adjust line items, apply discounts and void invoices",
-    granted: Object.freeze([
-      ROLES.SUPER_ADMIN,
-      ROLES.ADMIN,
-      ROLES.PHARMACIST,
-    ]),
+    granted: Object.freeze([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.PHARMACIST]),
   }),
   Object.freeze({
     code: "INVOICE_PAY",
     category: "Financial & Billing",
     name: "Take payments",
     description: "Collect cash/card tenders and adjudicate insurance claims",
-    granted: Object.freeze([
-      ROLES.SUPER_ADMIN,
-      ROLES.ADMIN,
-      ROLES.PHARMACIST,
-    ]),
+    granted: Object.freeze([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.PHARMACIST]),
   }),
 
   // — Security & Infrastructure — users ————————————————————————————
@@ -342,8 +308,7 @@ export const PERMISSION_MATRIX = Object.freeze([
     code: "REPORT_GENERATE",
     category: "Security & Infrastructure",
     name: "Generate reports",
-    description:
-      "Compile scheduled exports (defined, granted to no role yet)",
+    description: "Compile scheduled exports (defined, granted to no role yet)",
     granted: Object.freeze([]),
   }),
 

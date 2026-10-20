@@ -19,7 +19,7 @@ const emptyWeek = () =>
 const defaultDoctorSchedules = () =>
   JSON.parse(
     JSON.stringify({
-      "4": {
+      4: {
         days: emptyWeek().map((day) =>
           ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"].includes(
             day.dayOfWeek,
@@ -34,7 +34,7 @@ const defaultDoctorSchedules = () =>
             : day,
         ),
       },
-      "5": { days: emptyWeek() },
+      5: { days: emptyWeek() },
     }),
   );
 
@@ -730,8 +730,7 @@ export const handlers = [
     const uploaded = form?.get("file");
     mswState.systemRestoreHits.push({
       backupId: form?.get("backupId") ?? null,
-      fileName:
-        uploaded && typeof uploaded === "object" ? uploaded.name : null,
+      fileName: uploaded && typeof uploaded === "object" ? uploaded.name : null,
       authorization: request.headers.get("Authorization"),
     });
     if (mswState.systemRestoreErrorMode === "network-error") {
@@ -883,13 +882,9 @@ export const handlers = [
     const requestedPage = Number(url.searchParams.get("page") ?? 0);
     const requestedSize = Number(url.searchParams.get("size") ?? 20);
     const page =
-      Number.isFinite(requestedPage) && requestedPage >= 0
-        ? requestedPage
-        : 0;
+      Number.isFinite(requestedPage) && requestedPage >= 0 ? requestedPage : 0;
     const size =
-      Number.isFinite(requestedSize) && requestedSize > 0
-        ? requestedSize
-        : 20;
+      Number.isFinite(requestedSize) && requestedSize > 0 ? requestedSize : 20;
     const sorted = [...mswState.auditLogs].sort((a, b) => b.logId - a.logId);
     const totalElements = sorted.length;
     const totalPages = Math.max(1, Math.ceil(totalElements / size));
@@ -1079,7 +1074,9 @@ export const handlers = [
     }
     const seenDays = new Set();
     for (const day of days) {
-      const dayOfWeek = String(day?.dayOfWeek ?? "").trim().toUpperCase();
+      const dayOfWeek = String(day?.dayOfWeek ?? "")
+        .trim()
+        .toUpperCase();
       if (!dayOfWeek || seenDays.has(dayOfWeek)) {
         return fail(400, "Each weekday must appear exactly once");
       }
@@ -1091,7 +1088,9 @@ export const handlers = [
         start: String(slot?.start ?? ""),
         end: String(slot?.end ?? ""),
       }));
-      if (slots.some((slot) => !isValidTime(slot.start) || !isValidTime(slot.end))) {
+      if (
+        slots.some((slot) => !isValidTime(slot.start) || !isValidTime(slot.end))
+      ) {
         return fail(400, "Time slots must use HH:mm");
       }
       if (slots.some((slot) => slot.end <= slot.start)) {

@@ -42,9 +42,7 @@ describe("super-admin dashboard — REST cases", () => {
     await waitFor(() =>
       expect(screen.getByText("Total Staff")).toBeInTheDocument(),
     );
-    await waitFor(() =>
-      expect(screen.getByText("$75.00")).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText("$75.00")).toBeInTheDocument());
 
     // four parallel reads, each carrying the session token
     expect(mswState.usersHits).toHaveLength(1);
@@ -80,15 +78,11 @@ describe("super-admin dashboard — REST cases", () => {
     const activity = await screen.findByRole("region", {
       name: "Recent Audit Activity",
     });
-    expect(
-      within(activity).getAllByText("superadmin"),
-    ).toHaveLength(2);
+    expect(within(activity).getAllByText("superadmin")).toHaveLength(2);
     expect(
       within(activity).getByText(/LOGIN outcome=SUCCESS/),
     ).toBeInTheDocument();
-    expect(
-      within(activity).getByText("TOKEN_REFRESH"),
-    ).toBeInTheDocument();
+    expect(within(activity).getByText("TOKEN_REFRESH")).toBeInTheDocument();
 
     const modules = screen.getByRole("region", { name: "Governance Modules" });
     for (const [title, href] of [
@@ -98,7 +92,9 @@ describe("super-admin dashboard — REST cases", () => {
       ["System Maintenance", "/super-admin/system-maintenance"],
       ["Audits & Reports", "/super-admin/audits-reports"],
     ]) {
-      const link = within(modules).getByRole("link", { name: new RegExp(title) });
+      const link = within(modules).getByRole("link", {
+        name: new RegExp(title),
+      });
       expect(link).toHaveAttribute("href", href);
     }
   });
@@ -109,9 +105,7 @@ describe("super-admin dashboard — REST cases", () => {
     openPage(PATH);
 
     await waitFor(() =>
-      expect(
-        statCard("Consultation Fee").getByText("—"),
-      ).toBeInTheDocument(),
+      expect(statCard("Consultation Fee").getByText("—")).toBeInTheDocument(),
     );
   });
 
@@ -121,9 +115,7 @@ describe("super-admin dashboard — REST cases", () => {
     mswState.auditLogsErrorMode = "server-error";
     openPage(PATH);
 
-    await waitFor(() =>
-      expect(screen.getByText("$75.00")).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText("$75.00")).toBeInTheDocument());
 
     // allSettled swallows the two failures — the page still renders
     expect(
@@ -144,15 +136,11 @@ describe("super-admin dashboard — REST cases", () => {
   it("re-reads every resource when Refresh Data is pressed", async () => {
     seedUsers();
     openPage(PATH);
-    await waitFor(() =>
-      expect(mswState.consultationFeeHits).toHaveLength(1),
-    );
+    await waitFor(() => expect(mswState.consultationFeeHits).toHaveLength(1));
 
     fireEvent.click(screen.getByRole("button", { name: /Refresh Data/ }));
 
-    await waitFor(() =>
-      expect(mswState.consultationFeeHits).toHaveLength(2),
-    );
+    await waitFor(() => expect(mswState.consultationFeeHits).toHaveLength(2));
     expect(mswState.usersHits).toHaveLength(2);
     expect(mswState.systemBackupHits).toHaveLength(2);
     expect(mswState.auditLogsHits).toHaveLength(2);

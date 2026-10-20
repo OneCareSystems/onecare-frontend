@@ -42,13 +42,11 @@ describe("auditService — /api/audit-logs Spring Page contract", () => {
     });
 
     // Numeric ids survive as display strings; nulls stay null.
-    expect(adaptAuditLog({ logId: 5, userId: 7, entityId: 12 })).toMatchObject(
-      {
-        logId: 5,
-        userId: 7,
-        entityId: "12",
-      },
-    );
+    expect(adaptAuditLog({ logId: 5, userId: 7, entityId: 12 })).toMatchObject({
+      logId: 5,
+      userId: 7,
+      entityId: "12",
+    });
     expect(adaptAuditLog({ logId: 6, userId: null }).userId).toBeNull();
   });
 

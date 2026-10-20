@@ -273,7 +273,9 @@ const AuditLogsPage = () => {
             log.ipAddress,
             log.logId,
           ].some((f) =>
-            String(f ?? "").toLowerCase().includes(normalizedQuery),
+            String(f ?? "")
+              .toLowerCase()
+              .includes(normalizedQuery),
           );
         return matchesAction && matchesSearch;
       }),
@@ -297,8 +299,7 @@ const AuditLogsPage = () => {
 
   const totalPages = pageData?.totalPages ?? 1;
   const totalElements = pageData?.totalElements ?? 0;
-  const isFiltering =
-    Boolean(normalizedQuery) || actionFilter !== ALL_ACTIONS;
+  const isFiltering = Boolean(normalizedQuery) || actionFilter !== ALL_ACTIONS;
 
   const clearFilters = useCallback(() => {
     setQuery("");
@@ -318,8 +319,7 @@ const AuditLogsPage = () => {
       "entityId",
       "description",
     ];
-    const escape = (v) =>
-      `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const escape = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
     const csv = [
       headers.join(","),
       ...rows.map((r) => headers.map((h) => escape(r[h])).join(",")),
@@ -487,9 +487,7 @@ const AuditLogsPage = () => {
               label="Action"
               options={actionOptions}
               value={actionFilter}
-              onChange={(e) =>
-                setActionFilter(e.target.value || ALL_ACTIONS)
-              }
+              onChange={(e) => setActionFilter(e.target.value || ALL_ACTIONS)}
               className="w-full sm:w-44"
             />
 
@@ -562,7 +560,10 @@ const AuditLogsPage = () => {
             title="Unable to load the audit trail"
             message="The audit-log service did not answer. Check the API connection and retry."
           />
-          <Button onClick={retry} className="mt-2 inline-flex items-center gap-2">
+          <Button
+            onClick={retry}
+            className="mt-2 inline-flex items-center gap-2"
+          >
             <Icon name="refresh" className="h-4 w-4" />
             Retry
           </Button>

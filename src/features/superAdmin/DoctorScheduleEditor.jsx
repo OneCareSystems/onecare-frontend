@@ -19,9 +19,9 @@ const weeklyHours = (days) =>
           isValidTime(s.start) && isValidTime(s.end)
             ? ds + Math.max(0, minutesBetween(s.start, s.end))
             : ds,
-        0
+        0,
       ),
-    0
+    0,
   );
 
 const fmtHours = (minutes) => {
@@ -44,26 +44,17 @@ const PresetButton = ({ icon, children, onClick }) => (
   </button>
 );
 
-const DayColumn = ({
-  day,
-  onChange,
-  onAdd,
-  onRemove,
-  onClearDay,
-}) => {
+const DayColumn = ({ day, onChange, onAdd, onRemove, onClearDay }) => {
   const dayLabel = DAY_LABELS[day.dayOfWeek] ?? day.dayOfWeek;
   const slots = day.timeSlots;
-  const sortedSlots = [...slots].sort((a, b) =>
-    a.start.localeCompare(b.start)
-  );
+  const sortedSlots = [...slots].sort((a, b) => a.start.localeCompare(b.start));
 
   const hasOverlap =
     sortedSlots.every(
-      (slot) => isValidTime(slot.start) && isValidTime(slot.end)
+      (slot) => isValidTime(slot.start) && isValidTime(slot.end),
     ) &&
     sortedSlots.some(
-      (slot, index) =>
-        index > 0 && overlaps(sortedSlots[index - 1], slot)
+      (slot, index) => index > 0 && overlaps(sortedSlots[index - 1], slot),
     );
 
   return (
@@ -137,7 +128,7 @@ const DayColumn = ({
                 isValidTime(slot.end) &&
                 isValidTime(other.start) &&
                 isValidTime(other.end) &&
-                overlaps(slot, other)
+                overlaps(slot, other),
             );
 
             return (
@@ -259,8 +250,8 @@ export const DoctorScheduleEditor = ({
               Editing weekly schedule
             </h4>
             <p className="mt-1 text-xs leading-5 text-neutral-600">
-              Update working hours for each day. Your changes will not take effect
-              until you save.
+              Update working hours for each day. Your changes will not take
+              effect until you save.
             </p>
           </div>
         </div>
@@ -288,17 +279,21 @@ export const DoctorScheduleEditor = ({
               icon="copy"
               onClick={() =>
                 onApplyPreset((current) => {
-                  const monday = current.find((day) => day.dayOfWeek === "MONDAY");
+                  const monday = current.find(
+                    (day) => day.dayOfWeek === "MONDAY",
+                  );
                   if (!monday || monday.timeSlots.length === 0) return current;
                   return current.map((day) =>
                     ["TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"].includes(
-                      day.dayOfWeek
+                      day.dayOfWeek,
                     )
                       ? {
                           ...day,
-                          timeSlots: monday.timeSlots.map((slot) => ({ ...slot })),
+                          timeSlots: monday.timeSlots.map((slot) => ({
+                            ...slot,
+                          })),
                         }
-                      : day
+                      : day,
                   );
                 })
               }
@@ -313,7 +308,7 @@ export const DoctorScheduleEditor = ({
                   current.map((day) => ({
                     ...day,
                     timeSlots: [{ start: "09:00", end: "17:00" }],
-                  }))
+                  })),
                 )
               }
             >
@@ -324,7 +319,7 @@ export const DoctorScheduleEditor = ({
               icon="rotate-ccw"
               onClick={() =>
                 onApplyPreset((current) =>
-                  current.map((day) => ({ ...day, timeSlots: [] }))
+                  current.map((day) => ({ ...day, timeSlots: [] })),
                 )
               }
             >

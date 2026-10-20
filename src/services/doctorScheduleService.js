@@ -58,10 +58,9 @@ export const adaptDoctorScheduleResponse = (payload) => {
 };
 
 export const getDoctorSchedule = async (doctorId, { signal } = {}) => {
-  const response = await apiClient.get(
-    `/doctors/${doctorId}/schedule`,
-    { signal },
-  );
+  const response = await apiClient.get(`/doctors/${doctorId}/schedule`, {
+    signal,
+  });
 
   return adaptDoctorScheduleResponse(response.data);
 };
@@ -85,12 +84,16 @@ export const setDoctorSchedule = async (doctorId, { days }) => {
     throw new Error("Every weekday must have a timeSlots array");
   }
 
-  if (payload.days.some((day) => day.timeSlots.some(
-    (slot) =>
-      !TIME_PATTERN.test(slot.start) ||
-      !TIME_PATTERN.test(slot.end) ||
-      slot.end <= slot.start,
-  ))) {
+  if (
+    payload.days.some((day) =>
+      day.timeSlots.some(
+        (slot) =>
+          !TIME_PATTERN.test(slot.start) ||
+          !TIME_PATTERN.test(slot.end) ||
+          slot.end <= slot.start,
+      ),
+    )
+  ) {
     throw new Error("Time slots must use HH:mm and end after they start");
   }
 
@@ -114,9 +117,7 @@ export const extractConflictSlots = (error) => {
   return slots
     .filter(
       (slot) =>
-        slot &&
-        typeof slot.start === "string" &&
-        typeof slot.end === "string",
+        slot && typeof slot.start === "string" && typeof slot.end === "string",
     )
     .map((slot) => ({ start: slot.start, end: slot.end }));
 };

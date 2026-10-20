@@ -84,18 +84,15 @@ describe("rolePermissionService — role permission governance", () => {
     ]);
 
     const reread = await getRolePermissions("DOCTOR");
-    expect(reread.permissions).toEqual([
-      "PATIENT_READ",
-      "APPOINTMENT_READ",
-    ]);
+    expect(reread.permissions).toEqual(["PATIENT_READ", "APPOINTMENT_READ"]);
   });
 
   it("rejects unknown permission codes with 400 and saves nothing", async () => {
     const before = [...mswState.rolePermissions.DOCTOR];
 
-    const error = await setRolePermissions("DOCTOR", ["NOT_A_PERMISSION"]).catch(
-      (caught) => caught,
-    );
+    const error = await setRolePermissions("DOCTOR", [
+      "NOT_A_PERMISSION",
+    ]).catch((caught) => caught);
 
     expect(error.status).toBe(400);
     expect(error.userMessage).toMatch(/Unknown permission/);
@@ -104,7 +101,9 @@ describe("rolePermissionService — role permission governance", () => {
 
   it("enforces the backend policy rules BR004-006 without persisting", async () => {
     // BR006 — a role's permission set cannot be empty.
-    const empty = await setRolePermissions("DOCTOR", []).catch((caught) => caught);
+    const empty = await setRolePermissions("DOCTOR", []).catch(
+      (caught) => caught,
+    );
     expect(empty.status).toBe(422);
     expect(empty.userMessage).toMatch(/BR006/);
 
@@ -142,9 +141,9 @@ describe("rolePermissionService — role permission governance", () => {
   it("rejects malformed permission payloads before any request", async () => {
     const hits = mswState.rolePermissionWriteHits.length;
 
-    await expect(
-      setRolePermissions("DOCTOR", "PATIENT_READ"),
-    ).rejects.toThrow(/permissions must be an array/i);
+    await expect(setRolePermissions("DOCTOR", "PATIENT_READ")).rejects.toThrow(
+      /permissions must be an array/i,
+    );
     expect(mswState.rolePermissionWriteHits.length).toBe(hits);
   });
 });

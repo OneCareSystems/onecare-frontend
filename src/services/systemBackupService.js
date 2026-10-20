@@ -111,9 +111,7 @@ export const restoreBackup = async ({ backupId, file, confirm }) => {
     throw new Error("Restore requires explicit confirmation");
   }
   if (!backupId && !file) {
-    throw new Error(
-      "Provide a backupId or an uploaded backup file to restore",
-    );
+    throw new Error("Provide a backupId or an uploaded backup file to restore");
   }
   const form = new FormData();
   form.append("confirm", "true");

@@ -32,7 +32,6 @@ import ClinicConfigPage from "../pages/superAdmin/ClinicConfigPage";
 import SystemMaintenancePage from "../pages/superAdmin/SystemMaintenancePage";
 import AuditLogsPage from "../pages/superAdmin/AuditLogsPage";
 
-
 const AppRoutes = () => {
   return (
     <Routes>
@@ -57,9 +56,16 @@ const AppRoutes = () => {
       </Route>
 
       {/* ADMIN AREA */}
-      <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.patientRegistration} />}>
+      <Route
+        element={
+          <RequireAuth allowedRoles={ROUTE_ACCESS.patientRegistration} />
+        }
+      >
         <Route element={<PatientRegistrationLayout />}>
-          <Route path="/admin/register-patient" element={<RegisterPatientPage />} />
+          <Route
+            path="/admin/register-patient"
+            element={<RegisterPatientPage />}
+          />
         </Route>
       </Route>
       <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.admin} />}>

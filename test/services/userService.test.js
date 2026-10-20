@@ -25,21 +25,25 @@ describe("userService — staff account directory", () => {
       adaptUsersResponse({
         success: true,
         message: "Users retrieved successfully",
-        data: { content: [
-          {
-            userId: 1,
-            username: "superadmin",
-            email: "superadmin@onecare.test",
-            role: "DOCTOR",
-            isActive: true,
-          },
-          {
-            userId: 2,
-            username: "disabled",
-            role: "super_admin",
-            isActive: false,
-          },
-        ], totalPages: 1, totalElements: 2 },
+        data: {
+          content: [
+            {
+              userId: 1,
+              username: "superadmin",
+              email: "superadmin@onecare.test",
+              role: "DOCTOR",
+              isActive: true,
+            },
+            {
+              userId: 2,
+              username: "disabled",
+              role: "super_admin",
+              isActive: false,
+            },
+          ],
+          totalPages: 1,
+          totalElements: 2,
+        },
       }),
     ).toEqual([
       {
@@ -63,9 +67,9 @@ describe("userService — staff account directory", () => {
     expect(() =>
       adaptUsersResponse({ success: true, data: { items: [] } }),
     ).toThrow(/response format/i);
-    expect(() =>
-      adaptUsersResponse({ success: false, data: [] }),
-    ).toThrow(/response format/i);
+    expect(() => adaptUsersResponse({ success: false, data: [] })).toThrow(
+      /response format/i,
+    );
   });
 
   it("derives account state from isActive and the lock window", () => {
@@ -119,9 +123,9 @@ describe("userService — staff account directory", () => {
       }),
     ).toMatchObject({ status: "ACTIVE", lockedUntil: null });
 
-    expect(() =>
-      adaptUserResponse({ success: true, data: { } }),
-    ).toThrow(/response format/i);
+    expect(() => adaptUserResponse({ success: true, data: {} })).toThrow(
+      /response format/i,
+    );
   });
 
   it("fetches the directory through the authenticated client", async () => {
@@ -129,14 +133,16 @@ describe("userService — staff account directory", () => {
       setSession({ accessToken: "u-access", role: "SUPER_ADMIN" }),
     );
     mswState.usersResponses = [
-      { content: [
-        {
-          userId: 1,
-          username: "VANCE-1102",
-          role: "ADMIN",
-          isActive: true,
-        },
-      ] },
+      {
+        content: [
+          {
+            userId: 1,
+            username: "VANCE-1102",
+            role: "ADMIN",
+            isActive: true,
+          },
+        ],
+      },
     ];
 
     const users = await getUsers();
@@ -176,9 +182,7 @@ describe("userService — staff account directory", () => {
       email: "a.pendelton@onecare.clinic",
       role: "DOCTOR",
     });
-    expect(mswState.userCreateHits[0].authorization).toBe(
-      "Bearer u-access",
-    );
+    expect(mswState.userCreateHits[0].authorization).toBe("Bearer u-access");
   });
 
   it("triggers the admin password reset through the authenticated client", async () => {
@@ -189,9 +193,7 @@ describe("userService — staff account directory", () => {
     await resetUserPassword(5);
 
     expect(mswState.userResetHits[0].id).toBe("5");
-    expect(mswState.userResetHits[0].authorization).toBe(
-      "Bearer u-access",
-    );
+    expect(mswState.userResetHits[0].authorization).toBe("Bearer u-access");
   });
 
   it("updates email/role, unlocks and deactivates through the governance endpoints", async () => {

@@ -86,7 +86,6 @@ export const ConsultationFeeCard = ({
                 )}
               </p>
             </div>
-
           </div>
 
           {error && (

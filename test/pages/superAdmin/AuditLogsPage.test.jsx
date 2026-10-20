@@ -36,7 +36,11 @@ const ledgerReady = () =>
 const lastRequest = () => {
   const hit = mswState.auditLogsHits.at(-1);
   const url = new URL(hit.url);
-  return { page: url.searchParams.get("page"), size: url.searchParams.get("size"), hit };
+  return {
+    page: url.searchParams.get("page"),
+    size: url.searchParams.get("size"),
+    hit,
+  };
 };
 
 describe("super-admin audit trail — REST cases", () => {
@@ -73,9 +77,7 @@ describe("super-admin audit trail — REST cases", () => {
 
     expect(await screen.findByText("#20")).toBeInTheDocument();
     expect(screen.queryByText("#40")).not.toBeInTheDocument();
-    await waitFor(() =>
-      expect(mswState.auditLogsHits).toHaveLength(2),
-    );
+    await waitFor(() => expect(mswState.auditLogsHits).toHaveLength(2));
     expect(lastRequest()).toMatchObject({ page: "1", size: "20" });
     expect(mswState.auditLogsHits[1].authorization).toBe(
       "Bearer super-admin-rest-token",
@@ -109,7 +111,9 @@ describe("super-admin audit trail — REST cases", () => {
     });
     await waitFor(() =>
       expect(
-        screen.getByText("No entries on this page match the current search or action filter."),
+        screen.getByText(
+          "No entries on this page match the current search or action filter.",
+        ),
       ).toBeInTheDocument(),
     );
 
@@ -140,7 +144,9 @@ describe("super-admin audit trail — REST cases", () => {
       screen.queryByRole("region", { name: "Audit trail event ledger" }),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByText(/LOGIN outcome=SUCCESS/).closest("button"));
+    fireEvent.click(
+      screen.getByText(/LOGIN outcome=SUCCESS/).closest("button"),
+    );
 
     const drawer = await screen.findByRole("dialog", {
       name: "Audit event detail",
@@ -148,7 +154,9 @@ describe("super-admin audit trail — REST cases", () => {
     expect(drawer).toHaveTextContent("superadmin");
     expect(drawer).toHaveTextContent("LOGIN outcome=SUCCESS");
 
-    fireEvent.click(within(drawer).getByRole("button", { name: "Close details" }));
+    fireEvent.click(
+      within(drawer).getByRole("button", { name: "Close details" }),
+    );
     expect(
       screen.queryByRole("dialog", { name: "Audit event detail" }),
     ).not.toBeInTheDocument();

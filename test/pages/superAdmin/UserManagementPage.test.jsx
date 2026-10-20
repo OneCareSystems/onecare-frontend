@@ -4,13 +4,7 @@ import { http } from "msw";
 
 import { server } from "../../msw/server";
 import { mswState } from "../../msw/handlers";
-import {
-  closePage,
-  failWith,
-  ok,
-  openPage,
-  rowFor,
-} from "./superAdminHarness";
+import { closePage, failWith, ok, openPage, rowFor } from "./superAdminHarness";
 
 const PATH = "/super-admin/user-management";
 
@@ -71,9 +65,7 @@ describe("super-admin user management — REST cases", () => {
     // status is derived from isActive + the failed-login lock window
     expect(rowFor("CHEN-8831").getByText("Inactive")).toBeInTheDocument();
     expect(rowFor("LOCKE-9902").getByText("Locked")).toBeInTheDocument();
-    expect(
-      rowFor("LOCKE-9902").getByText(/Unlocks in ~/),
-    ).toBeInTheDocument();
+    expect(rowFor("LOCKE-9902").getByText(/Unlocks in ~/)).toBeInTheDocument();
   });
 
   it("holds a loading skeleton until the directory responds", async () => {
@@ -83,8 +75,7 @@ describe("super-admin user management — REST cases", () => {
         "*/users",
         () =>
           new Promise((resolve) => {
-            release = () =>
-              resolve(ok([account(1, "LATE-1000", "DOCTOR")]));
+            release = () => resolve(ok([account(1, "LATE-1000", "DOCTOR")]));
           }),
       ),
     );
@@ -297,9 +288,7 @@ describe("super-admin user management — REST cases", () => {
     await directoryReady();
 
     openMenuFor("VANCE-1102");
-    fireEvent.click(
-      screen.getByRole("button", { name: "Deactivate account" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Deactivate account" }));
 
     const dialog = await screen.findByRole("dialog");
     expect(
@@ -309,7 +298,9 @@ describe("super-admin user management — REST cases", () => {
       within(dialog).getByRole("button", { name: "Deactivate Account" }),
     );
 
-    expect(await screen.findByText("VANCE-1102 has been deactivated.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("VANCE-1102 has been deactivated."),
+    ).toBeInTheDocument();
     expect(rowFor("VANCE-1102").getByText("Inactive")).toBeInTheDocument();
     expect(mswState.userDeactivateHits).toHaveLength(1);
     expect(mswState.userDeactivateHits[0]).toMatchObject({
@@ -324,16 +315,13 @@ describe("super-admin user management — REST cases", () => {
     await directoryReady();
 
     server.use(
-      http.delete(
-        "*/users/:id",
-        () => failWith(403, "Deactivation blocked by policy"),
+      http.delete("*/users/:id", () =>
+        failWith(403, "Deactivation blocked by policy"),
       ),
     );
 
     openMenuFor("VANCE-1102");
-    fireEvent.click(
-      screen.getByRole("button", { name: "Deactivate account" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Deactivate account" }));
     const dialog = await screen.findByRole("dialog");
     fireEvent.click(
       within(dialog).getByRole("button", { name: "Deactivate Account" }),

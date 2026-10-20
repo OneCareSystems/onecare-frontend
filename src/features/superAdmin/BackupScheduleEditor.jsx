@@ -19,8 +19,8 @@ export const BackupScheduleEditor = ({
   onSave,
   onRetry,
 }) => {
-  const [dayOfMonth, setDayOfMonth] = useState(
-    () => String(schedule?.dayOfMonth ?? "28")
+  const [dayOfMonth, setDayOfMonth] = useState(() =>
+    String(schedule?.dayOfMonth ?? "28"),
   );
 
   useEffect(() => {
@@ -56,7 +56,7 @@ export const BackupScheduleEditor = ({
   const daysInMonth = new Date(
     new Date().getFullYear(),
     new Date().getMonth() + 1,
-    0
+    0,
   ).getDate();
 
   return (

@@ -4,10 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { HttpResponse } from "msw";
 
 import { store } from "../../../src/app/store";
-import {
-  clearSession,
-  setSession,
-} from "../../../src/features/auth/authSlice";
+import { clearSession, setSession } from "../../../src/features/auth/authSlice";
 import AppRoutes from "../../../src/routes/AppRoutes";
 
 /**
@@ -22,19 +19,17 @@ export const SA_TOKEN = "super-admin-rest-token";
 /** Open `path` with a session already in the store (role: null = signed out). */
 export const openPage = (
   path,
-  { role = "SUPER_ADMIN", token = SA_TOKEN } = {}
+  { role = "SUPER_ADMIN", token = SA_TOKEN } = {},
 ) => {
   if (role) {
-    store.dispatch(
-      setSession({ accessToken: token, role, user: "REST Case" })
-    );
+    store.dispatch(setSession({ accessToken: token, role, user: "REST Case" }));
   }
   return render(
     <Provider store={store}>
       <MemoryRouter initialEntries={[path]}>
         <AppRoutes />
       </MemoryRouter>
-    </Provider>
+    </Provider>,
   );
 };
 

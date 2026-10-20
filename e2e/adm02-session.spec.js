@@ -32,10 +32,7 @@ const cases = [
 for (const scenario of cases) {
   test(`ADM-02 session: ${scenario.name}`, async ({ page }, testInfo) => {
     const role = scenario.role ?? "ADMIN";
-    const registration =
-      role === "ADMIN"
-        ? "/admin/register-patient"
-        : "";
+    const registration = role === "ADMIN" ? "/admin/register-patient" : "";
     const summary = [];
     let patientPosts = 0,
       refreshPosts = 0,

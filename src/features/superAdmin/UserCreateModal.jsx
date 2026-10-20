@@ -25,11 +25,7 @@ const UserCreateModal = ({
   attempted,
 }) => {
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Create New User"
-    >
+    <Modal isOpen={isOpen} onClose={onClose} title="Create New User">
       <form onSubmit={onSubmit} className="space-y-4">
         {error && <ErrorMessage title="Creation Failed" message={error} />}
 

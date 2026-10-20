@@ -248,9 +248,9 @@ describe("doctorScheduleService — FR009/UC4 working schedules", () => {
   it("rejects malformed payloads before any request", async () => {
     const hits = mswState.doctorScheduleWriteHits.length;
 
-    await expect(
-      setDoctorSchedule(4, { days: "MONDAY" }),
-    ).rejects.toThrow(/every weekday/i);
+    await expect(setDoctorSchedule(4, { days: "MONDAY" })).rejects.toThrow(
+      /every weekday/i,
+    );
     await expect(
       setDoctorSchedule(4, {
         days: emptyWeek().map((day) =>

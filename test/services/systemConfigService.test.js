@@ -19,8 +19,7 @@ const fetchNotFound = async () => ({ ok: false, status: 404 });
 const fetchNetworkError = async () => {
   throw new TypeError("Failed to fetch");
 };
-const fetchHanging =
-  (_url, { signal }) =>
+const fetchHanging = (_url, { signal }) =>
   new Promise((_resolve, reject) => {
     signal.addEventListener("abort", () =>
       reject(new DOMException("The operation was aborted.", "AbortError")),
@@ -105,9 +104,7 @@ describe("applySessionBaseUrl", () => {
       apiClient.defaults.baseURL = original;
     }
 
-    expect(apiClient.defaults.baseURL).not.toBe(
-      "https://api.example.test/api",
-    );
+    expect(apiClient.defaults.baseURL).not.toBe("https://api.example.test/api");
   });
 
   it("rejects invalid URLs without touching the client", () => {

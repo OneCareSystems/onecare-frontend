@@ -18,7 +18,6 @@ export const updateBackupSchedule = async (dayOfMonth) => {
   return response.data.data;
 };
 
-
 export const getConsultationFee = async () => {
   const response = await apiClient.get("/system/settings/consultation-fee");
   return response.data.data;

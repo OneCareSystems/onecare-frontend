@@ -54,9 +54,10 @@ describe("super-admin clinic configuration — REST cases", () => {
     expect(mswState.usersHits[0].authorization).toBe(
       "Bearer super-admin-rest-token",
     );
-    expect(
-      mswState.doctorScheduleHits.map((hit) => hit.id).sort(),
-    ).toEqual(["4", "5"]);
+    expect(mswState.doctorScheduleHits.map((hit) => hit.id).sort()).toEqual([
+      "4",
+      "5",
+    ]);
     expect(mswState.doctorScheduleHits[0].authorization).toBe(
       "Bearer super-admin-rest-token",
     );
@@ -72,9 +73,7 @@ describe("super-admin clinic configuration — REST cases", () => {
     expect(stat("1 scheduled").getByText("2")).toBeInTheDocument();
     expect(stat("All doctors").getByText("10")).toBeInTheDocument();
     expect(stat("Aggregate hours").getByText("35h")).toBeInTheDocument();
-    expect(
-      stat("Active clinic-wide").getByText("$75.00"),
-    ).toBeInTheDocument();
+    expect(stat("Active clinic-wide").getByText("$75.00")).toBeInTheDocument();
 
     expect(screen.getByText("35h / week")).toBeInTheDocument();
     expect(screen.getByText("No schedule")).toBeInTheDocument();
@@ -93,15 +92,15 @@ describe("super-admin clinic configuration — REST cases", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Save fee" }));
 
-    expect(await screen.findByText("Consultation fee updated.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Consultation fee updated."),
+    ).toBeInTheDocument();
     expect(mswState.consultationFeeUpdateHits).toHaveLength(1);
     expect(mswState.consultationFeeUpdateHits[0]).toMatchObject({
       body: { consultationFee: 120 },
       authorization: "Bearer super-admin-rest-token",
     });
-    expect(
-      stat("Active clinic-wide").getByText("$120.00"),
-    ).toBeInTheDocument();
+    expect(stat("Active clinic-wide").getByText("$120.00")).toBeInTheDocument();
     expect(screen.getByText("Currently active")).toBeInTheDocument();
   });
 
@@ -120,9 +119,7 @@ describe("super-admin clinic configuration — REST cases", () => {
     expect(mswState.consultationFeeUpdateHits).toHaveLength(1);
     expect(screen.getByLabelText("Amount")).toHaveValue(150);
     expect(screen.getByText("Unsaved change")).toBeInTheDocument();
-    expect(
-      stat("Active clinic-wide").getByText("$75.00"),
-    ).toBeInTheDocument();
+    expect(stat("Active clinic-wide").getByText("$75.00")).toBeInTheDocument();
   });
 
   it("surfaces a fee load failure and retries it", async () => {
@@ -148,7 +145,9 @@ describe("super-admin clinic configuration — REST cases", () => {
     mswState.usersErrorMode = "server-error";
     openPage(PATH);
 
-    expect(await screen.findByText("Unable to load doctors")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Unable to load doctors"),
+    ).toBeInTheDocument();
     expect(
       screen.getByText("The staff directory could not be fetched."),
     ).toBeInTheDocument();
@@ -231,9 +230,7 @@ describe("super-admin clinic configuration — REST cases", () => {
     await screen.findByText(/KAPIOR-4410/);
 
     const dialog = await openSchedule();
-    fireEvent.click(
-      within(dialog).getByRole("button", { name: "Clear all" }),
-    );
+    fireEvent.click(within(dialog).getByRole("button", { name: "Clear all" }));
     fireEvent.click(
       within(dialog).getByRole("button", { name: "Save schedule" }),
     );

@@ -10,10 +10,7 @@ import { SuperAdminPageHeader } from "../../features/superAdmin/SuperAdminPageHe
 import BackupScheduleEditor from "../../features/superAdmin/BackupScheduleEditor";
 import BackupDetailDrawer from "../../features/superAdmin/BackupDetailDrawer";
 
-import {
-  createBackup,
-  listBackups,
-} from "../../services/systemBackupService";
+import { createBackup, listBackups } from "../../services/systemBackupService";
 
 import {
   getBackupSchedule,
@@ -96,91 +93,99 @@ const computeUpcomingRuns = (dayOfMonth, executionTime, count = 3) => {
 /* Hero safety banner                                                  */
 /* ------------------------------------------------------------------ */
 
-const SafetyBanner = memo(({ latestBackupAt, nextRun, creating, onRunBackup }) => {
-  const latestAgeMs = latestBackupAt
-    ? Date.now() - new Date(latestBackupAt).getTime()
-    : null;
-  const latestAgeDays =
-    latestAgeMs != null ? Math.floor(latestAgeMs / 86_400_000) : null;
+const SafetyBanner = memo(
+  ({ latestBackupAt, nextRun, creating, onRunBackup }) => {
+    const latestAgeMs = latestBackupAt
+      ? Date.now() - new Date(latestBackupAt).getTime()
+      : null;
+    const latestAgeDays =
+      latestAgeMs != null ? Math.floor(latestAgeMs / 86_400_000) : null;
 
-  let tone = "success";
-  let title = "Backups healthy";
-  let sub = "Your latest backup is recent.";
-  if (latestAgeDays == null) {
-    tone = "danger";
-    title = "No backup on record";
-    sub = "Create the first encrypted snapshot to begin protecting your data.";
-  } else if (latestAgeDays >= 30) {
-    tone = "danger";
-    title = `Last backup ${latestAgeDays} days ago`;
-    sub = "You are past the safe window. Run a backup now.";
-  } else if (latestAgeDays >= 7) {
-    tone = "warning";
-    title = `Last backup ${latestAgeDays} days ago`;
-    sub = "Consider running a backup to keep your data fresh.";
-  }
+    let tone = "success";
+    let title = "Backups healthy";
+    let sub = "Your latest backup is recent.";
+    if (latestAgeDays == null) {
+      tone = "danger";
+      title = "No backup on record";
+      sub =
+        "Create the first encrypted snapshot to begin protecting your data.";
+    } else if (latestAgeDays >= 30) {
+      tone = "danger";
+      title = `Last backup ${latestAgeDays} days ago`;
+      sub = "You are past the safe window. Run a backup now.";
+    } else if (latestAgeDays >= 7) {
+      tone = "warning";
+      title = `Last backup ${latestAgeDays} days ago`;
+      sub = "Consider running a backup to keep your data fresh.";
+    }
 
-  const toneMap = {
-    success: "border-emerald-200 bg-emerald-50",
-    warning: "border-amber-200 bg-amber-50",
-    danger: "border-red-200 bg-red-50",
-  };
-  const iconTone = {
-    success: "bg-emerald-100 text-emerald-700",
-    warning: "bg-amber-100 text-amber-700",
-    danger: "bg-red-100 text-red-700",
-  };
-  const titleTone = {
-    success: "text-emerald-900",
-    warning: "text-amber-900",
-    danger: "text-red-900",
-  };
-  const subTone = {
-    success: "text-emerald-800",
-    warning: "text-amber-800",
-    danger: "text-red-800",
-  };
+    const toneMap = {
+      success: "border-emerald-200 bg-emerald-50",
+      warning: "border-amber-200 bg-amber-50",
+      danger: "border-red-200 bg-red-50",
+    };
+    const iconTone = {
+      success: "bg-emerald-100 text-emerald-700",
+      warning: "bg-amber-100 text-amber-700",
+      danger: "bg-red-100 text-red-700",
+    };
+    const titleTone = {
+      success: "text-emerald-900",
+      warning: "text-amber-900",
+      danger: "text-red-900",
+    };
+    const subTone = {
+      success: "text-emerald-800",
+      warning: "text-amber-800",
+      danger: "text-red-800",
+    };
 
-  return (
-    <div
-      className={`flex flex-col gap-4 rounded-2xl border p-5 shadow-xs sm:flex-row sm:items-center sm:justify-between ${toneMap[tone]}`}
-    >
-      <div className="flex items-start gap-4">
-        <span
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${iconTone[tone]}`}
-        >
-          <Icon name="shield-check" className="h-5 w-5" />
-        </span>
-        <div>
-          <p className={`text-base font-semibold ${titleTone[tone]}`}>{title}</p>
-          <p className={`mt-0.5 text-sm ${subTone[tone]}`}>{sub}</p>
-          {nextRun && (
-            <p className="mt-2 text-xs font-medium text-neutral-600">
-              <Icon name="calendar-clock" className="mr-1 inline h-3.5 w-3.5 align-text-bottom" />
-              Next automatic run {relFuture(nextRun.toISOString())} —{" "}
-              {nextRun.toLocaleString(undefined, {
-                month: "short",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <Button
-        onClick={onRunBackup}
-        loading={creating}
-        disabled={creating}
-        className="inline-flex shrink-0 items-center gap-2"
+    return (
+      <div
+        className={`flex flex-col gap-4 rounded-2xl border p-5 shadow-xs sm:flex-row sm:items-center sm:justify-between ${toneMap[tone]}`}
       >
-        <Icon name="database" className="h-4 w-4" />
-        {creating ? "Running…" : "Run backup now"}
-      </Button>
-    </div>
-  );
-});
+        <div className="flex items-start gap-4">
+          <span
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${iconTone[tone]}`}
+          >
+            <Icon name="shield-check" className="h-5 w-5" />
+          </span>
+          <div>
+            <p className={`text-base font-semibold ${titleTone[tone]}`}>
+              {title}
+            </p>
+            <p className={`mt-0.5 text-sm ${subTone[tone]}`}>{sub}</p>
+            {nextRun && (
+              <p className="mt-2 text-xs font-medium text-neutral-600">
+                <Icon
+                  name="calendar-clock"
+                  className="mr-1 inline h-3.5 w-3.5 align-text-bottom"
+                />
+                Next automatic run {relFuture(nextRun.toISOString())} —{" "}
+                {nextRun.toLocaleString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <Button
+          onClick={onRunBackup}
+          loading={creating}
+          disabled={creating}
+          className="inline-flex shrink-0 items-center gap-2"
+        >
+          <Icon name="database" className="h-4 w-4" />
+          {creating ? "Running…" : "Run backup now"}
+        </Button>
+      </div>
+    );
+  },
+);
 SafetyBanner.displayName = "SafetyBanner";
 
 /* ------------------------------------------------------------------ */
@@ -194,10 +199,10 @@ const UpcomingRuns = memo(({ schedule }) => {
         ? computeUpcomingRuns(
             Number(schedule.dayOfMonth),
             schedule.executionTime,
-            3
+            3,
           )
         : [],
-    [schedule]
+    [schedule],
   );
 
   if (!runs.length) return null;
@@ -292,7 +297,7 @@ const SystemMaintenancePage = () => {
         .filter(Boolean)
         .sort()
         .at(-1) ?? null,
-    [backups]
+    [backups],
   );
 
   const nextRun = useMemo(() => {
@@ -300,7 +305,7 @@ const SystemMaintenancePage = () => {
     const runs = computeUpcomingRuns(
       Number(schedule.dayOfMonth),
       schedule.executionTime,
-      1
+      1,
     );
     return runs[0] ?? null;
   }, [schedule]);
@@ -353,7 +358,7 @@ const SystemMaintenancePage = () => {
       } catch (error) {
         if (!cancelled)
           setScheduleError(
-            error?.userMessage ?? "Could not load the backup schedule."
+            error?.userMessage ?? "Could not load the backup schedule.",
           );
       } finally {
         if (!cancelled) setScheduleLoading(false);
@@ -382,7 +387,7 @@ const SystemMaintenancePage = () => {
             tone: "success",
           },
           ...prev,
-        ].slice(0, 5)
+        ].slice(0, 5),
       );
       setToast({
         type: "success",
@@ -420,12 +425,10 @@ const SystemMaintenancePage = () => {
             tone: "info",
           },
           ...prev,
-        ].slice(0, 5)
+        ].slice(0, 5),
       );
     } catch (error) {
-      setScheduleError(
-        error?.userMessage ?? "Could not update the schedule."
-      );
+      setScheduleError(error?.userMessage ?? "Could not update the schedule.");
     } finally {
       setScheduleSaving(false);
     }
@@ -468,7 +471,9 @@ const SystemMaintenancePage = () => {
                   })
                 : "—"}
             </p>
-            <p className="text-[11px] text-neutral-500">{relTime(b.createdAt)}</p>
+            <p className="text-[11px] text-neutral-500">
+              {relTime(b.createdAt)}
+            </p>
           </div>
         ),
       },
@@ -498,7 +503,7 @@ const SystemMaintenancePage = () => {
         render: (b) => <RowActions backup={b} onOpen={setSelectedBackup} />,
       },
     ],
-    []
+    [],
   );
 
   return (
@@ -558,8 +563,8 @@ const SystemMaintenancePage = () => {
                     a.tone === "success"
                       ? "bg-emerald-500"
                       : a.tone === "info"
-                      ? "bg-primary-500"
-                      : "bg-neutral-400"
+                        ? "bg-primary-500"
+                        : "bg-neutral-400"
                   }`}
                 />
                 <span className="text-neutral-700">{a.text}</span>
@@ -598,8 +603,8 @@ const SystemMaintenancePage = () => {
                 .then(setSchedule)
                 .catch((e) =>
                   setScheduleError(
-                    e?.userMessage ?? "Could not load the schedule."
-                  )
+                    e?.userMessage ?? "Could not load the schedule.",
+                  ),
                 )
                 .finally(() => setScheduleLoading(false));
             }}

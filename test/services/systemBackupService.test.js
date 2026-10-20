@@ -63,9 +63,9 @@ describe("systemBackupService — backup & restore", () => {
       }).map((backup) => backup.backupId),
     ).toEqual([2, 1]);
 
-    expect(() =>
-      adaptBackupListResponse({ success: false, data: [] }),
-    ).toThrow(/list response/i);
+    expect(() => adaptBackupListResponse({ success: false, data: [] })).toThrow(
+      /list response/i,
+    );
     expect(() =>
       adaptBackupListResponse({ success: true, data: { backupId: 1 } }),
     ).toThrow(/list response/i);

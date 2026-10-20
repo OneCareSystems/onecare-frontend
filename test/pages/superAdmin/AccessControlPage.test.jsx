@@ -134,9 +134,7 @@ describe("super-admin access control — REST cases", () => {
       ),
     );
     expect(
-      await screen.findByText(
-        "DOCTOR updated: Issue e-prescriptions revoked.",
-      ),
+      await screen.findByText("DOCTOR updated: Issue e-prescriptions revoked."),
     ).toBeInTheDocument();
   }, 15000);
 
@@ -167,9 +165,7 @@ describe("super-admin access control — REST cases", () => {
         name: "Grant View all staff accounts for DOCTOR",
       }),
     ).toHaveAttribute("aria-pressed", "false");
-    expect(mswState.rolePermissions.DOCTOR).toEqual(
-      defaultsFor(ROLES.DOCTOR),
-    );
+    expect(mswState.rolePermissions.DOCTOR).toEqual(defaultsFor(ROLES.DOCTOR));
   }, 15000);
 
   it("blocks the privileged scope, the last grant and the immutable role client-side", async () => {
@@ -199,9 +195,8 @@ describe("super-admin access control — REST cases", () => {
       screen.queryByRole("button", { name: /for SUPER ADMIN$/ }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getAllByLabelText(
-        /SUPER_ADMIN (Authorized|Denied) \(Immutable\)/,
-      ).length,
+      screen.getAllByLabelText(/SUPER_ADMIN (Authorized|Denied) \(Immutable\)/)
+        .length,
     ).toBeGreaterThan(0);
     expect(mswState.rolePermissionWriteHits).toHaveLength(0);
   }, 15000);
@@ -215,9 +210,7 @@ describe("super-admin access control — REST cases", () => {
     });
 
     await waitFor(() =>
-      expect(
-        screen.getByText(/^\d+ of \d+ scopes shown$/),
-      ).toBeInTheDocument(),
+      expect(screen.getByText(/^\d+ of \d+ scopes shown$/)).toBeInTheDocument(),
     );
     const filtered = await screen.findByRole("region", {
       name: "Role entitlement matrix",

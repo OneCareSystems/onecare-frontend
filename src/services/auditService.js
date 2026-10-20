@@ -72,8 +72,7 @@ export const adaptAuditLogsPageResponse = (payload) => {
     totalElements,
     totalPages,
     first: typeof data.first === "boolean" ? data.first : page === 0,
-    last:
-      typeof data.last === "boolean" ? data.last : page >= totalPages - 1,
+    last: typeof data.last === "boolean" ? data.last : page >= totalPages - 1,
   };
 };
 

@@ -69,7 +69,9 @@ const roleHue = (role) => {
 };
 
 const EmployeeCell = memo(({ username, email }) => {
-  const initial = String(username ?? "?").charAt(0).toUpperCase();
+  const initial = String(username ?? "?")
+    .charAt(0)
+    .toUpperCase();
   const hue = roleHue(username);
   return (
     <div className="flex items-center gap-3 py-1">
@@ -115,13 +117,15 @@ const LockCountdown = memo(({ lockedUntil }) => {
   if (!lockedUntil) return null;
   const diff = new Date(lockedUntil).getTime() - now;
   if (diff <= 0)
-    return <span className="text-[11px] text-warning-700">Lock expired — retry signing in</span>;
+    return (
+      <span className="text-[11px] text-warning-700">
+        Lock expired — retry signing in
+      </span>
+    );
   const mins = Math.ceil(diff / 60000);
   const label = mins >= 60 ? `${Math.ceil(mins / 60)}h` : `${mins}m`;
   return (
-    <span className="text-[11px] text-warning-700">
-      Unlocks in ~{label}
-    </span>
+    <span className="text-[11px] text-warning-700">Unlocks in ~{label}</span>
   );
 });
 LockCountdown.displayName = "LockCountdown";
@@ -222,7 +226,7 @@ const RowActionsMenu = memo(
         )}
       </div>
     );
-  }
+  },
 );
 RowActionsMenu.displayName = "RowActionsMenu";
 
@@ -359,7 +363,8 @@ const UserManagementPage = () => {
       });
     } catch (error) {
       setSubmitError(
-        error?.userMessage ?? "Unable to create user account. Please try again."
+        error?.userMessage ??
+          "Unable to create user account. Please try again.",
       );
     } finally {
       setSubmitting(false);
@@ -368,7 +373,7 @@ const UserManagementPage = () => {
 
   const patchUserLocally = useCallback((userId, patch) => {
     setUsers((current) =>
-      current.map((u) => (u.userId === userId ? { ...u, ...patch } : u))
+      current.map((u) => (u.userId === userId ? { ...u, ...patch } : u)),
     );
   }, []);
 
@@ -414,7 +419,7 @@ const UserManagementPage = () => {
         },
       });
     },
-    [patchUserLocally]
+    [patchUserLocally],
   );
 
   const requestUnlock = useCallback(
@@ -448,7 +453,7 @@ const UserManagementPage = () => {
         },
       });
     },
-    [patchUserLocally]
+    [patchUserLocally],
   );
 
   const handleResetKey = useCallback(async (user) => {
@@ -465,7 +470,6 @@ const UserManagementPage = () => {
           error?.userMessage ?? "Unable to initiate password reset sequence.",
       });
     } finally {
-
     }
   }, []);
 
@@ -517,7 +521,7 @@ const UserManagementPage = () => {
     } catch (error) {
       setEditError(
         error?.userMessage ??
-          "Unable to update account details. Please try again."
+          "Unable to update account details. Please try again.",
       );
     } finally {
       setEditSubmitting(false);
@@ -539,7 +543,9 @@ const UserManagementPage = () => {
       const matchesSearch =
         !q ||
         [user.username, user.email].some((f) =>
-          String(f ?? "").toLowerCase().includes(q)
+          String(f ?? "")
+            .toLowerCase()
+            .includes(q),
         );
       const matchesRole = roleFilter === ALL_FILTER || user.role === roleFilter;
       const matchesStatus =
@@ -553,7 +559,7 @@ const UserManagementPage = () => {
   const startIndex = (currentPage - 1) * PAGE_SIZE;
   const visibleUsers = useMemo(
     () => filteredUsers.slice(startIndex, startIndex + PAGE_SIZE),
-    [filteredUsers, startIndex]
+    [filteredUsers, startIndex],
   );
 
   const counts = useMemo(() => {
@@ -649,7 +655,7 @@ const UserManagementPage = () => {
       requestUnlock,
       requestDeactivate,
       handleResetKey,
-    ]
+    ],
   );
 
   const roleOptions = useMemo(
@@ -657,7 +663,7 @@ const UserManagementPage = () => {
       { value: ALL_FILTER, label: "All Roles" },
       ...Object.values(ROLES).map((r) => ({ value: r, label: roleLabel(r) })),
     ],
-    []
+    [],
   );
   const statusOptions = useMemo(
     () => [
@@ -666,7 +672,7 @@ const UserManagementPage = () => {
       { value: STATUS_LOCKED, label: "Locked" },
       { value: STATUS_INACTIVE, label: "Inactive" },
     ],
-    []
+    [],
   );
 
   const isFiltered =
@@ -756,10 +762,10 @@ const UserManagementPage = () => {
             c.tone === "success"
               ? "text-success-700 bg-success-50 ring-success-200"
               : c.tone === "warning"
-              ? "text-warning-800 bg-warning-50 ring-warning-200"
-              : c.tone === "danger"
-              ? "text-danger-700 bg-danger-50 ring-danger-200"
-              : "text-neutral-700 bg-neutral-50 ring-neutral-200";
+                ? "text-warning-800 bg-warning-50 ring-warning-200"
+                : c.tone === "danger"
+                  ? "text-danger-700 bg-danger-50 ring-danger-200"
+                  : "text-neutral-700 bg-neutral-50 ring-neutral-200";
           const active = statusFilter === c.key;
           return (
             <button
@@ -849,7 +855,6 @@ const UserManagementPage = () => {
               : `${filteredUsers.length} of ${users.length} shown`}
           </span>
         </div>
-
       </div>
 
       {/* ============ Table ============ */}
@@ -874,13 +879,19 @@ const UserManagementPage = () => {
             title="Unable to load staff directory"
             message="We encountered an issue connecting to the identity provider."
           />
-          <Button onClick={retry} className="mt-2 inline-flex items-center gap-2">
+          <Button
+            onClick={retry}
+            className="mt-2 inline-flex items-center gap-2"
+          >
             <Icon name="refresh" className="h-4 w-4" />
             Retry
           </Button>
         </div>
       ) : (
-        <section aria-labelledby="staff-directory-heading" className="space-y-3">
+        <section
+          aria-labelledby="staff-directory-heading"
+          className="space-y-3"
+        >
           <h2
             id="staff-directory-heading"
             className="text-sm font-semibold text-neutral-900"

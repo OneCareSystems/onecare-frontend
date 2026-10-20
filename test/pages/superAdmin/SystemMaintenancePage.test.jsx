@@ -36,13 +36,9 @@ describe("super-admin system maintenance — REST cases", () => {
 
     expect(screen.getByLabelText("Day of month")).toHaveValue("28");
     expect(screen.getByLabelText("Execution time")).toHaveValue("23:59");
-    expect(screen.getByLabelText("Execution time")).toHaveAttribute(
-      "readonly",
-    );
+    expect(screen.getByLabelText("Execution time")).toHaveAttribute("readonly");
     expect(
-      screen.getByText(
-        "Currently runs on the 28th of every month.",
-      ),
+      screen.getByText("Currently runs on the 28th of every month."),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /Run backup now/ }),
@@ -103,7 +99,9 @@ describe("super-admin system maintenance — REST cases", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    expect(await screen.findByText("Internal server error")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Internal server error"),
+    ).toBeInTheDocument();
     expect(mswState.backupScheduleUpdateHits).toHaveLength(1);
     // nothing was stored: the draft still shows the pending change
     expect(screen.getByText(/Pending change:/)).toBeInTheDocument();
@@ -117,7 +115,9 @@ describe("super-admin system maintenance — REST cases", () => {
     expect(
       await screen.findByText("Could not load stored backups"),
     ).toBeInTheDocument();
-    expect(screen.getByText("The backup service did not answer.")).toBeInTheDocument();
+    expect(
+      screen.getByText("The backup service did not answer."),
+    ).toBeInTheDocument();
     expect(mswState.systemBackupHits).toHaveLength(1);
 
     mswState.systemBackupsErrorMode = null;
@@ -145,9 +145,7 @@ describe("super-admin system maintenance — REST cases", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText(
-          "Currently runs on the 28th of every month.",
-        ),
+        screen.getByText("Currently runs on the 28th of every month."),
       ).toBeInTheDocument(),
     );
     expect(mswState.backupScheduleHits).toHaveLength(2);
