@@ -14,7 +14,12 @@ import {
   getRefreshToken,
 } from "../helpers/session";
 import { store } from "../../src/app/store";
-import { selectRole, selectUser } from "../../src/features/auth/authSlice";
+import {
+  selectRole,
+  selectUser,
+  selectRedirectUrl,
+} from "../../src/features/auth/authSlice";
+import { ROLE_DASHBOARDS } from "../../src/constants/roles";
 
 const ok = (data, message = "ok") => ({ success: true, message, data });
 
@@ -40,6 +45,32 @@ afterEach(() => {
 });
 
 describe("authService", () => {
+  it.each(["ADMIN", "SUPER_ADMIN"])(
+    "stores the complete nested login session for %s in Redux",
+    async (role) => {
+      const data = {
+        accessToken: "test-access",
+        refreshToken: "test-refresh",
+        role,
+        username: "test-user",
+        redirectUrl: ROLE_DASHBOARDS[role],
+        expiresIn: 1800,
+      };
+      mock.onPost("/auth/login").reply(200, ok(data));
+      const result = await login({
+        username: "test-user",
+        password: "test-only",
+      });
+
+      expect(result).toEqual(ok(data));
+      expect(getAccessToken()).toBe(data.accessToken);
+      expect(getRefreshToken()).toBe(data.refreshToken);
+      expect(selectRole(store.getState())).toBe(role);
+      expect(selectRedirectUrl(store.getState())).toBe(data.redirectUrl);
+      expect(isAuthenticated()).toBe(true);
+    },
+  );
+
   it("login stores tokens and resets the expired-session flag", async () => {
     mock.onPost("/auth/login").reply(
       200,

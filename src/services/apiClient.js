@@ -160,6 +160,9 @@ export const extractTokens = (payload) => {
   if (data.username !== undefined && data.username !== null) {
     session.user = data.username;
   }
+  if (data.redirectUrl !== undefined && data.redirectUrl !== null) {
+    session.redirectUrl = data.redirectUrl;
+  }
   return session;
 };
 
@@ -244,19 +247,28 @@ apiClient.interceptors.response.use(
         // envelope, do not refresh and do not end the session.
         return Promise.reject(normalizeError(error));
       }
-      config._retry = true;
-      try {
-        await refreshSession();
-        // Fresh headers so the request interceptor attaches the new token
-        // without mutating the failed attempt's config.
-        return await apiClient({
-          ...config,
-          headers: cloneHeaders(config.headers),
-        });
-      } catch {
+      if (!selectRefreshToken(store.getState())) {
         handleSessionExpired();
         return Promise.reject(normalizeError(error));
       }
+      config._retry = true;
+      try {
+        await refreshSession();
+      } catch (refreshError) {
+        // A refresh 401 ends the session in the branch above. Infrastructure,
+        // rate-limit and network failures do not prove the session is invalid.
+        return Promise.reject(
+          normalizeError(
+            refreshError.response?.status === 401 ? error : refreshError,
+          ),
+        );
+      }
+      // Keep the retry outside the refresh catch: a registration error after
+      // successful refresh must reach the form without clearing authentication.
+      return apiClient({
+        ...config,
+        headers: cloneHeaders(config.headers),
+      });
     }
 
     return Promise.reject(normalizeError(error));
