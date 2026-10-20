@@ -256,7 +256,6 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
 
   it.each([
     [ROLES.ADMIN, "/admin/register-patient"],
-    [ROLES.SUPER_ADMIN, "/super-admin/register-patient"],
   ])(
     "%s logs in through /api and can navigate to patient registration",
     async (role, path) => {

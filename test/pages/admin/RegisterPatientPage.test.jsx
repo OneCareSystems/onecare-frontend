@@ -25,8 +25,8 @@ const success = (duplicateSuspected = false) => HttpResponse.json({ success: tru
 } }, { status: 201 });
 
 describe("ADM-02 registration through real routing and authenticated HTTP client", () => {
-  it.each(["ADMIN", "SUPER_ADMIN"])("allows %s", (role) => {
-    open(role, role === "ADMIN" ? "/admin/register-patient" : "/super-admin/register-patient");
+  it.each(["ADMIN"])("allows %s", (role) => {
+    open(role, role === "ADMIN" ? "/admin/register-patient" : "");
     expect(screen.getByRole("heading", { name: "Register New Patient" })).toBeInTheDocument();
   });
   it.each([[null, /sign in to onecare/i], ["DOCTOR", /today.s appointments/i], ["PHARMACIST", /PharmacistDashboardPage/]])("blocks %s", async (role, heading) => {

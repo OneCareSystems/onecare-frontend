@@ -24,16 +24,14 @@ import { CHANGE_PASSWORD_PATH, ROUTE_ACCESS } from "../constants/routeAccess";
 import PatientRecordsPage from "../pages/doctor/PatientRecordsPage";
 import PatientDetails from "../pages/doctor/PatientDetails";
 import KnowledgeBasePage from "../pages/doctor/KnowledgeBasePage";
-<<<<<<< HEAD
+import RegisterPatientPage from "../pages/admin/RegisterPatientPage";
+import PatientRegistrationLayout from "../layouts/PatientRegistrationLayout";
 import UserManagementPage from "../pages/superAdmin/UserManagementPage";
 import AccessControlPage from "../pages/superAdmin/AccessControlPage";
 import ClinicConfigPage from "../pages/superAdmin/ClinicConfigPage";
 import SystemMaintenancePage from "../pages/superAdmin/SystemMaintenancePage";
 import AuditLogsPage from "../pages/superAdmin/AuditLogsPage";
-=======
-import RegisterPatientPage from "../pages/admin/RegisterPatientPage";
-import PatientRegistrationLayout from "../layouts/PatientRegistrationLayout";
->>>>>>> origin/develop
+
 
 const AppRoutes = () => {
   return (
@@ -62,7 +60,6 @@ const AppRoutes = () => {
       <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.patientRegistration} />}>
         <Route element={<PatientRegistrationLayout />}>
           <Route path="/admin/register-patient" element={<RegisterPatientPage />} />
-          <Route path="/super-admin/register-patient" element={<RegisterPatientPage />} />
         </Route>
       </Route>
       <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.admin} />}>
@@ -116,7 +113,6 @@ const AppRoutes = () => {
           <Route path="audits-reports" element={<AuditLogsPage />} />
         </Route>
       </Route>
-
       {/* SHARED SCREENS (AC4) — several roles, one route */}
       <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.queue} />}>
         <Route path="/queue" element={<StaffLayout />}>

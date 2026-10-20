@@ -35,7 +35,7 @@ for (const scenario of cases) {
     const registration =
       role === "ADMIN"
         ? "/admin/register-patient"
-        : "/super-admin/register-patient";
+        : "";
     const summary = [];
     let patientPosts = 0,
       refreshPosts = 0,

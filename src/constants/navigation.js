@@ -16,7 +16,6 @@ export const NAV_ITEMS = Object.freeze({
       label: "Dashboard",
       icon: "dashboard",
     }),
-    Object.freeze({ id: "register-patient", to: "/super-admin/register-patient", label: "Register Patient", icon: "user-check" }),
     Object.freeze({
       id: "user-management",
       to: "/super-admin/user-management",

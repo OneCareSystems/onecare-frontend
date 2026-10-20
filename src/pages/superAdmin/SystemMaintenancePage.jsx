@@ -44,7 +44,6 @@ const SystemMaintenancePage = () => {
   const [backupsStatus, setBackupsStatus] = useState("loading");
   const [backupsReload, setBackupsReload] = useState(0);
   const [creatingBackup, setCreatingBackup] = useState(false);
-  const [downloadingId, setDownloadingId] = useState(null);
 
   const [restoreFile, setRestoreFile] = useState(null);
   const [restoring, setRestoring] = useState(false);
