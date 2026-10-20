@@ -7,7 +7,7 @@ import { clearSession, setSession } from "../../src/features/auth/authSlice";
 
 afterEach(() => store.dispatch(clearSession()));
 describe("ADM-02 service allowlists", () => {
-  it("omits clinical and server-owned inputs and strips clinical response properties", async () => {
+  it("accepts optional create blood group, omits server-owned inputs and strips clinical response properties", async () => {
     store.dispatch(
       setSession({ accessToken: "synthetic-token", role: "ADMIN" }),
     );
@@ -37,7 +37,7 @@ describe("ADM-02 service allowlists", () => {
       address: "Example address",
       email: "patient@example.invalid",
       gender: "OTHER",
-      bloodGroup: "CLINICAL_SECRET",
+      bloodGroup: "A+",
       patientId: 999,
       isActive: false,
     });
@@ -48,6 +48,7 @@ describe("ADM-02 service allowlists", () => {
       address: "Example address",
       email: "patient@example.invalid",
       gender: "OTHER",
+      bloodGroup: "A+",
     });
     expect(result).toEqual({
       patientId: 101,

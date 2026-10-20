@@ -51,7 +51,7 @@ describe("ADM-02 registration through real routing and authenticated HTTP client
     open(); fill(" Example  Patient "); save();
     expect(await screen.findByText("101")).toBeInTheDocument();
     expect(requests[0]).toEqual({ auth: "Bearer registration-token", body: {
-      full_name: " Example  Patient ", dateOfBirth: "2090-01-15", contactNo: "example-phone", address: null, email: null, gender: null,
+      full_name: " Example  Patient ", dateOfBirth: "2090-01-15", contactNo: "example-phone", address: null, email: null, gender: null, bloodGroup: null,
     } });
     expect(screen.queryByText("CLINICAL_SECRET")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Save Patient" })).not.toBeInTheDocument();
