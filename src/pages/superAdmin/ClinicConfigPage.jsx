@@ -571,7 +571,7 @@ const ClinicConfigPage = () => {
           {
             label: "Consultation fee",
             value: savedConsultationFee
-              ? `$${Number(savedConsultationFee).toFixed(2)}`
+              ? `${Number(savedConsultationFee).toFixed(2)}`
               : "—",
             hint: "Active clinic-wide",
             tone: "amber",

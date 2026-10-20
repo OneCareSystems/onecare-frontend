@@ -45,7 +45,7 @@ const SuperAdminDashboardPage = () => {
           : null;
       const feeVal =
         feeAmount !== null && Number.isFinite(Number(feeAmount))
-          ? `$${Number(feeAmount).toFixed(2)}`
+          ? `${Number(feeAmount).toFixed(2)}`
           : "—";
 
       const active = userList.filter((u) => u.status === "ACTIVE").length;

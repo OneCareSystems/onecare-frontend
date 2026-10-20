@@ -213,7 +213,6 @@ const RowActionsMenu = memo(
             className="absolute right-0 z-20 mt-1 w-44 rounded-lg border border-neutral-200 bg-white p-1 shadow-lg"
           >
             {item("Edit account", "pencil", () => onEdit(row))}
-            {item("Reset password", "key-round", () => onReset(row))}
             {item("Unlock account", "unlock", () => onUnlock(row), {
               hidden: row.status !== STATUS_LOCKED,
             })}

@@ -358,26 +358,6 @@ describe("super-admin user management — REST cases", () => {
     expect(rowFor("LOCKE-9902").getByText("Active")).toBeInTheDocument();
   });
 
-  it("dispatches an admin password reset without touching the record", async () => {
-    seedDirectory();
-    openPage(PATH);
-    await directoryReady();
-
-    openMenuFor("CHEN-8831");
-    fireEvent.click(screen.getByRole("button", { name: "Reset password" }));
-
-    expect(
-      await screen.findByText(
-        "Password reset dispatched to chen-8831@onecare.test.",
-      ),
-    ).toBeInTheDocument();
-    expect(mswState.userResetHits[0]).toMatchObject({
-      id: "6",
-      authorization: "Bearer super-admin-rest-token",
-    });
-    expect(rowFor("CHEN-8831").getByText("Inactive")).toBeInTheDocument();
-  });
-
   it("assigns a new role through PUT /users/{id}/role", async () => {
     seedDirectory();
     openPage(PATH);
