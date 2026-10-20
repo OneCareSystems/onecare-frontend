@@ -15,47 +15,126 @@ afterEach(() => {
   resetMswState();
 });
 
+/** An all-days-off week in the wire shape. */
+const emptyWeek = () =>
+  [
+    "MONDAY",
+    "TUESDAY",
+    "WEDNESDAY",
+    "THURSDAY",
+    "FRIDAY",
+    "SATURDAY",
+    "SUNDAY",
+  ].map((dayOfWeek) => ({ dayOfWeek, timeSlots: [] }));
+
 /** The FR009/UC4 spec example, seeded into the mock for doctor 4. */
 const SPEC_SCHEDULE = {
   doctorId: 4,
-  workingDays: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"],
-  timeSlots: [
-    { start: "09:00", end: "12:00" },
-    { start: "13:00", end: "17:00" },
-  ],
+  days: emptyWeek().map((day) =>
+    ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"].includes(
+      day.dayOfWeek,
+    )
+      ? {
+          ...day,
+          timeSlots: [
+            { start: "09:00", end: "12:00" },
+            { start: "13:00", end: "17:00" },
+          ],
+        }
+      : day,
+  ),
 };
 
 describe("doctorScheduleService — FR009/UC4 working schedules", () => {
-  it("adapts the envelope, uppercases days and pads times", () => {
+  it("adapts the envelope, uppercases day names and normalises times", () => {
     expect(
       adaptDoctorScheduleResponse({
         success: true,
         message: "Schedule retrieved successfully",
         data: {
           doctorId: "4",
-          workingDays: ["monday", " friday "],
-          timeSlots: [{ start: "9:00", end: "12:00" }],
+          days: [
+            {
+              dayOfWeek: " monday ",
+              timeSlots: [{ start: "09:00", end: "12:00" }],
+            },
+            ...emptyWeek().slice(1),
+          ],
         },
       }),
     ).toEqual({
       doctorId: 4,
-      workingDays: ["MONDAY", "FRIDAY"],
-      timeSlots: [{ start: "09:00", end: "12:00" }],
+      days: [
+        {
+          dayOfWeek: "MONDAY",
+          timeSlots: [{ start: "09:00", end: "12:00" }],
+        },
+        ...emptyWeek().slice(1),
+      ],
     });
 
+    // Missing days array.
     expect(() =>
       adaptDoctorScheduleResponse({ success: true, data: { doctorId: 4 } }),
     ).toThrow(/response format/i);
+    // Wrong number of weekdays.
     expect(() =>
       adaptDoctorScheduleResponse({
         success: true,
-        data: { doctorId: 4, workingDays: ["MONDAY"], timeSlots: [{}] },
+        data: { doctorId: 4, days: [{ dayOfWeek: "MONDAY", timeSlots: [] }] },
       }),
     ).toThrow(/response format/i);
+    // Unpadded time on the wire — the adapter validates before padding.
+    expect(() =>
+      adaptDoctorScheduleResponse({
+        success: true,
+        data: {
+          doctorId: 4,
+          days: [
+            {
+              dayOfWeek: "MONDAY",
+              timeSlots: [{ start: "9:00", end: "10:00" }],
+            },
+            ...emptyWeek().slice(1),
+          ],
+        },
+      }),
+    ).toThrow(/response format/i);
+    // Malformed time slot.
+    expect(() =>
+      adaptDoctorScheduleResponse({
+        success: true,
+        data: {
+          doctorId: 4,
+          days: [
+            {
+              dayOfWeek: "MONDAY",
+              timeSlots: [{ start: "9am", end: "10:00" }],
+            },
+            ...emptyWeek().slice(1),
+          ],
+        },
+      }),
+    ).toThrow(/response format/i);
+    // Duplicate weekday.
+    expect(() =>
+      adaptDoctorScheduleResponse({
+        success: true,
+        data: {
+          doctorId: 4,
+          days: [
+            { dayOfWeek: "MONDAY", timeSlots: [] },
+            { dayOfWeek: "MONDAY", timeSlots: [] },
+            ...emptyWeek().slice(2),
+          ],
+        },
+      }),
+    ).toThrow(/response format/i);
+    // Failure envelope.
     expect(() =>
       adaptDoctorScheduleResponse({
         success: false,
-        data: { doctorId: 4, workingDays: [], timeSlots: [] },
+        data: { doctorId: 4, days: emptyWeek() },
       }),
     ).toThrow(/response format/i);
   });
@@ -74,11 +153,10 @@ describe("doctorScheduleService — FR009/UC4 working schedules", () => {
     });
   });
 
-  it("returns empty sets for a doctor without a schedule", async () => {
+  it("returns an empty week for a doctor without a schedule", async () => {
     expect(await getDoctorSchedule(5)).toEqual({
       doctorId: 5,
-      workingDays: [],
-      timeSlots: [],
+      days: emptyWeek(),
     });
   });
 
@@ -89,32 +167,39 @@ describe("doctorScheduleService — FR009/UC4 working schedules", () => {
   });
 
   it("replaces the schedule and persists it in the mock backend", async () => {
-    const payload = {
-      workingDays: ["TUESDAY", "THURSDAY"],
-      timeSlots: [{ start: "08:00", end: "11:30" }],
-    };
+    const days = emptyWeek().map((day) =>
+      ["TUESDAY", "THURSDAY"].includes(day.dayOfWeek)
+        ? { ...day, timeSlots: [{ start: "08:00", end: "11:30" }] }
+        : day,
+    );
 
-    const saved = await setDoctorSchedule(4, payload);
+    const saved = await setDoctorSchedule(4, { days });
 
-    expect(saved).toEqual({ doctorId: 4, ...payload });
+    expect(saved).toEqual({ doctorId: 4, days });
     expect(mswState.doctorScheduleWriteHits[0]).toMatchObject({
       id: "4",
-      body: payload,
+      body: { days },
     });
 
     const reread = await getDoctorSchedule(4);
-    expect(reread).toEqual({ doctorId: 4, ...payload });
+    expect(reread).toEqual({ doctorId: 4, days });
   });
 
   it("surfaces slot conflicts with the overlapping pair and saves nothing", async () => {
     const before = JSON.stringify(mswState.doctorSchedules["4"]);
 
     const error = await setDoctorSchedule(4, {
-      workingDays: ["MONDAY"],
-      timeSlots: [
-        { start: "09:00", end: "12:00" },
-        { start: "11:00", end: "13:00" },
-      ],
+      days: emptyWeek().map((day) =>
+        day.dayOfWeek === "MONDAY"
+          ? {
+              ...day,
+              timeSlots: [
+                { start: "09:00", end: "12:00" },
+                { start: "11:00", end: "13:00" },
+              ],
+            }
+          : day,
+      ),
     }).catch((caught) => caught);
 
     expect(error.status).toBe(400);
@@ -127,40 +212,61 @@ describe("doctorScheduleService — FR009/UC4 working schedules", () => {
   });
 
   it("enforces the backend's validation rules without persisting", async () => {
-    // Empty day or slot sets.
-    const empty = await setDoctorSchedule(4, {
-      workingDays: [],
-      timeSlots: [{ start: "09:00", end: "10:00" }],
-    }).catch((caught) => caught);
+    // An all-days-off week — valid on the client, refused by the backend.
+    const empty = await setDoctorSchedule(4, { days: emptyWeek() }).catch(
+      (caught) => caught,
+    );
     expect(empty.status).toBe(400);
-
-    // end ≤ start.
-    const reversed = await setDoctorSchedule(4, {
-      workingDays: ["MONDAY"],
-      timeSlots: [{ start: "12:00", end: "09:00" }],
-    }).catch((caught) => caught);
-    expect(reversed.status).toBe(400);
 
     // Unknown doctor id.
     const unknown = await setDoctorSchedule(999, {
-      workingDays: ["MONDAY"],
-      timeSlots: [{ start: "09:00", end: "10:00" }],
+      days: emptyWeek().map((day) =>
+        day.dayOfWeek === "MONDAY"
+          ? { ...day, timeSlots: [{ start: "09:00", end: "10:00" }] }
+          : day,
+      ),
     }).catch((caught) => caught);
     expect(unknown.status).toBe(404);
+  });
+
+  it("rejects reversed slots locally, before any request", async () => {
+    const hits = mswState.doctorScheduleWriteHits.length;
+
+    await expect(
+      setDoctorSchedule(4, {
+        days: emptyWeek().map((day) =>
+          day.dayOfWeek === "MONDAY"
+            ? { ...day, timeSlots: [{ start: "12:00", end: "09:00" }] }
+            : day,
+        ),
+      }),
+    ).rejects.toThrow(/HH:mm|end after/i);
+
+    expect(mswState.doctorScheduleWriteHits.length).toBe(hits);
   });
 
   it("rejects malformed payloads before any request", async () => {
     const hits = mswState.doctorScheduleWriteHits.length;
 
     await expect(
-      setDoctorSchedule(4, { workingDays: "MONDAY", timeSlots: [] }),
-    ).rejects.toThrow(/must be arrays/i);
+      setDoctorSchedule(4, { days: "MONDAY" }),
+    ).rejects.toThrow(/every weekday/i);
     await expect(
       setDoctorSchedule(4, {
-        workingDays: ["MONDAY"],
-        timeSlots: [{ start: "9am", end: "10:00" }],
+        days: emptyWeek().map((day) =>
+          day.dayOfWeek === "MONDAY"
+            ? { ...day, timeSlots: [{ start: "9am", end: "10:00" }] }
+            : day,
+        ),
       }),
     ).rejects.toThrow(/HH:mm/i);
+    await expect(
+      setDoctorSchedule(4, {
+        days: emptyWeek().map((day, index) =>
+          index === 1 ? { ...day, dayOfWeek: "MONDAY" } : day,
+        ),
+      }),
+    ).rejects.toThrow(/exactly once/i);
 
     expect(mswState.doctorScheduleWriteHits.length).toBe(hits);
   });

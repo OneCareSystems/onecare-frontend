@@ -44,7 +44,6 @@ describe("userService — staff account directory", () => {
     ).toEqual([
       {
         userId: 1,
-        fullName: "superadmin",
         username: "superadmin",
         email: "superadmin@onecare.test",
         role: "DOCTOR",
@@ -53,7 +52,6 @@ describe("userService — staff account directory", () => {
       },
       {
         userId: 2,
-        fullName: "disabled",
         username: "disabled",
         email: "",
         role: "SUPER_ADMIN",
@@ -84,7 +82,6 @@ describe("userService — staff account directory", () => {
       }),
     ).toEqual({
       userId: 7,
-      fullName: "CHEN-8831",
       username: "CHEN-8831",
       email: "",
       role: "PHARMACIST",
@@ -123,7 +120,7 @@ describe("userService — staff account directory", () => {
     ).toMatchObject({ status: "ACTIVE", lockedUntil: null });
 
     expect(() =>
-      adaptUserResponse({ success: true, data: { fullName: "No id" } }),
+      adaptUserResponse({ success: true, data: { } }),
     ).toThrow(/response format/i);
   });
 
@@ -139,7 +136,7 @@ describe("userService — staff account directory", () => {
           role: "ADMIN",
           isActive: true,
         },
-      ], totalPages: 1, totalElements: 1 },
+      ] },
     ];
 
     const users = await getUsers();
@@ -147,7 +144,6 @@ describe("userService — staff account directory", () => {
     expect(users).toEqual([
       {
         userId: 1,
-        fullName: "VANCE-1102",
         username: "VANCE-1102",
         email: "",
         role: "ADMIN",
@@ -167,7 +163,7 @@ describe("userService — staff account directory", () => {
     );
 
     await createUser({
-      fullName: "Dr. Arthur Pendelton",
+      password: "12345676",
       username: "PENDELTON-3312",
       email: "a.pendelton@onecare.clinic",
       role: "doctor",
@@ -175,7 +171,7 @@ describe("userService — staff account directory", () => {
 
     expect(mswState.userCreateHits).toHaveLength(1);
     expect(mswState.userCreateHits[0].body).toMatchObject({
-      fullName: "Dr. Arthur Pendelton",
+      password: "12345676",
       username: "PENDELTON-3312",
       email: "a.pendelton@onecare.clinic",
       role: "DOCTOR",

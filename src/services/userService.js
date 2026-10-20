@@ -50,10 +50,6 @@ export const adaptUserRecord = (raw) => {
 
   return {
     userId,
-    fullName:
-      asTrimmedString(raw.fullName) ||
-      asTrimmedString(raw.name) ||
-      username,
     username,
     email: asTrimmedString(raw.email),
     role: normalizeLabel(raw.role),

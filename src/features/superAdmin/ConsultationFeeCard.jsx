@@ -87,31 +87,6 @@ export const ConsultationFeeCard = ({
               </p>
             </div>
 
-            <div className="rounded-lg border border-dashed border-neutral-200 bg-neutral-50/50 p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
-                Sample invoice
-              </p>
-              <dl className="mt-1.5 space-y-0.5 text-xs">
-                <div className="flex justify-between text-neutral-600">
-                  <dt>Consultation</dt>
-                  <dd className="font-mono">
-                    {previewValid ? `$${amount.toFixed(2)}` : "—"}
-                  </dd>
-                </div>
-                <div className="flex justify-between text-neutral-500">
-                  <dt>Est. tax (8%)</dt>
-                  <dd className="font-mono">
-                    {previewValid ? `$${tax.toFixed(2)}` : "—"}
-                  </dd>
-                </div>
-                <div className="flex justify-between border-t border-neutral-200 pt-1 font-semibold text-neutral-900">
-                  <dt>Total</dt>
-                  <dd className="font-mono">
-                    {previewValid ? `$${(amount + tax).toFixed(2)}` : "—"}
-                  </dd>
-                </div>
-              </dl>
-            </div>
           </div>
 
           {error && (

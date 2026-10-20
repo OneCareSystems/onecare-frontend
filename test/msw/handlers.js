@@ -11,24 +11,30 @@ import {
 } from "../../src/constants/schedule";
 import { ROLE_DASHBOARDS, ROLES } from "../../src/constants/roles";
 
+/** An all-days-off week in the `{ dayOfWeek, timeSlots[] }` wire shape. */
+const emptyWeek = () =>
+  WORKING_DAYS.map((dayOfWeek) => ({ dayOfWeek, timeSlots: [] }));
+
 /** FR009/UC4 — seeded from the spec example; "5" has no schedule yet. */
 const defaultDoctorSchedules = () =>
   JSON.parse(
     JSON.stringify({
       "4": {
-        workingDays: [
-          "MONDAY",
-          "TUESDAY",
-          "WEDNESDAY",
-          "THURSDAY",
-          "FRIDAY",
-        ],
-        timeSlots: [
-          { start: "09:00", end: "12:00" },
-          { start: "13:00", end: "17:00" },
-        ],
+        days: emptyWeek().map((day) =>
+          ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"].includes(
+            day.dayOfWeek,
+          )
+            ? {
+                ...day,
+                timeSlots: [
+                  { start: "09:00", end: "12:00" },
+                  { start: "13:00", end: "17:00" },
+                ],
+              }
+            : day,
+        ),
       },
-      "5": { workingDays: [], timeSlots: [] },
+      "5": { days: emptyWeek() },
     }),
   );
 
@@ -153,6 +159,14 @@ export const mswState = {
   systemBackupsErrorMode: null,
   systemRestoreHits: [],
   systemRestoreErrorMode: null,
+  consultationFee: 75,
+  consultationFeeHits: [],
+  consultationFeeUpdateHits: [],
+  consultationFeeErrorMode: null,
+  backupSchedule: { dayOfMonth: 28, executionTime: "23:59" },
+  backupScheduleHits: [],
+  backupScheduleUpdateHits: [],
+  backupScheduleErrorMode: null,
 };
 
 export const resetMswState = () => {
@@ -223,6 +237,14 @@ export const resetMswState = () => {
   mswState.systemBackupsErrorMode = null;
   mswState.systemRestoreHits = [];
   mswState.systemRestoreErrorMode = null;
+  mswState.consultationFee = 75;
+  mswState.consultationFeeHits = [];
+  mswState.consultationFeeUpdateHits = [];
+  mswState.consultationFeeErrorMode = null;
+  mswState.backupSchedule = { dayOfMonth: 28, executionTime: "23:59" };
+  mswState.backupScheduleHits = [];
+  mswState.backupScheduleUpdateHits = [];
+  mswState.backupScheduleErrorMode = null;
 };
 
 const ok = (data, message = "ok") =>
@@ -749,6 +771,100 @@ export const handlers = [
       "Restore completed successfully",
     );
   }),
+  // Clinic-wide consultation fee (Clinic Configuration + dashboard).
+  // GET returns the active amount; PUT validates and stores a finite,
+  // non-negative number. The envelope carries `{ consultationFee }`.
+  http.get("*/system/settings/consultation-fee", ({ request }) => {
+    mswState.consultationFeeHits.push({
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.consultationFeeErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    if (mswState.consultationFeeErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    if (mswState.consultationFeeErrorMode === "forbidden") {
+      return fail(403, "Access denied");
+    }
+    return ok(
+      { consultationFee: mswState.consultationFee },
+      "Consultation fee retrieved successfully",
+    );
+  }),
+  http.put("*/system/settings/consultation-fee", async ({ request }) => {
+    const body = await request.json().catch(() => ({}));
+    mswState.consultationFeeUpdateHits.push({
+      body,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.consultationFeeErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    if (mswState.consultationFeeErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    if (mswState.consultationFeeErrorMode === "forbidden") {
+      return fail(403, "Access denied");
+    }
+    const amount = Number(body?.consultationFee);
+    if (!Number.isFinite(amount) || amount < 0) {
+      return fail(400, "Consultation fee must be a non-negative number");
+    }
+    mswState.consultationFee = amount;
+    return ok(
+      { consultationFee: amount },
+      "Consultation fee updated successfully",
+    );
+  }),
+  // Automatic monthly backup schedule (System Maintenance). The backend
+  // owns the execution time; only the day of month is writable (1–31).
+  http.get("*/system/backup/schedule", ({ request }) => {
+    mswState.backupScheduleHits.push({
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.backupScheduleErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    if (mswState.backupScheduleErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    if (mswState.backupScheduleErrorMode === "forbidden") {
+      return fail(403, "Access denied");
+    }
+    return ok(
+      { ...mswState.backupSchedule },
+      "Backup schedule retrieved successfully",
+    );
+  }),
+  http.put("*/system/backup/schedule", async ({ request }) => {
+    const body = await request.json().catch(() => ({}));
+    mswState.backupScheduleUpdateHits.push({
+      body,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.backupScheduleErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    if (mswState.backupScheduleErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    if (mswState.backupScheduleErrorMode === "forbidden") {
+      return fail(403, "Access denied");
+    }
+    const dayOfMonth = Number(body?.dayOfMonth);
+    if (!Number.isInteger(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 31) {
+      return fail(400, "dayOfMonth must be an integer between 1 and 31");
+    }
+    mswState.backupSchedule = {
+      ...mswState.backupSchedule,
+      dayOfMonth,
+    };
+    return ok(
+      { ...mswState.backupSchedule },
+      "Backup schedule updated successfully",
+    );
+  }),
   // Audit trail — Spring `Page` contract (GET /api/audit-logs). Newest
   // first; `?page=` (0-based) and `?size=` slice the seeded trail and
   // the envelope mirrors the real pageable/total* metadata.
@@ -899,10 +1015,13 @@ export const handlers = [
       "Permissions updated successfully",
     );
   }),
-  // FR009/UC4 — doctor working schedules (booking availability). PUT
-  // replaces the whole schedule and mirrors the backend's atomic rules:
-  // empty sets, malformed HH:mm, end ≤ start, or overlapping slots
-  // (400 "Time slot conflict" carrying data.conflictingSlots).
+  // FR009/UC4 — doctor working schedules (booking availability). The
+  // wire shape is the 7-entry `days: [{ dayOfWeek, timeSlots }]` week
+  // the backend returns (see doctorScheduleService.adaptDoctorScheduleResponse).
+  // PUT replaces the whole schedule and mirrors the backend's atomic
+  // rules: malformed HH:mm, end ≤ start, overlapping slots within a day
+  // (400 "Time slot conflict" carrying data.conflictingSlots), and an
+  // all-days-off week.
   http.get("*/doctors/:doctorId/schedule", ({ request, params }) => {
     mswState.doctorScheduleHits.push({
       id: params.doctorId,
@@ -924,8 +1043,10 @@ export const handlers = [
     return ok(
       {
         doctorId: Number(params.doctorId),
-        workingDays: [...stored.workingDays],
-        timeSlots: stored.timeSlots.map((slot) => ({ ...slot })),
+        days: stored.days.map((day) => ({
+          dayOfWeek: day.dayOfWeek,
+          timeSlots: day.timeSlots.map((slot) => ({ ...slot })),
+        })),
       },
       "Schedule retrieved successfully",
     );
@@ -949,49 +1070,64 @@ export const handlers = [
     if (!(params.doctorId in mswState.doctorSchedules)) {
       return fail(404, "Doctor not found");
     }
-    const workingDays = Array.isArray(body?.workingDays)
-      ? body.workingDays
-      : null;
-    const timeSlots = Array.isArray(body?.timeSlots) ? body.timeSlots : null;
-    if (!workingDays || !timeSlots) {
-      return fail(400, "workingDays and timeSlots are required");
+    const days = Array.isArray(body?.days) ? body.days : null;
+    if (!days) {
+      return fail(400, "days must be an array");
     }
-    if (workingDays.length === 0 || timeSlots.length === 0) {
+    if (days.length !== 7) {
+      return fail(400, "Provide a schedule entry for every weekday");
+    }
+    const seenDays = new Set();
+    for (const day of days) {
+      const dayOfWeek = String(day?.dayOfWeek ?? "").trim().toUpperCase();
+      if (!dayOfWeek || seenDays.has(dayOfWeek)) {
+        return fail(400, "Each weekday must appear exactly once");
+      }
+      seenDays.add(dayOfWeek);
+      if (!Array.isArray(day.timeSlots)) {
+        return fail(400, "Every weekday must have a timeSlots array");
+      }
+      const slots = day.timeSlots.map((slot) => ({
+        start: String(slot?.start ?? ""),
+        end: String(slot?.end ?? ""),
+      }));
+      if (slots.some((slot) => !isValidTime(slot.start) || !isValidTime(slot.end))) {
+        return fail(400, "Time slots must use HH:mm");
+      }
+      if (slots.some((slot) => slot.end <= slot.start)) {
+        return fail(400, "A time slot must end after it starts");
+      }
+      const conflicts = findConflictingSlots(slots);
+      if (conflicts.length > 0) {
+        return HttpResponse.json(
+          {
+            success: false,
+            message: "Time slot conflict",
+            data: { conflictingSlots: conflicts },
+          },
+          { status: 400 },
+        );
+      }
+    }
+    if (days.every((day) => day.timeSlots.length === 0)) {
       return fail(400, "Working days and time slots cannot be empty");
     }
-    if (workingDays.some((day) => !WORKING_DAYS.includes(day))) {
-      return fail(400, "Unknown working day");
-    }
-    if (
-      timeSlots.some(
-        (slot) => !isValidTime(slot?.start) || !isValidTime(slot?.end),
-      )
-    ) {
-      return fail(400, "Time slots must use HH:mm");
-    }
-    if (timeSlots.some((slot) => slot.end <= slot.start)) {
-      return fail(400, "A time slot must end after it starts");
-    }
-    const conflicts = findConflictingSlots(timeSlots);
-    if (conflicts.length > 0) {
-      return HttpResponse.json(
-        {
-          success: false,
-          message: "Time slot conflict",
-          data: { conflictingSlots: conflicts },
-        },
-        { status: 400 },
-      );
-    }
     mswState.doctorSchedules[params.doctorId] = {
-      workingDays: [...workingDays],
-      timeSlots: timeSlots.map((slot) => ({ start: slot.start, end: slot.end })),
+      days: days.map((day) => ({
+        dayOfWeek: String(day.dayOfWeek).trim().toUpperCase(),
+        timeSlots: day.timeSlots.map((slot) => ({
+          start: String(slot.start),
+          end: String(slot.end),
+        })),
+      })),
     };
     return ok(
       {
         doctorId: Number(params.doctorId),
-        workingDays,
-        timeSlots,
+        days: mswState.doctorSchedules[params.doctorId].days.map((day) => ({
+          dayOfWeek: day.dayOfWeek,
+          timeSlots: day.timeSlots.map((slot) => ({ ...slot })),
+        })),
       },
       "Schedule saved successfully",
     );

@@ -38,7 +38,14 @@ const SuperAdminDashboardPage = () => {
       const backupList = backups.status === "fulfilled" ? backups.value || [] : [];
       const auditPayload = logs.status === "fulfilled" ? logs.value || {} : {};
       const auditList = auditPayload.content || [];
-      const feeVal = fee.status === "fulfilled" && fee.value ? `$${Number(fee.value).toFixed(2)}` : "—";
+      const feeAmount =
+        fee.status === "fulfilled" && fee.value
+          ? (fee.value.consultationFee ?? fee.value)
+          : null;
+      const feeVal =
+        feeAmount !== null && Number.isFinite(Number(feeAmount))
+          ? `$${Number(feeAmount).toFixed(2)}`
+          : "—";
 
       const active = userList.filter((u) => u.status === "ACTIVE").length;
       const locked = userList.filter((u) => u.status === "LOCKED").length;

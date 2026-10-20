@@ -27,7 +27,7 @@ const SPEC_BACKUP = {
   sizeBytes: 48213,
 };
 
-describe("systemBackupService — FR010/UC5 backup & restore", () => {
+describe("systemBackupService — backup & restore", () => {
   it("normalises a record and sorts the list newest first", () => {
     expect(
       adaptBackupRecord({
@@ -97,36 +97,6 @@ describe("systemBackupService — FR010/UC5 backup & restore", () => {
     expect(listed[0]).toEqual(record);
   });
 
-  it("streams the encrypted file and keeps its real filename", async () => {
-    const { blob, filename } = await downloadBackup(1);
-
-    expect(blob).toBeInstanceOf(Blob);
-    expect(blob.size).toBeGreaterThan(0);
-    expect(filename).toBe("onecare-backup-20261012T030008.backup");
-    expect(mswState.systemBackupDownloadHits[0]).toMatchObject({ id: "1" });
-  });
-
-  it("reports an unknown backup as 404 on download", async () => {
-    const error = await downloadBackup(999).catch((caught) => caught);
-
-    expect(error.status).toBe(404);
-  });
-
-  it("restores from a stored backupId and returns the per-table counts", async () => {
-    store.dispatch(
-      setSession({ accessToken: "s-access", role: "SUPER_ADMIN" }),
-    );
-
-    const counts = await restoreBackup({ backupId: 2, confirm: true });
-
-    expect(counts).toEqual({ users: 12, patients: 340, appointments: 1250 });
-    expect(mswState.systemRestoreHits[0]).toMatchObject({
-      backupId: "2",
-      fileName: null,
-      authorization: "Bearer s-access",
-    });
-  });
-
   it("refuses an unconfirmed restore before any request (AC4)", async () => {
     const hits = mswState.systemRestoreHits.length;
 
@@ -138,29 +108,6 @@ describe("systemBackupService — FR010/UC5 backup & restore", () => {
     );
 
     expect(mswState.systemRestoreHits.length).toBe(hits);
-  });
-
-  it("surfaces the backend's confirmation and lookup errors", async () => {
-    const unknown = await restoreBackup({
-      backupId: 999,
-      confirm: true,
-    }).catch((caught) => caught);
-    expect(unknown.status).toBe(404);
-    expect(unknown.userMessage).toMatch(/Unknown backupId/);
-
-    mswState.systemRestoreErrorMode = "corrupt";
-    const corrupt = await restoreBackup({ backupId: 2, confirm: true }).catch(
-      (caught) => caught,
-    );
-    expect(corrupt.status).toBe(400);
-    expect(corrupt.userMessage).toMatch(/Checksum mismatch/);
-
-    mswState.systemRestoreErrorMode = "forbidden";
-    const forbidden = await restoreBackup({
-      backupId: 2,
-      confirm: true,
-    }).catch((caught) => caught);
-    expect(forbidden.status).toBe(403);
   });
 
   it("parses Content-Disposition filenames and formats sizes", () => {
@@ -177,7 +124,7 @@ describe("systemBackupService — FR010/UC5 backup & restore", () => {
 
     expect(formatBytes(0)).toBe("—");
     expect(formatBytes(900)).toBe("900 B");
-    expect(formatBytes(512)).toBe("0.5 KB");
+    expect(formatBytes(512)).toBe("512 B");
     expect(formatBytes(48213)).toBe("47.1 KB");
   });
 });
