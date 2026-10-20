@@ -137,12 +137,23 @@ Example (`.env.example`):
 
 ```env
 # Base URL of the backend API, including the /api prefix.
-VITE_API_BASE_URL=http://localhost:8080/api
+VITE_API_BASE_URL=/api
 ```
 
 `VITE_API_BASE_URL` is read once in `src/services/config.js` and consumed by the
 central Axios client. Components must never contain hostnames or localhost
 strings.
+
+If the variable is missing or blank, the client defaults to `/api`. In development,
+Vite proxies `/api` to `http://localhost:8080` without rewriting the path, so login
+goes from `/api/auth/login` to `http://localhost:8080/api/auth/login`. Service paths
+such as `/auth/login` must not add another `/api` prefix. Restart Vite after changing
+environment variables or proxy configuration.
+
+For direct backend requests, set `VITE_API_BASE_URL=http://localhost:8080/api`
+and allow the frontend origin in the backend CORS configuration. For deployment,
+either route `/api` to the backend in the hosting server or set the full backend API
+URL before building; the Vite development proxy does not run in production.
 
 ---
 

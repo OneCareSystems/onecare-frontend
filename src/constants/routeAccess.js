@@ -8,6 +8,7 @@ import { ROLES } from "./roles";
  */
 export const ROUTE_ACCESS = Object.freeze({
   admin: Object.freeze([ROLES.ADMIN]),
+  patientRegistration: Object.freeze([ROLES.ADMIN, ROLES.SUPER_ADMIN]),
   doctor: Object.freeze([ROLES.DOCTOR]),
   pharmacist: Object.freeze([ROLES.PHARMACIST]),
   // Key must equal the URL segment: navigation.test.js derives the group

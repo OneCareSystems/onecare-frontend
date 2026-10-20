@@ -2,9 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
 
 import LoginPage from "../../../src/pages/public/LoginPage";
+import apiClient from "../../../src/services/apiClient";
 import { mswState, resetMswState } from "../../msw/handlers";
+import { server } from "../../msw/server";
 
 const renderAt = (location = "/login") =>
   render(
@@ -53,7 +56,7 @@ const submitForm = async () => {
 
 afterEach(() => {
   resetMswState();
-  vi.clearAllMocks();
+  vi.restoreAllMocks();
 });
 
 describe("LoginPage", () => {
@@ -119,6 +122,33 @@ describe("LoginPage", () => {
   });
 
   describe("AC2: Error Handling - invalid credentials", () => {
+    it.each(["network", 502, 503, 504])(
+      "shows a connection error for %s and permits retry",
+      async (failure) => {
+        server.use(
+          http.post("*/auth/login", () =>
+            failure === "network"
+              ? HttpResponse.error()
+              : HttpResponse.json({}, { status: failure }),
+          ),
+        );
+        renderAt();
+        await fillForm("test-user", "test-only");
+        await submitForm();
+
+        expect(
+          await screen.findByText(
+            "Unable to reach the server. Please try again.",
+          ),
+        ).toBeInTheDocument();
+        expect(screen.getByLabelText(/^password/i)).toHaveValue("");
+        expect(screen.getByLabelText(/^username/i)).toHaveValue("test-user");
+        expect(
+          screen.getByRole("button", { name: /sign in securely/i }),
+        ).toBeEnabled();
+      },
+    );
+
     it("shows 'Invalid username or password.' with no hint which was wrong", async () => {
       mswState.loginValid = false;
       mswState.loginErrorMode = null;
@@ -197,6 +227,45 @@ describe("LoginPage", () => {
   });
 
   describe("UI Interactions", () => {
+    it.each([
+      ["", ""],
+      ["   ", "password"],
+      ["test-user", ""],
+      ["test-user", "   "],
+    ])(
+      "does not send invalid credentials (%s, %s)",
+      async (username, password) => {
+        const post = vi.spyOn(apiClient, "post");
+        renderAt();
+        fireEvent.change(screen.getByLabelText(/^username/i), {
+          target: { value: username },
+        });
+        fireEvent.change(screen.getByLabelText(/^password/i), {
+          target: { value: password },
+        });
+        await submitForm();
+
+        expect(
+          screen.getAllByText("This field is required.").length,
+        ).toBeGreaterThan(0);
+        expect(post).not.toHaveBeenCalled();
+      },
+    );
+
+    it("trims the username and preserves password spaces in the login request", async () => {
+      const post = vi.spyOn(apiClient, "post");
+      renderAt();
+      await fillForm("  test-user  ", " password123 ");
+      await submitForm();
+
+      expect(await screen.findByTestId("admin-dashboard")).toBeInTheDocument();
+      expect(post).toHaveBeenCalledWith(
+        "/auth/login",
+        { username: "test-user", password: " password123 " },
+        { skipAuth: true },
+      );
+    });
+
     it("toggles password visibility with ARIA attributes", async () => {
       renderAt("/login");
 
