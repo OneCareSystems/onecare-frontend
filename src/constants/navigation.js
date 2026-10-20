@@ -16,7 +16,18 @@ export const NAV_ITEMS = Object.freeze({
       label: "Dashboard",
       icon: "dashboard",
     }),
-    Object.freeze({ id: "register-patient", to: "/super-admin/register-patient", label: "Register Patient", icon: "user-check" }),
+    Object.freeze({
+      id: "patient-search",
+      to: "/super-admin/patient-search",
+      label: "Patient Search",
+      icon: "search",
+    }),
+    Object.freeze({
+      id: "register-patient",
+      to: "/super-admin/register-patient",
+      label: "Register Patient",
+      icon: "user-check",
+    }),
     Object.freeze({
       id: "queue",
       to: "/queue",
@@ -31,7 +42,18 @@ export const NAV_ITEMS = Object.freeze({
       label: "Dashboard",
       icon: "dashboard",
     }),
-    Object.freeze({ id: "register-patient", to: "/admin/register-patient", label: "Register Patient", icon: "user-check" }),
+    Object.freeze({
+      id: "patient-search",
+      to: "/admin/patient-search",
+      label: "Patient Search",
+      icon: "search",
+    }),
+    Object.freeze({
+      id: "register-patient",
+      to: "/admin/register-patient",
+      label: "Register Patient",
+      icon: "user-check",
+    }),
     Object.freeze({
       id: "queue",
       to: "/queue",

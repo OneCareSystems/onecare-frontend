@@ -2,10 +2,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import LoginPage from "../pages/public/LoginPage";
 import ForgotPasswordPage from "../pages/public/ForgotPasswordPage";
 import ResetPasswordPage from "../pages/public/ResetPasswordPage";
-import AdminLayout from "../layouts/AdminLayout";
 import DoctorLayout from "../layouts/DoctorLayout";
 import PharmacistLayout from "../layouts/PharmacistLayout";
-import SuperAdminLayout from "../layouts/SuperAdminLayout";
 import PublicLayout from "../layouts/PublicLayout";
 import AdminDashboardPage from "../pages/admin/AdminDashboardPage";
 import SuperAdminDashboardPage from "../pages/superAdmin/SuperAdminDashboardPage";
@@ -25,7 +23,7 @@ import PatientRecordsPage from "../pages/doctor/PatientRecordsPage";
 import PatientDetails from "../pages/doctor/PatientDetails";
 import KnowledgeBasePage from "../pages/doctor/KnowledgeBasePage";
 import RegisterPatientPage from "../pages/admin/RegisterPatientPage";
-import PatientRegistrationLayout from "../layouts/PatientRegistrationLayout";
+import PatientSearchEditPage from "../pages/admin/PatientSearchEditPage";
 
 const AppRoutes = () => {
   return (
@@ -51,15 +49,50 @@ const AppRoutes = () => {
       </Route>
 
       {/* ADMIN AREA */}
-      <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.patientRegistration} />}>
-        <Route element={<PatientRegistrationLayout />}>
-          <Route path="/admin/register-patient" element={<RegisterPatientPage />} />
-          <Route path="/super-admin/register-patient" element={<RegisterPatientPage />} />
-        </Route>
-      </Route>
-      <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.admin} />}>
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route path="dashboard" element={<AdminDashboardPage />} />
+      <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.queue} />}>
+        <Route element={<StaffLayout />}>
+          <Route
+            element={
+              <RequireAuth allowedRoles={ROUTE_ACCESS.patientRegistration} />
+            }
+          >
+            <Route
+              path="/admin/register-patient"
+              element={<RegisterPatientPage />}
+            />
+            <Route
+              path="/super-admin/register-patient"
+              element={<RegisterPatientPage />}
+            />
+            <Route
+              path="/admin/patient-search"
+              element={<PatientSearchEditPage />}
+            />
+            <Route
+              path="/super-admin/patient-search"
+              element={<PatientSearchEditPage />}
+            />
+          </Route>
+          <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.admin} />}>
+            <Route
+              path="/admin"
+              element={<Navigate to="/admin/dashboard" replace />}
+            />
+            <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+          </Route>
+          <Route
+            element={<RequireAuth allowedRoles={ROUTE_ACCESS["super-admin"]} />}
+          >
+            <Route
+              path="/super-admin"
+              element={<Navigate to="/super-admin/dashboard" replace />}
+            />
+            <Route
+              path="/super-admin/dashboard"
+              element={<SuperAdminDashboardPage />}
+            />
+          </Route>
+          <Route path="/queue" element={<QueuePage />} />
         </Route>
       </Route>
 
@@ -89,22 +122,6 @@ const AppRoutes = () => {
       <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.pharmacist} />}>
         <Route path="/pharmacist" element={<PharmacistLayout />}>
           <Route path="dashboard" element={<PharmacistDashboardPage />} />
-        </Route>
-      </Route>
-
-      {/* SUPER ADMIN AREA */}
-      <Route
-        element={<RequireAuth allowedRoles={ROUTE_ACCESS["super-admin"]} />}
-      >
-        <Route path="/super-admin" element={<SuperAdminLayout />}>
-          <Route path="dashboard" element={<SuperAdminDashboardPage />} />
-        </Route>
-      </Route>
-
-      {/* SHARED SCREENS (AC4) — several roles, one route */}
-      <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.queue} />}>
-        <Route path="/queue" element={<StaffLayout />}>
-          <Route index element={<QueuePage />} />
         </Route>
       </Route>
     </Routes>
