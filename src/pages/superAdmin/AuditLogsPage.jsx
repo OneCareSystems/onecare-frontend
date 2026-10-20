@@ -233,7 +233,6 @@ const AuditLogsPage = () => {
   /* ---- fetch ---- */
   useEffect(() => {
     let cancelled = false;
-    setStatus("loading");
     getAuditLogs({ page: page - 1, size: DEFAULT_PAGE_SIZE })
       .then((result) => {
         if (cancelled) return;
@@ -254,7 +253,7 @@ const AuditLogsPage = () => {
 
   const handleQueryChange = useCallback((v) => setQuery(v), []);
 
-  const logs = pageData?.content ?? [];
+  const logs = useMemo(() => pageData?.content ?? [], [pageData?.content]);
   const normalizedQuery = deferredQuery.trim().toLowerCase();
 
   const filteredLogs = useMemo(

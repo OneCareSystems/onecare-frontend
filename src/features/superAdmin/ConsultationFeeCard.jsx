@@ -12,9 +12,6 @@ export const ConsultationFeeCard = ({
   onSave,
   onRetry,
 }) => {
-  const amount = Number(fee);
-  const previewValid = Number.isFinite(amount) && amount >= 0 && fee !== "";
-  const tax = previewValid ? amount * 0.08 : 0;
 
   return (
     <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-xs">

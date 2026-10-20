@@ -60,7 +60,7 @@ const SuperAdminDashboardPage = () => {
         consultationFee: feeVal,
       });
       setRecentLogs(auditList);
-    } catch (err) {
+    } catch {
       setError("Unable to load overview data. Please try again.");
     } finally {
       setLoading(false);
@@ -68,7 +68,7 @@ const SuperAdminDashboardPage = () => {
   };
 
   useEffect(() => {
-    loadDashboardData();
+    Promise.resolve().then(loadDashboardData);
   }, []);
 
   const quickActions = [

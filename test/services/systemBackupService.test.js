@@ -6,7 +6,6 @@ import {
   adaptBackupListResponse,
   adaptBackupRecord,
   createBackup,
-  downloadBackup,
   formatBytes,
   listBackups,
   parseContentDisposition,

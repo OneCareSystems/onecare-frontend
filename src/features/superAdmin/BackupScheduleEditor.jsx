@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Button from "../../components/Button";
 import ErrorMessage from "../../components/ErrorMessage";
 import Icon from "../../components/Icon";
@@ -22,10 +22,6 @@ export const BackupScheduleEditor = ({
   const [dayOfMonth, setDayOfMonth] = useState(() =>
     String(schedule?.dayOfMonth ?? "28"),
   );
-
-  useEffect(() => {
-    if (schedule) setDayOfMonth(String(schedule.dayOfMonth));
-  }, [schedule]);
 
   const changed =
     schedule && Number(dayOfMonth) !== Number(schedule.dayOfMonth);

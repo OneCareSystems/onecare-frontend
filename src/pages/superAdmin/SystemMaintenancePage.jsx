@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, memo } from "react";
+import { useCallback, useEffect, useMemo, useState, memo } from "react";
 
 import Button from "../../components/Button";
 import ConfirmDialog from "../../components/ConfirmDialog";
@@ -68,6 +68,13 @@ const addMonths = (date, n) => {
   return d;
 };
 
+const backupAgeDays = (latestBackupAt) => {
+  if (!latestBackupAt) return null;
+  return Math.floor(
+    (Date.now() - new Date(latestBackupAt).getTime()) / 86_400_000,
+  );
+};
+
 /* Compute next N runs from day-of-month + execution time. */
 const computeUpcomingRuns = (dayOfMonth, executionTime, count = 3) => {
   if (!dayOfMonth) return [];
@@ -95,11 +102,7 @@ const computeUpcomingRuns = (dayOfMonth, executionTime, count = 3) => {
 
 const SafetyBanner = memo(
   ({ latestBackupAt, nextRun, creating, onRunBackup }) => {
-    const latestAgeMs = latestBackupAt
-      ? Date.now() - new Date(latestBackupAt).getTime()
-      : null;
-    const latestAgeDays =
-      latestAgeMs != null ? Math.floor(latestAgeMs / 86_400_000) : null;
+    const latestAgeDays = backupAgeDays(latestBackupAt);
 
     let tone = "success";
     let title = "Backups healthy";
@@ -310,29 +313,9 @@ const SystemMaintenancePage = () => {
     return runs[0] ?? null;
   }, [schedule]);
 
-  /* ---- shortcuts ---- */
-  useEffect(() => {
-    const onKey = (e) => {
-      const mod = e.metaKey || e.ctrlKey;
-      if (mod && e.key.toLowerCase() === "b") {
-        e.preventDefault();
-        handleCreateBackup();
-      } else if (mod && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setShowShortcuts((v) => !v);
-      } else if (e.key === "Escape") {
-        setShowShortcuts(false);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   /* ---- load backups ---- */
   useEffect(() => {
     let cancelled = false;
-    setBackupsStatus("loading");
     listBackups()
       .then((records) => {
         if (cancelled) return;
@@ -370,7 +353,7 @@ const SystemMaintenancePage = () => {
   }, []);
 
   /* ---- create backup ---- */
-  const handleCreateBackup = async () => {
+  const handleCreateBackup = useCallback(async () => {
     setCreatingBackup(true);
     try {
       const record = await createBackup();
@@ -401,7 +384,25 @@ const SystemMaintenancePage = () => {
     } finally {
       setCreatingBackup(false);
     }
-  };
+  }, []);
+
+  /* ---- shortcuts ---- */
+  useEffect(() => {
+    const onKey = (e) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key.toLowerCase() === "b") {
+        e.preventDefault();
+        handleCreateBackup();
+      } else if (mod && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setShowShortcuts((v) => !v);
+      } else if (e.key === "Escape") {
+        setShowShortcuts(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [handleCreateBackup]);
 
   /* ---- save schedule ---- */
   const handleSaveSchedule = async (day) => {
@@ -590,6 +591,7 @@ const SystemMaintenancePage = () => {
           </div>
 
           <BackupScheduleEditor
+            key={schedule?.dayOfMonth}
             schedule={schedule}
             loading={scheduleLoading}
             error={scheduleError}

@@ -267,6 +267,13 @@ const UserManagementPage = () => {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const searchInputRef = useRef(null);
 
+  const openCreate = useCallback(() => {
+    setForm(EMPTY_FORM);
+    setSubmitAttempted(false);
+    setSubmitError("");
+    setIsCreateOpen(true);
+  }, []);
+
   /* ---- shortcuts ---- */
   useEffect(() => {
     const onKey = (e) => {
@@ -289,8 +296,7 @@ const UserManagementPage = () => {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [openCreate]);
 
   /* ---- fetch ---- */
   useEffect(() => {
@@ -315,13 +321,6 @@ const UserManagementPage = () => {
   const handleQueryChange = useCallback((v) => {
     setQuery(v);
     setPage(1);
-  }, []);
-
-  const openCreate = useCallback(() => {
-    setForm(EMPTY_FORM);
-    setSubmitAttempted(false);
-    setSubmitError("");
-    setIsCreateOpen(true);
   }, []);
 
   const closeCreate = useCallback(() => {
@@ -469,7 +468,6 @@ const UserManagementPage = () => {
         message:
           error?.userMessage ?? "Unable to initiate password reset sequence.",
       });
-    } finally {
     }
   }, []);
 
@@ -578,7 +576,7 @@ const UserManagementPage = () => {
     visibleUsers.length > 0 &&
     visibleUsers.every((u) => selectedIds.has(u.userId));
 
-  const toggleSelectAllOnPage = () =>
+  const toggleSelectAllOnPage = useCallback(() =>
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (allOnPageSelected) {
@@ -587,7 +585,7 @@ const UserManagementPage = () => {
         visibleUsers.forEach((u) => next.add(u.userId));
       }
       return next;
-    });
+    }), [allOnPageSelected, visibleUsers]);
 
   /* ---- columns ---- */
   const columns = useMemo(
@@ -650,6 +648,7 @@ const UserManagementPage = () => {
     ],
     [
       allOnPageSelected,
+      toggleSelectAllOnPage,
       selectedIds,
       openEdit,
       requestUnlock,
