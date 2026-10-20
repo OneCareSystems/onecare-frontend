@@ -73,7 +73,7 @@ describe("super-admin clinic configuration — REST cases", () => {
     expect(stat("1 scheduled").getByText("2")).toBeInTheDocument();
     expect(stat("All doctors").getByText("10")).toBeInTheDocument();
     expect(stat("Aggregate hours").getByText("35h")).toBeInTheDocument();
-    expect(stat("Active clinic-wide").getByText("$75.00")).toBeInTheDocument();
+    expect(stat("Active clinic-wide").getByText("75.00")).toBeInTheDocument();
 
     expect(screen.getByText("35h / week")).toBeInTheDocument();
     expect(screen.getByText("No schedule")).toBeInTheDocument();
@@ -100,7 +100,7 @@ describe("super-admin clinic configuration — REST cases", () => {
       body: { consultationFee: 120 },
       authorization: "Bearer super-admin-rest-token",
     });
-    expect(stat("Active clinic-wide").getByText("$120.00")).toBeInTheDocument();
+    expect(stat("Active clinic-wide").getByText("120.00")).toBeInTheDocument();
     expect(screen.getByText("Currently active")).toBeInTheDocument();
   });
 
@@ -119,7 +119,7 @@ describe("super-admin clinic configuration — REST cases", () => {
     expect(mswState.consultationFeeUpdateHits).toHaveLength(1);
     expect(screen.getByLabelText("Amount")).toHaveValue(150);
     expect(screen.getByText("Unsaved change")).toBeInTheDocument();
-    expect(stat("Active clinic-wide").getByText("$75.00")).toBeInTheDocument();
+    expect(stat("Active clinic-wide").getByText("75.00")).toBeInTheDocument();
   });
 
   it("surfaces a fee load failure and retries it", async () => {

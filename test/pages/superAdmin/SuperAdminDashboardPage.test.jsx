@@ -42,7 +42,7 @@ describe("super-admin dashboard — REST cases", () => {
     await waitFor(() =>
       expect(screen.getByText("Total Staff")).toBeInTheDocument(),
     );
-    await waitFor(() => expect(screen.getByText("$75.00")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("75.00")).toBeInTheDocument());
 
     // four parallel reads, each carrying the session token
     expect(mswState.usersHits).toHaveLength(1);
@@ -65,7 +65,7 @@ describe("super-admin dashboard — REST cases", () => {
     // the locked account wins the chip over the active count
     expect(statCard("Total Staff").getByText("1 Locked")).toBeInTheDocument();
     expect(
-      statCard("Consultation Fee").getByText("$75.00"),
+      statCard("Consultation Fee").getByText("75.00"),
     ).toBeInTheDocument();
     expect(statCard("System Backups").getByText("2")).toBeInTheDocument();
     expect(statCard("Audit Events").getByText("2")).toBeInTheDocument();
@@ -115,7 +115,7 @@ describe("super-admin dashboard — REST cases", () => {
     mswState.auditLogsErrorMode = "server-error";
     openPage(PATH);
 
-    await waitFor(() => expect(screen.getByText("$75.00")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("75.00")).toBeInTheDocument());
 
     // allSettled swallows the two failures — the page still renders
     expect(
