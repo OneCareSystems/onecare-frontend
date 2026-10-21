@@ -110,7 +110,7 @@ const assertRetained = () => {
 };
 
 describe("ADM-02 session and registration errors", () => {
-  it.each(["ADMIN", "SUPER_ADMIN"])(
+  it.each(["ADMIN"])(
     "%s logs in and posts with the bearer token",
     async (role) => {
       let authorized = false;

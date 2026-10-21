@@ -76,6 +76,30 @@ describe("Sidebar — CFG-04 role-driven navigation", () => {
     );
   });
 
+  it("renders all six SuperAdmin sections with their route destinations", () => {
+    store.dispatch(setSession({ accessToken: "a", role: ROLES.SUPER_ADMIN }));
+
+    renderSidebar();
+
+    const expectedItems = [
+      ["Dashboard", "/super-admin/dashboard"],
+      ["User Management", "/super-admin/user-management"],
+      ["Access Control", "/super-admin/access-control"],
+      ["Clinic Configuration", "/super-admin/clinic-configuration"],
+      ["System Maintenance", "/super-admin/system-maintenance"],
+      ["Audits & Reports", "/super-admin/audits-reports"],
+    ];
+
+    for (const [label, destination] of expectedItems) {
+      expect(screen.getByRole("link", { name: label })).toHaveAttribute(
+        "href",
+        destination,
+      );
+    }
+
+    expect(screen.getAllByRole("link")).toHaveLength(expectedItems.length);
+  });
+
   it("renders nothing for an unknown role", () => {
     store.dispatch(setSession({ accessToken: "a", role: "PATIENT" }));
 

@@ -7,6 +7,10 @@ const VARIANTS = {
     "border border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-50 focus-visible:ring-primary-500",
   danger:
     "bg-danger-600 text-white hover:bg-danger-700 focus-visible:ring-danger-500",
+  // Emergency / caution actions (e.g. break-glass elevation). Uses the
+  // approved on-warning-button pair: neutral-0 text on warning-800.
+  warning:
+    "bg-warning-800 text-neutral-0 hover:bg-warning-900 focus-visible:ring-warning-500",
   ghost:
     "bg-transparent text-neutral-800 hover:bg-neutral-100 focus-visible:ring-primary-500",
 };
