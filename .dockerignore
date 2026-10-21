@@ -6,6 +6,7 @@ dist
 
 .env
 .env.*
+!.env.example
 
 npm-debug.log*
 yarn-debug.log*
@@ -20,3 +21,10 @@ coverage
 Dockerfile*
 docker-compose*.yml
 *.md
+
+# Not needed inside the image build context (DDP-#49 / DKR-01).
+test
+e2e
+playwright.config.js
+playwright-report
+test-results

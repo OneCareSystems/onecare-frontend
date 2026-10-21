@@ -17,8 +17,10 @@ Built using:
 
 Install:
 
-- Node.js (LTS)
+- Node.js 22 (see `.nvmrc`; `engines` requires >= 22)
 - npm
+
+For the container workflow: Docker with Compose v2.
 
 ## Installation
 
@@ -150,10 +152,89 @@ goes from `/api/auth/login` to `http://localhost:8080/api/auth/login`. Service p
 such as `/auth/login` must not add another `/api` prefix. Restart Vite after changing
 environment variables or proxy configuration.
 
+The proxy target itself is env-driven (`VITE_DEV_PROXY_TARGET`, default
+`http://localhost:8080`) so Compose dev mode can point it at the `backend`
+service name.
+
 For direct backend requests, set `VITE_API_BASE_URL=http://localhost:8080/api`
-and allow the frontend origin in the backend CORS configuration. For deployment,
-either route `/api` to the backend in the hosting server or set the full backend API
-URL before building; the Vite development proxy does not run in production.
+and allow the frontend origin in the backend CORS configuration.
+
+### Runtime configuration (DDP-#49 / DKR-03)
+
+`VITE_*` variables are **baked into the bundle at build time**, so the image
+must never carry an environment-specific URL. The production container writes
+a small runtime file at start:
+
+```text
+/config.json   →   { "apiBaseUrl": "/api" }   (public settings only, no secrets)
+```
+
+`src/services/config.js` (CFG-02) resolves the API base URL in this order:
+
+1. runtime `/config.json` value (`apiBaseUrl`)
+2. build-time `VITE_API_BASE_URL`
+3. default `/api` (same origin — nginx or Vite proxies it)
+
+A missing, partial or broken runtime file never crashes the app: it silently
+falls back to the build-time defaults. This is what lets **one image run in
+staging and production without a rebuild** (parent AC3). Nothing secret may
+ever appear in `/config.json` or any `VITE_*` variable — CI scans the shipped
+bundle with gitleaks and fails on a finding.
+
+## Docker (DDP-#49)
+
+### Production image
+
+`Dockerfile.prod` is a two-stage build:
+
+1. **build** — pinned `node:<version>-alpine`, `npm ci`, `vite build` with
+   `VITE_API_BASE_URL=/api` (same-origin; no hostname in the bundle)
+2. **serve** — pinned `nginxinc/nginx-unprivileged` on port **8080** as the
+   non-root `nginx` user (uid 101); only `dist/` ships — no Node, no source,
+   no `.env`, no secrets in any layer
+
+```bash
+docker build -f Dockerfile.prod -t onecare-frontend .
+docker run --rm -p 8080:8080 -e BACKEND_URL=http://host.docker.internal:8080 onecare-frontend
+```
+
+Image size: **~26 MB** (recorded at DKR-01, `docker image inspect`).
+
+Container start (`docker/entrypoint.sh`) exports nginx template defaults and
+writes `/config.json` from `RUNTIME_API_BASE_URL` (default `/api`).
+
+Base images are pinned; `hadolint` runs in CI and fails on unpinned or
+`latest` tags (`.hadolint.yaml`).
+
+### nginx behaviour (DKR-02)
+
+`nginx/default.conf.template` (rendered at container start):
+
+- `location /` — SPA fallback: unknown paths return `index.html` so React
+  Router deep links survive a hard refresh
+- `location /api` — proxied to `${BACKEND_URL}` with `X-Forwarded-For`,
+  `X-Real-IP`, `X-Forwarded-Proto`; `Authorization` and `Cookie` pass
+  through. Unknown `/api` paths return the backend's real 404/502, never
+  the SPA shell. The upstream is resolved at request time (Docker DNS), so
+  nginx starts before the backend is healthy
+- `location ^~ /assets/` — hashed bundles: `Cache-Control: immutable`;
+  missing files are real 404s
+- `index.html` and `/config.json` — `Cache-Control: no-store`
+- `location = /healthz` — served by nginx itself for container/Compose
+  health checks
+- security headers on every response (nosniff, deny framing, referrer
+  policy, CSP — `nginx/security-headers.conf`); `server_tokens off`; gzip
+  on; body size (`CLIENT_MAX_BODY_SIZE`, default `25m`) and proxy timeouts
+  (`PROXY_READ_TIMEOUT`, default `300s`) match the backend limits
+
+**TLS at the edge:** HTTPS with TLS 1.2+ and HSTS are terminated at the
+production edge/ingress (SDS §2.5.3), not inside this container. The
+container serves plain HTTP on the internal network; do not fake TLS here.
+
+### Compose
+
+The full stack (frontend, backend, MySQL, Redis, chatbot) lives in the
+`onecare-infra` repository — see its README for dev and prod-like modes.
 
 ---
 
@@ -234,10 +315,16 @@ CI workflow location:
 .github/workflows/ci.yml
 ```
 
-Pipeline currently performs:
+Pipeline (DDP-#49 / DKR-05):
 
-- Install dependencies
-- Colour contrast check (`npm run check:contrast`)
-- Lint
-- Tests with coverage
-- Build validation
+**Job `build-test`** — install → colour contrast check → lint → tests with
+coverage thresholds (80% statements/lines/functions, 70% branches, enforced
+in `vite.config.js`) → `npm audit` (production deps) → build.
+
+**Job `docker`** (needs `build-test`) — hadolint → Docker image build →
+bundle secret scan (gitleaks over the image's `dist/`) → image
+vulnerability scan (trivy, fails on fixable HIGH/CRITICAL) → push.
+
+Pull requests build and scan but never push. Merges to `develop`/`main`
+push the image to GHCR tagged `sha-<commit>`; no `latest` tag is ever
+pushed, and deployments promote the same SHA from staging to production.
