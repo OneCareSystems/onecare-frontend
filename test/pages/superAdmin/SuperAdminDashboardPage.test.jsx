@@ -76,6 +76,9 @@ describe("super-admin dashboard — REST cases", () => {
     const activity = await screen.findByRole("region", {
       name: "Recent Audit Activity",
     });
+    // The region is present during the initial render; wait for the async
+    // audit request to populate it before making synchronous row assertions.
+    await within(activity).findByText(/LOGIN outcome=SUCCESS/);
     expect(within(activity).getAllByText("superadmin")).toHaveLength(2);
     expect(
       within(activity).getByText(/LOGIN outcome=SUCCESS/),
