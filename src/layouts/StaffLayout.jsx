@@ -3,6 +3,9 @@ import { Outlet } from "react-router-dom";
 import TopBar from "../components/TopBar";
 import Sidebar from "../components/Sidebar";
 import Breadcrumbs from "../components/Breadcrumbs";
+import { useSelector } from "react-redux";
+import { selectRole } from "../features/auth/authSlice";
+import AdminLayout from "./AdminLayout";
 
 /**
  * CFG-04 — staff layout shell (SDS §2.4.8): top bar (profile, logout),
@@ -17,6 +20,8 @@ import Breadcrumbs from "../components/Breadcrumbs";
  * at 360 px (AC1/AC3, NFRU-004).
  */
 const StaffLayout = () => {
+  const role = useSelector(selectRole);
+  if (role === "ADMIN") return <AdminLayout />;
   return (
     <div className="flex min-h-screen flex-col bg-neutral-0">
       <TopBar />
