@@ -26,7 +26,6 @@ import PatientDetails from "../pages/doctor/PatientDetails";
 import KnowledgeBasePage from "../pages/doctor/KnowledgeBasePage";
 import RegisterPatientPage from "../pages/admin/RegisterPatientPage";
 import PatientSearchEditPage from "../pages/admin/PatientSearchEditPage";
-import PatientRegistrationLayout from "../layouts/PatientRegistrationLayout";
 import UserManagementPage from "../pages/superAdmin/UserManagementPage";
 import AccessControlPage from "../pages/superAdmin/AccessControlPage";
 import ClinicConfigPage from "../pages/superAdmin/ClinicConfigPage";
@@ -56,20 +55,7 @@ const AppRoutes = () => {
         <Route path={CHANGE_PASSWORD_PATH} element={<ChangePasswordPage />} />
       </Route>
 
-      {/* ADMIN AREA: patient workflows are Admin-only for now. */}
-      {/* ADMIN AREA */}
-      <Route
-        element={
-          <RequireAuth allowedRoles={ROUTE_ACCESS.patientRegistration} />
-        }
-      >
-        <Route element={<PatientRegistrationLayout />}>
-          <Route
-            path="/admin/register-patient"
-            element={<RegisterPatientPage />}
-          />
-        </Route>
-      </Route>
+      {/* ADMIN AREA: patient workflows share the admin shell. */}
       <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.admin} />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="/admin/dashboard" replace />} />

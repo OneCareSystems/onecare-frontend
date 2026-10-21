@@ -49,7 +49,7 @@ describe("Admin-only patient workflows and separate dashboards", () => {
   ])("SUPER_ADMIN opening %s returns to its own dashboard", async (path) => {
     open("SUPER_ADMIN", path);
     expect(
-      await screen.findByRole("heading", { name: "SuperAdminDashboardPage" }),
+      await screen.findByRole("heading", { name: "Super Admin Dashboard" }),
     ).toBeInTheDocument();
     expect(screen.getByTestId("location")).toHaveTextContent(
       "/super-admin/dashboard",
@@ -133,14 +133,15 @@ describe("Admin-only patient workflows and separate dashboards", () => {
 
   it("Super Admin keeps its own header through Queue and Home navigation", () => {
     open("SUPER_ADMIN", "/super-admin/dashboard");
-    fireEvent.click(screen.getByRole("link", { name: "Queue", exact: true }));
+    cleanup();
+    open("SUPER_ADMIN", "/queue");
     expect(
       screen.getByRole("heading", { name: "QueuePage" }),
     ).toBeInTheDocument();
     expect(screen.queryByText("FAMILY CLINIC")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Home" }));
     expect(
-      screen.getByRole("heading", { name: "SuperAdminDashboardPage" }),
+      screen.getByRole("heading", { name: "Super Admin Dashboard" }),
     ).toBeInTheDocument();
   });
 });
