@@ -8,6 +8,9 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "./e2e",
+  // Smoke specs (DKR-06) target a deployed environment and run through
+  // playwright.smoke.config.js — never against the local dev server.
+  testIgnore: /smoke\/.*/,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
