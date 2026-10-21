@@ -44,6 +44,7 @@ const TodaySchedulePage = () => {
   const loading = queueStatus === "loading";
   const firstLoad = loading && records.length === 0;
   const failed = queueStatus === "failed";
+  const refreshing = loading && records.length > 0;
 
   /**
    * Refresh appointments manually or through polling.
@@ -76,9 +77,6 @@ const TodaySchedulePage = () => {
 
   /**
    * Initial fetch and re-fetch whenever the selected date changes.
-   *
-   * The request is started inside the effect rather than by calling
-   * refresh(), avoiding the set-state-in-effect lint warning.
    */
   useEffect(() => {
     let cancelled = false;
@@ -146,21 +144,41 @@ const TodaySchedulePage = () => {
       {
         key: "queuePosition",
         header: "#",
-        render: (row) => row.appointmentId ?? DASH,
+        render: (row) => (
+          <span className="inline-flex items-center rounded-md bg-neutral-100 px-2 py-0.5 font-mono text-xs font-medium text-neutral-700">
+            {row.appointmentId ?? DASH}
+          </span>
+        ),
       },
       {
         key: "patientFullName",
         header: "Patient",
         render: (row) => (
-          <span className="font-medium text-neutral-900">
-            {row.patientFullName ?? DASH}
-          </span>
+          <div className="flex items-center gap-2.5">
+            <span
+              aria-hidden="true"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-semibold text-primary-700 ring-1 ring-inset ring-primary-100"
+            >
+              {String(row.patientFullName ?? "?")
+                .trim()
+                .charAt(0)
+                .toUpperCase() || "?"}
+            </span>
+            <span className="font-medium text-neutral-900">
+              {row.patientFullName ?? DASH}
+            </span>
+          </div>
         ),
       },
       {
         key: "timeSlot",
         header: "Time",
-        render: (row) => formatTimeSlot(row.timeSlot),
+        render: (row) => (
+          <span className="inline-flex items-center gap-1.5 text-sm text-neutral-700">
+            <Icon name="clock" className="h-3.5 w-3.5 text-neutral-400" />
+            {formatTimeSlot(row.timeSlot)}
+          </span>
+        ),
       },
       {
         key: "status",
@@ -172,24 +190,39 @@ const TodaySchedulePage = () => {
         header: "Actions",
         render: (row) =>
           row.status === "CANCELLED" ? (
-            DASH
+            <span className="text-sm text-neutral-400">{DASH}</span>
           ) : (
             <Button
               size="sm"
-              variant="outline"
+              variant={row.status === "COMPLETED" ? "outline" : "primary"}
               onClick={() =>
                 navigate(`/doctor/consultation/${row.appointmentId}`)
               }
+              className="inline-flex items-center gap-1.5"
             >
               {row.status === "COMPLETED"
                 ? "View Consultation"
                 : "Start Consultation"}
+              <Icon name="arrow-right" className="h-3.5 w-3.5" />
             </Button>
           ),
       },
     ],
     [navigate],
   );
+
+  // Simple live status counts, purely derived.
+  const counts = useMemo(() => {
+    let scheduled = 0;
+    let inProgress = 0;
+    let completed = 0;
+    for (const row of records) {
+      if (row.status === "SCHEDULED") scheduled += 1;
+      else if (row.status === "IN_PROGRESS") inProgress += 1;
+      else if (row.status === "COMPLETED") completed += 1;
+    }
+    return { scheduled, inProgress, completed };
+  }, [records]);
 
   return (
     <PageShell>
@@ -198,14 +231,23 @@ const TodaySchedulePage = () => {
         description="Review appointments for the selected date and open the consultation screen to treat patients and complete appointments."
         meta={
           <>
-            <p className="font-medium text-neutral-800">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-semibold text-neutral-700">
+              <Icon name="calendar" className="h-3 w-3 text-neutral-500" />
               {formatDisplayDate(selectedDate)}
-            </p>
+            </span>
 
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${pageVisible
+                  ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
+                  : "bg-amber-50 text-amber-700 ring-1 ring-amber-100"
+                }`}
+            >
               <span
                 aria-hidden="true"
-                className="h-1.5 w-1.5 rounded-full bg-emerald-500 motion-safe:animate-pulse"
+                className={`h-1.5 w-1.5 rounded-full ${pageVisible
+                    ? "bg-emerald-500 motion-safe:animate-pulse"
+                    : "bg-amber-500"
+                  }`}
               />
               {pageVisible ? "Live" : "Paused"}
             </span>
@@ -228,15 +270,45 @@ const TodaySchedulePage = () => {
               disabled={firstLoad}
               className="inline-flex items-center gap-2"
             >
-              <Icon name="refresh" className="h-4 w-4" />
-              Refresh
+              <Icon
+                name="refresh"
+                className={`h-4 w-4 ${refreshing ? "text-primary-600 motion-safe:animate-spin" : ""
+                  }`}
+              />
+              {refreshing ? "Refreshing…" : "Refresh"}
             </Button>
           </>
         }
       />
 
       <section aria-labelledby="schedule-queue-heading">
-        <SectionTitle id="schedule-queue-heading">
+        <SectionTitle
+          id="schedule-queue-heading"
+          aside={
+            !firstLoad && !failed && records.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2.5 py-0.5 font-medium tabular-nums text-neutral-700">
+                  {records.length} total
+                </span>
+                {counts.scheduled > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-primary-50 px-2.5 py-0.5 font-medium tabular-nums text-primary-700 ring-1 ring-primary-100">
+                    {counts.scheduled} scheduled
+                  </span>
+                )}
+                {counts.inProgress > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 font-medium tabular-nums text-amber-700 ring-1 ring-amber-100">
+                    {counts.inProgress} in progress
+                  </span>
+                )}
+                {counts.completed > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 font-medium tabular-nums text-emerald-700 ring-1 ring-emerald-100">
+                    {counts.completed} completed
+                  </span>
+                )}
+              </div>
+            ) : null
+          }
+        >
           Appointment queue
         </SectionTitle>
 
@@ -255,7 +327,7 @@ const TodaySchedulePage = () => {
             columns={columns}
             data={records}
             getRowKey={(row) => row.appointmentId}
-            emptyTitle="No appointments scheduled for the selected date."
+            emptyTitle="No appointments scheduled"
             emptyMessage="Pick another date or refresh to check again."
             label="Appointment queue for the selected date"
           />

@@ -28,6 +28,25 @@ const matchesQuery = (patient, query) =>
     .toLowerCase()
     .includes(query) || String(patient.patientId).includes(query);
 
+/** Stable avatar tint derived from the name — helps visual scanning. */
+const AVATAR_TINTS = [
+  "bg-primary-50 text-primary-700",
+  "bg-emerald-50 text-emerald-700",
+  "bg-amber-50 text-amber-700",
+  "bg-sky-50 text-sky-700",
+  "bg-violet-50 text-violet-700",
+  "bg-rose-50 text-rose-700",
+];
+
+const tintFor = (name) => {
+  const key = String(name ?? "");
+  let hash = 0;
+  for (let i = 0; i < key.length; i += 1) {
+    hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+  }
+  return AVATAR_TINTS[hash % AVATAR_TINTS.length];
+};
+
 /**
  * Patient directory: search, page and open a record. Fetch status is
  * `loading | ready | failed`; a failed load keeps the page on screen with a
@@ -72,6 +91,11 @@ const PatientRecordsPage = () => {
     setPage(1);
   }, []);
 
+  const clearQuery = useCallback(() => {
+    setQuery("");
+    setPage(1);
+  }, []);
+
   const normalizedQuery = deferredQuery.trim().toLowerCase();
   const filtered = useMemo(
     () =>
@@ -95,7 +119,9 @@ const PatientRecordsPage = () => {
         key: "patientId",
         header: "Patient ID",
         render: (row) => (
-          <span className="font-mono text-neutral-900">#{row.patientId}</span>
+          <span className="inline-flex items-center rounded-lg bg-neutral-100 px-2 py-0.5 font-mono text-xs font-medium text-neutral-700">
+            #{row.patientId}
+          </span>
         ),
       },
       {
@@ -105,13 +131,20 @@ const PatientRecordsPage = () => {
           <div className="flex items-center gap-3">
             <span
               aria-hidden="true"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-semibold text-primary-700"
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold ring-1 ring-inset ring-black/5 ${tintFor(row.fullName)}`}
             >
               {String(row.fullName ?? "?")
                 .charAt(0)
                 .toUpperCase()}
             </span>
-            <span className="font-medium text-neutral-900">{row.fullName}</span>
+            <div className="min-w-0">
+              <p className="truncate font-medium text-neutral-900">
+                {row.fullName}
+              </p>
+              <p className="text-xs text-neutral-400">
+                Patient record
+              </p>
+            </div>
           </div>
         ),
       },
@@ -123,8 +156,10 @@ const PatientRecordsPage = () => {
             size="sm"
             variant="outline"
             onClick={() => navigate(`${RECORDS_BASE_PATH}/${row.patientId}`)}
+            className="inline-flex items-center gap-1.5"
           >
             View More
+            <Icon name="arrow-right" className="h-3.5 w-3.5" />
           </Button>
         ),
       },
@@ -137,16 +172,20 @@ const PatientRecordsPage = () => {
     ? `${filtered.length} of ${total} patients`
     : `${total} ${total === 1 ? "patient" : "patients"}`;
 
+  const rangeStart = filtered.length === 0 ? 0 : startIndex + 1;
+  const rangeEnd = Math.min(startIndex + PAGE_SIZE, filtered.length);
+
   return (
     <PageShell>
       <PageHeader
         title="Patient records"
-        description={
-          "All patients you can access. Choose View More to open a patient\u2019s record."
-        }
+        description="All patients you can access. Choose View More to open a patient’s record."
         meta={
           status === "ready" ? (
-            <p className="font-medium text-neutral-800">{countLabel}</p>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-semibold text-neutral-700">
+              <Icon name="users" className="h-3 w-3 text-neutral-500" />
+              {countLabel}
+            </span>
           ) : null
         }
       />
@@ -165,7 +204,7 @@ const PatientRecordsPage = () => {
           <SectionTitle
             id="patient-directory-heading"
             aside={
-              <div className="relative w-full max-w-xs">
+              <div className="relative w-full max-w-sm">
                 <label htmlFor="patient-search" className="sr-only">
                   Search patients
                 </label>
@@ -178,14 +217,46 @@ const PatientRecordsPage = () => {
                   type="search"
                   value={query}
                   onChange={handleQueryChange}
-                  placeholder="Search by name or ID"
-                  className="w-full rounded-xl border border-neutral-200 bg-white py-2 pl-9 pr-3 text-sm text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                  placeholder="Search by name or ID…"
+                  className="w-full rounded-xl border border-neutral-200 bg-white py-2 pl-9 pr-9 text-sm text-neutral-900 shadow-sm transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 [&::-webkit-search-cancel-button]:hidden"
                 />
+                {query && (
+                  <button
+                    type="button"
+                    onClick={clearQuery}
+                    aria-label="Clear search"
+                    className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700 focus-visible:outline-2 focus-visible:outline-primary-600"
+                  >
+                    <Icon name="x" className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
             }
           >
-            All patients
+            <span className="inline-flex items-center gap-2">
+              <Icon name="users" className="h-4 w-4 text-neutral-400" />
+              All patients
+            </span>
           </SectionTitle>
+
+          {normalizedQuery && (
+            <div className="mb-3 flex items-center gap-2 text-xs text-neutral-500">
+              <span>
+                Showing results for{" "}
+                <span className="font-semibold text-neutral-800">
+                  “{deferredQuery.trim()}”
+                </span>
+              </span>
+              <span aria-hidden="true">·</span>
+              <button
+                type="button"
+                onClick={clearQuery}
+                className="font-medium text-primary-600 hover:text-primary-700 hover:underline"
+              >
+                Clear search
+              </button>
+            </div>
+          )}
 
           <Table
             columns={columns}
@@ -200,13 +271,28 @@ const PatientRecordsPage = () => {
             label="All patients"
           />
 
-          {totalPages > 1 && (
-            <Pagination
-              className="mt-4"
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setPage}
-            />
+          {filtered.length > 0 && (
+            <div className="mt-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+              <p className="text-xs text-neutral-500">
+                Showing{" "}
+                <span className="font-semibold tabular-nums text-neutral-800">
+                  {rangeStart}–{rangeEnd}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold tabular-nums text-neutral-800">
+                  {filtered.length}
+                </span>{" "}
+                {filtered.length === 1 ? "patient" : "patients"}
+              </p>
+
+              {totalPages > 1 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setPage}
+                />
+              )}
+            </div>
           )}
         </section>
       )}

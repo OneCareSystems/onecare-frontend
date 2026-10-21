@@ -111,7 +111,7 @@ const ConsultationTimer = memo(function ConsultationTimer({ running }) {
     <span
       role="timer"
       aria-label="Elapsed time"
-      className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 font-mono text-xs font-semibold tabular-nums text-amber-900"
+      className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-gradient-to-r from-amber-50 to-amber-100/60 px-3 py-1 font-mono text-xs font-semibold tabular-nums text-amber-900 shadow-sm"
     >
       <Icon
         name="clock"
@@ -126,25 +126,30 @@ const ConsultationTimer = memo(function ConsultationTimer({ running }) {
 
 const MedicationRow = memo(function MedicationRow({ item, index, onRemove }) {
   return (
-    <li className="flex items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-      <div className="min-w-0">
-        <p className="text-sm font-semibold text-neutral-900">
-          {item.medicineName}{" "}
-          <span className="font-mono font-medium text-primary-600">
-            ({item.dosage})
-          </span>
-        </p>
-        <p className="mt-0.5 text-xs text-neutral-500">
-          {item.frequency}, {item.durationDays} day
-          {item.durationDays === 1 ? "" : "s"}, quantity {item.quantity}
-        </p>
+    <li className="group flex items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white p-3 shadow-sm transition-colors hover:border-primary-200 hover:bg-primary-50/30">
+      <div className="flex min-w-0 items-start gap-3">
+        <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-bold text-primary-700">
+          {index + 1}
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-neutral-900">
+            {item.medicineName}
+            <span className="ml-2 font-mono text-xs font-medium text-primary-600">
+              {item.dosage}
+            </span>
+          </p>
+          <p className="mt-0.5 text-xs text-neutral-500">
+            {item.frequency} · {item.durationDays} day
+            {item.durationDays === 1 ? "" : "s"} · qty {item.quantity}
+          </p>
+        </div>
       </div>
 
       <button
         type="button"
         aria-label={`Remove ${item.medicineName}`}
         onClick={() => onRemove(index)}
-        className="rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-2 focus-visible:outline-primary-600"
+        className="flex-shrink-0 rounded-lg p-1.5 text-neutral-400 opacity-0 transition-all hover:bg-rose-50 hover:text-rose-600 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-primary-600 group-hover:opacity-100"
       >
         <Icon name="trash" className="h-4 w-4" />
       </button>
@@ -154,15 +159,16 @@ const MedicationRow = memo(function MedicationRow({ item, index, onRemove }) {
 
 const PreviousNote = memo(function PreviousNote({ record }) {
   return (
-    <li className="space-y-2 rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm">
-      <div className="flex items-center justify-between gap-2">
+    <li className="relative space-y-2 rounded-xl border border-neutral-200 bg-white p-4 text-sm shadow-sm">
+      <span className="absolute inset-y-4 left-0 w-0.5 rounded-full bg-primary-300" />
+      <div className="flex items-center justify-between gap-2 pl-2">
         <span className="font-semibold text-neutral-800">
           {formatDisplayDate(toDateOnly(record.appointmentDate))}
         </span>
         <StatusBadge status={record.status} />
       </div>
 
-      <p className="whitespace-pre-wrap leading-relaxed text-neutral-700">
+      <p className="whitespace-pre-wrap pl-2 leading-relaxed text-neutral-700">
         {record.clinicalNotes}
       </p>
     </li>
@@ -210,8 +216,6 @@ const ConsultationPage = () => {
   const loadIdRef = useRef(0);
 
   // Medicine autocomplete.
-  // Suggestions are displayed only when they match the current query.
-  // This avoids synchronously clearing state inside the effect.
   useEffect(() => {
     const query = itemDraft.medicineName.trim();
 
@@ -264,10 +268,7 @@ const ConsultationPage = () => {
       .then((found) => {
         if (isStale()) return;
 
-        // Update related prescription state after the request resolves,
-        // rather than synchronously when the loading effect starts.
         setRelatedPrescriptions(null);
-
         setAppointment(found);
 
         if (!notesDirtyRef.current) {
@@ -368,10 +369,7 @@ const ConsultationPage = () => {
     saveClinicalNotes(appointmentId, notes)
       .then(() => {
         notesDirtyRef.current = false;
-        setToast({
-          type: "success",
-          message: SAVED_NOTES_MESSAGE,
-        });
+        setToast({ type: "success", message: SAVED_NOTES_MESSAGE });
       })
       .catch((error) => {
         const status = error?.response?.status;
@@ -379,7 +377,7 @@ const ConsultationPage = () => {
         setNotesError(
           status === 400
             ? (error?.userMessage ??
-                "Clinical notes cannot be added to this appointment.")
+              "Clinical notes cannot be added to this appointment.")
             : "Unable to save the clinical notes. Please try again.",
         );
       })
@@ -452,10 +450,7 @@ const ConsultationPage = () => {
         );
 
         setItems([]);
-        setToast({
-          type: "success",
-          message: PRESCRIPTION_CREATED_MESSAGE,
-        });
+        setToast({ type: "success", message: PRESCRIPTION_CREATED_MESSAGE });
       })
       .catch((error) => {
         setPrescriptionError(
@@ -481,26 +476,16 @@ const ConsultationPage = () => {
           status: updated?.status ?? "COMPLETED",
         }));
 
-        setToast({
-          type: "success",
-          message: COMPLETED_TOAST_MESSAGE,
-        });
+        setToast({ type: "success", message: COMPLETED_TOAST_MESSAGE });
       })
       .catch((error) => {
         const status = error?.response?.status;
 
         if (status === 409 || status === 400) {
-          setToast({
-            type: "warning",
-            message: CONCURRENT_CHANGE_MESSAGE,
-          });
-
+          setToast({ type: "warning", message: CONCURRENT_CHANGE_MESSAGE });
           load();
         } else {
-          setToast({
-            type: "error",
-            message: COMPLETE_FAILED_MESSAGE,
-          });
+          setToast({ type: "error", message: COMPLETE_FAILED_MESSAGE });
         }
       })
       .finally(() => {
@@ -530,6 +515,9 @@ const ConsultationPage = () => {
     [history, appointmentId],
   );
 
+  const notesLength = notes.length;
+  const notesNearLimit = notesLength >= CLINICAL_NOTES_MAX_LENGTH * 0.9;
+
   return (
     <PageShell>
       <PageHeader
@@ -542,8 +530,9 @@ const ConsultationPage = () => {
         }
         meta={
           <>
-            <span className="rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-semibold text-primary-700">
-              Appt #{appointmentId}
+            <span className="inline-flex items-center gap-1 rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-semibold text-primary-700 ring-1 ring-primary-100">
+              <Icon name="hash" className="h-3 w-3" />
+              {appointmentId}
             </span>
             <ConsultationTimer running={canComplete} />
           </>
@@ -555,7 +544,7 @@ const ConsultationPage = () => {
               loading={completing}
               disabled={completing}
               size="sm"
-              className="inline-flex items-center gap-2"
+              className="inline-flex items-center gap-2 shadow-sm"
             >
               <Icon name="circle-check" className="h-4 w-4" />
               Complete Consultation
@@ -592,6 +581,7 @@ const ConsultationPage = () => {
         />
       ) : (
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+          {/* LEFT: Clinical workspace */}
           <div className="space-y-6 lg:col-span-7">
             <Panel
               icon="user"
@@ -600,8 +590,7 @@ const ConsultationPage = () => {
             >
               <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <DetailTile label="Patient name">
-                  {patientName ??
-                    `Patient ${appointment.patientId ?? "\u2014"}`}
+                  {patientName ?? `Patient ${appointment.patientId ?? "\u2014"}`}
                 </DetailTile>
 
                 <DetailTile label="Date and time">
@@ -620,45 +609,65 @@ const ConsultationPage = () => {
               title="Clinical Examination & Notes"
               titleId="clinical-notes-heading"
               aside={
-                <span className="text-xs font-medium tabular-nums text-neutral-500">
-                  {notes.length}/{CLINICAL_NOTES_MAX_LENGTH}
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium tabular-nums ${
+                    notesNearLimit
+                      ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200"
+                      : "bg-neutral-100 text-neutral-500"
+                  }`}
+                >
+                  {notesLength}/{CLINICAL_NOTES_MAX_LENGTH}
                 </span>
               }
               bodyClassName="space-y-3"
             >
               {isClosed ? (
                 <>
-                  <p className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-600">
-                    {appointment.status === "CANCELLED"
-                      ? "Clinical notes cannot be added to a cancelled appointment."
-                      : "This consultation is completed; its clinical notes are read-only."}
-                  </p>
+                  <div className="flex items-start gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-600">
+                    <Icon
+                      name="lock"
+                      className="mt-0.5 h-4 w-4 flex-shrink-0 text-neutral-400"
+                    />
+                    <p>
+                      {appointment.status === "CANCELLED"
+                        ? "Clinical notes cannot be added to a cancelled appointment."
+                        : "This consultation is completed; its clinical notes are read-only."}
+                    </p>
+                  </div>
 
                   {appointment.status === "COMPLETED" && notes.trim() && (
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-800">
-                      {notes}
-                    </p>
+                    <div className="rounded-xl border border-neutral-200 bg-white p-4">
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-800">
+                        {notes}
+                      </p>
+                    </div>
                   )}
                 </>
               ) : (
                 <>
-                  <textarea
-                    id="clinical-notes"
-                    aria-labelledby="clinical-notes-heading"
-                    rows={7}
-                    maxLength={CLINICAL_NOTES_MAX_LENGTH}
-                    value={notes}
-                    onChange={handleNotesChange}
-                    className="w-full resize-y rounded-xl border border-neutral-200 bg-neutral-50/60 p-4 text-sm leading-relaxed text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-                    placeholder="Diagnosis, advice, follow-up..."
-                  />
+                  <div className="relative">
+                    <textarea
+                      id="clinical-notes"
+                      aria-labelledby="clinical-notes-heading"
+                      rows={7}
+                      maxLength={CLINICAL_NOTES_MAX_LENGTH}
+                      value={notes}
+                      onChange={handleNotesChange}
+                      className="w-full resize-y rounded-xl border border-neutral-200 bg-neutral-50/60 p-4 text-sm leading-relaxed text-neutral-900 transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                      placeholder="Diagnosis, advice, follow-up..."
+                    />
+                  </div>
 
-                  <div className="flex justify-end">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs text-neutral-400">
+                      Notes are saved separately from completing the visit.
+                    </p>
                     <Button
                       onClick={handleSaveNotes}
                       loading={notesSaving}
-                      disabled={notesSaving}
+                      disabled={notesSaving || !notesDirtyRef.current}
                       size="sm"
+                      variant="outline"
                     >
                       Save Notes
                     </Button>
@@ -671,9 +680,15 @@ const ConsultationPage = () => {
 
             <Panel icon="history" title="Previous Clinical Notes">
               {previousNotes.length === 0 ? (
-                <p className="text-sm text-neutral-500">
-                  No previous clinical notes for this patient.
-                </p>
+                <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-neutral-200 bg-neutral-50/50 py-8 text-center">
+                  <Icon
+                    name="history"
+                    className="h-6 w-6 text-neutral-300"
+                  />
+                  <p className="text-sm text-neutral-500">
+                    No previous clinical notes for this patient.
+                  </p>
+                </div>
               ) : (
                 <ul className="max-h-80 space-y-3 overflow-y-auto pr-1">
                   {previousNotes.map((record) => (
@@ -684,32 +699,39 @@ const ConsultationPage = () => {
             </Panel>
           </div>
 
+          {/* RIGHT: Prescription builder */}
           <div className="lg:col-span-5">
             <Panel
               icon="pill"
               title="E-Prescription Builder"
               aside={
-                <span className="rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-medium text-primary-700">
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-100">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                   Pharmacy Queue
                 </span>
               }
             >
               {createdPrescriptions.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-neutral-600">
-                    Issued prescriptions
+                <div className="mb-4 space-y-2">
+                  <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                    <Icon name="check-circle" className="h-3.5 w-3.5" />
+                    Issued this session
                   </p>
 
                   <ul className="space-y-2">
                     {createdPrescriptions.map((prescription) => (
                       <li
                         key={prescription.prescriptionId}
-                        className="flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900"
+                        className="flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 text-sm text-emerald-900"
                       >
                         <span className="font-medium">
-                          Prescription #{prescription.prescriptionId} &mdash;{" "}
-                          {prescription.items?.length ?? 0}{" "}
-                          {prescription.items?.length === 1 ? "item" : "items"}
+                          Prescription #{prescription.prescriptionId}
+                          <span className="ml-1.5 text-emerald-700">
+                            · {prescription.items?.length ?? 0}{" "}
+                            {prescription.items?.length === 1
+                              ? "item"
+                              : "items"}
+                          </span>
                         </span>
 
                         <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
@@ -724,8 +746,8 @@ const ConsultationPage = () => {
               {isClosed ? (
                 <div className="space-y-3">
                   <p className="text-sm text-neutral-500">
-                    This consultation is closed; no further prescriptions can be
-                    issued here.
+                    This consultation is closed; no further prescriptions can
+                    be issued here.
                   </p>
 
                   {appointment.status === "COMPLETED" && (
@@ -795,7 +817,7 @@ const ConsultationPage = () => {
                   )}
                 </div>
               ) : (
-                <fieldset className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                <fieldset className="space-y-3 rounded-xl border border-neutral-200 bg-gradient-to-b from-neutral-50 to-white p-4">
                   <legend className="px-1 text-sm font-semibold text-neutral-800">
                     Add Medication Item
                   </legend>
@@ -818,7 +840,7 @@ const ConsultationPage = () => {
                         <ul
                           role="listbox"
                           aria-label="Available medicines"
-                          className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-neutral-200 bg-white py-1 shadow-lg"
+                          className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-neutral-200 bg-white py-1 shadow-lg ring-1 ring-black/5"
                         >
                           {visibleMedicineSuggestions.map((medicine, index) => {
                             const name = medicine.medicineName ?? medicine.name;
@@ -882,7 +904,7 @@ const ConsultationPage = () => {
                     variant="outline"
                     size="sm"
                     onClick={handleAddItem}
-                    className="inline-flex w-full items-center justify-center gap-1.5"
+                    className="inline-flex w-full items-center justify-center gap-1.5 border-dashed"
                   >
                     <Icon name="plus" className="h-4 w-4" />
                     Add Medication
@@ -914,7 +936,7 @@ const ConsultationPage = () => {
                   loading={creatingPrescription}
                   disabled={creatingPrescription}
                   size="sm"
-                  className="inline-flex w-full items-center justify-center gap-1.5"
+                  className="inline-flex w-full items-center justify-center gap-1.5 shadow-sm"
                 >
                   <Icon name="arrow-up-right" className="h-4 w-4" />
                   Transmit Prescription
