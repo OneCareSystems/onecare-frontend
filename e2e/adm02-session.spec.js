@@ -14,7 +14,6 @@ const fresh = "fixture-fresh-access";
 const refresh = "fixture-refresh";
 const cases = [
   { name: "ADMIN success", role: "ADMIN", status: 201 },
-  { name: "SUPER_ADMIN success", role: "SUPER_ADMIN", status: 201 },
   { name: "expired access refreshes successfully", expired: true, status: 201 },
   ...[400, 403, 404, 409, 500, "network"].flatMap((status) => [
     { name: `direct ${status}`, status },
@@ -32,10 +31,7 @@ const cases = [
 for (const scenario of cases) {
   test(`ADM-02 session: ${scenario.name}`, async ({ page }, testInfo) => {
     const role = scenario.role ?? "ADMIN";
-    const registration =
-      role === "ADMIN"
-        ? "/admin/register-patient"
-        : "/super-admin/register-patient";
+    const registration = "/admin/register-patient";
     const summary = [];
     let patientPosts = 0,
       refreshPosts = 0,

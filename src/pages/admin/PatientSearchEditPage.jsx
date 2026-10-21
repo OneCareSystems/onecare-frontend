@@ -1,13 +1,10 @@
 import { useState } from "react";
-import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import Button from "../../components/Button";
 import PatientSearch from "../../components/PatientSearch";
 import PatientDemographicsEditor from "../../components/PatientDemographicsEditor";
-import { selectRole } from "../../features/auth/authSlice";
 
 export default function PatientSearchEditPage() {
-  const role = useSelector(selectRole);
   const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -31,15 +28,7 @@ export default function PatientSearchEditPage() {
           onSearchChange={() => setSelectedId(null)}
           refreshKey={refreshKey}
           registerAction={
-            <Button
-              onClick={() =>
-                navigate(
-                  role === "SUPER_ADMIN"
-                    ? "/super-admin/register-patient"
-                    : "/admin/register-patient",
-                )
-              }
-            >
+            <Button onClick={() => navigate("/admin/register-patient")}>
               Register Patient
             </Button>
           }

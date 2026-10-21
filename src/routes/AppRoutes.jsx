@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import LoginPage from "../pages/public/LoginPage";
 import ForgotPasswordPage from "../pages/public/ForgotPasswordPage";
 import ResetPasswordPage from "../pages/public/ResetPasswordPage";
+import AdminLayout from "../layouts/AdminLayout";
+import SuperAdminLayout from "../layouts/SuperAdminLayout";
 import DoctorLayout from "../layouts/DoctorLayout";
 import PharmacistLayout from "../layouts/PharmacistLayout";
 import PublicLayout from "../layouts/PublicLayout";
@@ -48,50 +50,32 @@ const AppRoutes = () => {
         <Route path={CHANGE_PASSWORD_PATH} element={<ChangePasswordPage />} />
       </Route>
 
-      {/* ADMIN AREA */}
+      {/* ADMIN AREA: patient workflows are Admin-only for now. */}
+      <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.admin} />}>
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="dashboard" element={<AdminDashboardPage />} />
+          <Route path="register-patient" element={<RegisterPatientPage />} />
+          <Route path="patient-search" element={<PatientSearchEditPage />} />
+        </Route>
+      </Route>
+
+      {/* SUPER ADMIN AREA: keep its own layout and dashboard. */}
+      <Route
+        element={<RequireAuth allowedRoles={ROUTE_ACCESS["super-admin"]} />}
+      >
+        <Route path="/super-admin" element={<SuperAdminLayout />}>
+          <Route
+            index
+            element={<Navigate to="/super-admin/dashboard" replace />}
+          />
+          <Route path="dashboard" element={<SuperAdminDashboardPage />} />
+        </Route>
+      </Route>
+
+      {/* Queue retains its existing shared-role permissions. */}
       <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.queue} />}>
         <Route element={<StaffLayout />}>
-          <Route
-            element={
-              <RequireAuth allowedRoles={ROUTE_ACCESS.patientRegistration} />
-            }
-          >
-            <Route
-              path="/admin/register-patient"
-              element={<RegisterPatientPage />}
-            />
-            <Route
-              path="/super-admin/register-patient"
-              element={<RegisterPatientPage />}
-            />
-            <Route
-              path="/admin/patient-search"
-              element={<PatientSearchEditPage />}
-            />
-            <Route
-              path="/super-admin/patient-search"
-              element={<PatientSearchEditPage />}
-            />
-          </Route>
-          <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.admin} />}>
-            <Route
-              path="/admin"
-              element={<Navigate to="/admin/dashboard" replace />}
-            />
-            <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-          </Route>
-          <Route
-            element={<RequireAuth allowedRoles={ROUTE_ACCESS["super-admin"]} />}
-          >
-            <Route
-              path="/super-admin"
-              element={<Navigate to="/super-admin/dashboard" replace />}
-            />
-            <Route
-              path="/super-admin/dashboard"
-              element={<SuperAdminDashboardPage />}
-            />
-          </Route>
           <Route path="/queue" element={<QueuePage />} />
         </Route>
       </Route>

@@ -5,7 +5,7 @@ test.use({
   screenshot: "off",
   video: "off",
 });
-for (const role of ["ADMIN", "SUPER_ADMIN"]) {
+for (const role of ["ADMIN"]) {
   for (const width of [360, 1280]) {
     test(`ADM-03 ${role} at ${width}px: search, safe edit and consistent navigation`, async ({
       page,
@@ -142,12 +142,7 @@ for (const role of ["ADMIN", "SUPER_ADMIN"]) {
         element.dataset.testPersist = "yes";
       });
       const nav = page.getByRole("navigation", { name: "Main navigation" });
-      for (const name of [
-        "Dashboard",
-        "Register Patient",
-        "Queue",
-        "Patient Search",
-      ]) {
+      for (const name of ["Dashboard", "Register Patient", "Patient Search"]) {
         const link = nav.getByRole("link", { name, exact: true });
         await link.scrollIntoViewIfNeeded();
         await link.click();

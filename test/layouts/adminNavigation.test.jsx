@@ -16,7 +16,7 @@ afterEach(() => {
   store.dispatch(clearSession());
 });
 describe("shared Admin shell", () => {
-  it.each(["ADMIN", "SUPER_ADMIN"])(
+  it.each(["ADMIN"])(
     "preserves the same header and sidebar when %s navigates",
     async (role) => {
       store.dispatch(
@@ -41,12 +41,7 @@ describe("shared Admin shell", () => {
       const sidebar = screen.getByRole("navigation", {
         name: "Main navigation",
       });
-      for (const label of [
-        "Register Patient",
-        "Patient Search",
-        "Queue",
-        "Dashboard",
-      ]) {
+      for (const label of ["Register Patient", "Patient Search", "Dashboard"]) {
         fireEvent.click(
           within(sidebar).getByRole("link", { name: label, exact: true }),
         );

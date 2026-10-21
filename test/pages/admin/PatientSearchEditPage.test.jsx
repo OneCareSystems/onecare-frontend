@@ -109,13 +109,7 @@ const open = (role = "ADMIN") => {
   );
   return render(
     <Provider store={store}>
-      <MemoryRouter
-        initialEntries={[
-          role === "SUPER_ADMIN"
-            ? "/super-admin/patient-search"
-            : "/admin/patient-search",
-        ]}
-      >
+      <MemoryRouter initialEntries={["/admin/patient-search"]}>
         <AppRoutes />
       </MemoryRouter>
     </Provider>,
@@ -230,7 +224,7 @@ describe("ADM-03 search, selection and privacy", () => {
     ).not.toBeInTheDocument();
     expect(screen.getByRole("searchbox")).toHaveValue("");
   });
-  it.each(["ADMIN", "SUPER_ADMIN"])(
+  it.each(["ADMIN"])(
     "allows %s and uses a minimal result table with explicit selection",
     async (role) => {
       open(role);

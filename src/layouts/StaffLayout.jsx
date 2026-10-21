@@ -21,7 +21,7 @@ import AdminLayout from "./AdminLayout";
  */
 const StaffLayout = () => {
   const role = useSelector(selectRole);
-  if (role === "ADMIN" || role === "SUPER_ADMIN") return <AdminLayout />;
+  if (role === "ADMIN") return <AdminLayout />;
   return (
     <div className="flex min-h-screen flex-col bg-neutral-0">
       <TopBar />
