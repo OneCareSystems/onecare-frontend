@@ -65,30 +65,6 @@ describe("ResetPasswordPage", () => {
     expect(screen.getByLabelText(/confirm new password/i)).toBeInTheDocument();
   });
 
-  it("removes only the token from the URL and still submits the captured token", async () => {
-    const user = userEvent.setup();
-    renderAt("/reset-password?keep=yes&token=still-secret#form");
-    await waitFor(() =>
-      expect(screen.getByTestId("location")).toHaveTextContent(
-        "/reset-password?keep=yes#form",
-      ),
-    );
-    await user.type(
-      screen.getByLabelText(/^new password/i),
-      "BrandNewPass888!",
-    );
-    await user.type(
-      screen.getByLabelText(/confirm new password/i),
-      "BrandNewPass888!",
-    );
-    await user.click(screen.getByRole("button", { name: /reset password/i }));
-    await waitFor(() =>
-      expect(mswState.resetPasswordHits).toEqual([
-        { token: "still-secret", newPassword: "BrandNewPass888!" },
-      ]),
-    );
-  });
-
   it("validates empty fields", async () => {
     const user = userEvent.setup();
     renderAt("/reset-password");

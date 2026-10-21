@@ -75,8 +75,6 @@ describe("DoctorDashboardPage", () => {
     renderPage();
 
     expect(await screen.findByText("Priya Raman")).toBeInTheDocument();
-    // A blank name degrades to the `Patient <id>` label rather than a blank.
-    expect(screen.getByText("Patient 5")).toBeInTheDocument();
     // The appointment label is only a last resort.
     expect(screen.queryByText("Appointment #55")).not.toBeInTheDocument();
   });

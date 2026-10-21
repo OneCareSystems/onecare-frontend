@@ -17,10 +17,34 @@ export const NAV_ITEMS = Object.freeze({
       icon: "dashboard",
     }),
     Object.freeze({
-      id: "queue",
-      to: "/queue",
-      label: "Queue",
-      icon: "list-checks",
+      id: "user-management",
+      to: "/super-admin/user-management",
+      label: "User Management",
+      icon: "users",
+    }),
+    Object.freeze({
+      id: "access-control",
+      to: "/super-admin/access-control",
+      label: "Access Control",
+      icon: "shield",
+    }),
+    Object.freeze({
+      id: "clinic-configuration",
+      to: "/super-admin/clinic-configuration",
+      label: "Clinic Configuration",
+      icon: "hospital",
+    }),
+    Object.freeze({
+      id: "system-maintenance",
+      to: "/super-admin/system-maintenance",
+      label: "System Maintenance",
+      icon: "activity",
+    }),
+    Object.freeze({
+      id: "audits-reports",
+      to: "/super-admin/audits-reports",
+      label: "Audits & Reports",
+      icon: "clipboard",
     }),
   ]),
   [ROLES.ADMIN]: Object.freeze([

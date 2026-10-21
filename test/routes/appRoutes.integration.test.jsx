@@ -95,7 +95,7 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
       {
         role: ROLES.SUPER_ADMIN,
         path: "/super-admin/dashboard",
-        heading: /SuperAdminDashboardPage/i,
+        heading: /Super Admin Dashboard/i,
       },
     ];
 

@@ -26,6 +26,12 @@ import PatientDetails from "../pages/doctor/PatientDetails";
 import KnowledgeBasePage from "../pages/doctor/KnowledgeBasePage";
 import RegisterPatientPage from "../pages/admin/RegisterPatientPage";
 import PatientSearchEditPage from "../pages/admin/PatientSearchEditPage";
+import PatientRegistrationLayout from "../layouts/PatientRegistrationLayout";
+import UserManagementPage from "../pages/superAdmin/UserManagementPage";
+import AccessControlPage from "../pages/superAdmin/AccessControlPage";
+import ClinicConfigPage from "../pages/superAdmin/ClinicConfigPage";
+import SystemMaintenancePage from "../pages/superAdmin/SystemMaintenancePage";
+import AuditLogsPage from "../pages/superAdmin/AuditLogsPage";
 
 const AppRoutes = () => {
   return (
@@ -51,6 +57,19 @@ const AppRoutes = () => {
       </Route>
 
       {/* ADMIN AREA: patient workflows are Admin-only for now. */}
+      {/* ADMIN AREA */}
+      <Route
+        element={
+          <RequireAuth allowedRoles={ROUTE_ACCESS.patientRegistration} />
+        }
+      >
+        <Route element={<PatientRegistrationLayout />}>
+          <Route
+            path="/admin/register-patient"
+            element={<RegisterPatientPage />}
+          />
+        </Route>
+      </Route>
       <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.admin} />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
@@ -106,6 +125,29 @@ const AppRoutes = () => {
       <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.pharmacist} />}>
         <Route path="/pharmacist" element={<PharmacistLayout />}>
           <Route path="dashboard" element={<PharmacistDashboardPage />} />
+        </Route>
+      </Route>
+
+      {/* SUPER ADMIN AREA */}
+      <Route
+        element={<RequireAuth allowedRoles={ROUTE_ACCESS["super-admin"]} />}
+      >
+        <Route path="/super-admin" element={<SuperAdminLayout />}>
+          <Route path="dashboard" element={<SuperAdminDashboardPage />} />
+          <Route path="user-management" element={<UserManagementPage />} />
+          <Route path="access-control" element={<AccessControlPage />} />
+          <Route path="clinic-configuration" element={<ClinicConfigPage />} />
+          <Route
+            path="system-maintenance"
+            element={<SystemMaintenancePage />}
+          />
+          <Route path="audits-reports" element={<AuditLogsPage />} />
+        </Route>
+      </Route>
+      {/* SHARED SCREENS (AC4) — several roles, one route */}
+      <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.queue} />}>
+        <Route path="/queue" element={<StaffLayout />}>
+          <Route index element={<QueuePage />} />
         </Route>
       </Route>
     </Routes>
