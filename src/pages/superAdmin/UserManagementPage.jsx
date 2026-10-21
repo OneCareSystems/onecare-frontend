@@ -156,77 +156,75 @@ UserStatusBadge.displayName = "UserStatusBadge";
 /* Row actions (kebab menu)                                            */
 /* ------------------------------------------------------------------ */
 
-const RowActionsMenu = memo(
-  ({ row, onEdit, onUnlock, onDeactivate }) => {
-    const [open, setOpen] = useState(false);
-    const ref = useRef(null);
+const RowActionsMenu = memo(({ row, onEdit, onUnlock, onDeactivate }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
 
-    useEffect(() => {
-      if (!open) return;
-      const onDocClick = (e) => {
-        if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-      };
-      const onKey = (e) => e.key === "Escape" && setOpen(false);
-      document.addEventListener("mousedown", onDocClick);
-      document.addEventListener("keydown", onKey);
-      return () => {
-        document.removeEventListener("mousedown", onDocClick);
-        document.removeEventListener("keydown", onKey);
-      };
-    }, [open]);
-
-    const item = (label, icon, handler, { danger, hidden } = {}) => {
-      if (hidden) return null;
-      return (
-        <button
-          type="button"
-          onClick={() => {
-            setOpen(false);
-            handler?.();
-          }}
-          className={`flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-xs transition ${
-            danger
-              ? "text-danger-700 hover:bg-danger-50"
-              : "text-neutral-700 hover:bg-neutral-50"
-          }`}
-        >
-          <Icon name={icon} className="h-3.5 w-3.5" />
-          {label}
-        </button>
-      );
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
     };
+    const onKey = (e) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
+  const item = (label, icon, handler, { danger, hidden } = {}) => {
+    if (hidden) return null;
     return (
-      <div ref={ref} className="relative inline-block text-right">
-        <button
-          type="button"
-          aria-haspopup="menu"
-          aria-expanded={open}
-          onClick={() => setOpen((v) => !v)}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-500 shadow-xs transition hover:border-neutral-300 hover:text-neutral-800"
-        >
-          <Icon name="more-vertical" className="h-4 w-4" />
-        </button>
-        {open && (
-          <div
-            role="menu"
-            className="absolute right-0 z-20 mt-1 w-44 rounded-lg border border-neutral-200 bg-white p-1 shadow-lg"
-          >
-            {item("Edit account", "pencil", () => onEdit(row))}
-            {item("Unlock account", "unlock", () => onUnlock(row), {
-              hidden: row.status !== STATUS_LOCKED,
-            })}
-            <div className="my-1 h-px bg-neutral-100" />
-            {item("Deactivate account", "ban", () => onDeactivate(row), {
-              danger: true,
-              hidden: row.status === STATUS_INACTIVE,
-            })}
-          </div>
-        )}
-      </div>
+      <button
+        type="button"
+        onClick={() => {
+          setOpen(false);
+          handler?.();
+        }}
+        className={`flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-xs transition ${
+          danger
+            ? "text-danger-700 hover:bg-danger-50"
+            : "text-neutral-700 hover:bg-neutral-50"
+        }`}
+      >
+        <Icon name={icon} className="h-3.5 w-3.5" />
+        {label}
+      </button>
     );
-  },
-);
+  };
+
+  return (
+    <div ref={ref} className="relative inline-block text-right">
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-500 shadow-xs transition hover:border-neutral-300 hover:text-neutral-800"
+      >
+        <Icon name="more-vertical" className="h-4 w-4" />
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 z-20 mt-1 w-44 rounded-lg border border-neutral-200 bg-white p-1 shadow-lg"
+        >
+          {item("Edit account", "pencil", () => onEdit(row))}
+          {item("Unlock account", "unlock", () => onUnlock(row), {
+            hidden: row.status !== STATUS_LOCKED,
+          })}
+          <div className="my-1 h-px bg-neutral-100" />
+          {item("Deactivate account", "ban", () => onDeactivate(row), {
+            danger: true,
+            hidden: row.status === STATUS_INACTIVE,
+          })}
+        </div>
+      )}
+    </div>
+  );
+});
 RowActionsMenu.displayName = "RowActionsMenu";
 
 /* ------------------------------------------------------------------ */
@@ -575,16 +573,19 @@ const UserManagementPage = () => {
     visibleUsers.length > 0 &&
     visibleUsers.every((u) => selectedIds.has(u.userId));
 
-  const toggleSelectAllOnPage = useCallback(() =>
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (allOnPageSelected) {
-        visibleUsers.forEach((u) => next.delete(u.userId));
-      } else {
-        visibleUsers.forEach((u) => next.add(u.userId));
-      }
-      return next;
-    }), [allOnPageSelected, visibleUsers]);
+  const toggleSelectAllOnPage = useCallback(
+    () =>
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (allOnPageSelected) {
+          visibleUsers.forEach((u) => next.delete(u.userId));
+        } else {
+          visibleUsers.forEach((u) => next.add(u.userId));
+        }
+        return next;
+      }),
+    [allOnPageSelected, visibleUsers],
+  );
 
   /* ---- columns ---- */
   const columns = useMemo(

@@ -64,9 +64,7 @@ describe("super-admin dashboard — REST cases", () => {
     expect(statCard("Total Staff").getByText("3")).toBeInTheDocument();
     // the locked account wins the chip over the active count
     expect(statCard("Total Staff").getByText("1 Locked")).toBeInTheDocument();
-    expect(
-      statCard("Consultation Fee").getByText("75.00"),
-    ).toBeInTheDocument();
+    expect(statCard("Consultation Fee").getByText("75.00")).toBeInTheDocument();
     expect(statCard("System Backups").getByText("2")).toBeInTheDocument();
     expect(statCard("Audit Events").getByText("2")).toBeInTheDocument();
   });

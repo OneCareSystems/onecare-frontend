@@ -203,10 +203,10 @@ const UpcomingRuns = memo(({ schedule }) => {
     () =>
       schedule
         ? computeUpcomingRuns(
-          Number(schedule.dayOfMonth),
-          schedule.executionTime,
-          3,
-        )
+            Number(schedule.dayOfMonth),
+            schedule.executionTime,
+            3,
+          )
         : [],
     [schedule],
   );
@@ -218,10 +218,11 @@ const UpcomingRuns = memo(({ schedule }) => {
       {runs.map((run, i) => (
         <div
           key={run.toISOString()}
-          className={`rounded-xl border p-3 ${i === 0
-            ? "border-primary-200 bg-primary-50/60"
-            : "border-neutral-200 bg-white"
-            }`}
+          className={`rounded-xl border p-3 ${
+            i === 0
+              ? "border-primary-200 bg-primary-50/60"
+              : "border-neutral-200 bg-white"
+          }`}
         >
           <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
             {i === 0 ? "Next run" : i === 1 ? "Then" : "After that"}
@@ -251,39 +252,37 @@ UpcomingRuns.displayName = "UpcomingRuns";
 /* Backup row actions                                                  */
 /* ------------------------------------------------------------------ */
 
-const RowActions = memo(
-  ({ backup, onOpen, onDownload, downloading }) => (
-    <div className="flex items-center justify-end gap-1.5">
-      <button
-        type="button"
-        onClick={() => onOpen(backup)}
-        aria-label={`View backup ${backup.backupId}`}
-        className="rounded-md border border-neutral-200 bg-white p-1.5 text-neutral-500 hover:text-neutral-900"
-      >
-        <Icon name="eye" className="h-3.5 w-3.5" />
-      </button>
+const RowActions = memo(({ backup, onOpen, onDownload, downloading }) => (
+  <div className="flex items-center justify-end gap-1.5">
+    <button
+      type="button"
+      onClick={() => onOpen(backup)}
+      aria-label={`View backup ${backup.backupId}`}
+      className="rounded-md border border-neutral-200 bg-white p-1.5 text-neutral-500 hover:text-neutral-900"
+    >
+      <Icon name="eye" className="h-3.5 w-3.5" />
+    </button>
 
-      <button
-        type="button"
-        onClick={() => onDownload(backup)}
-        disabled={downloading}
-        aria-label={`Download backup #${backup.backupId}`}
-        className="inline-flex items-center gap-1 rounded-md border border-neutral-200 bg-white px-2 py-1 text-[11px] font-medium text-neutral-700 hover:border-neutral-300 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        <Icon name="download" className="h-3.5 w-3.5" />
-        {downloading ? "Downloading…" : "Download"}
-      </button>
+    <button
+      type="button"
+      onClick={() => onDownload(backup)}
+      disabled={downloading}
+      aria-label={`Download backup #${backup.backupId}`}
+      className="inline-flex items-center gap-1 rounded-md border border-neutral-200 bg-white px-2 py-1 text-[11px] font-medium text-neutral-700 hover:border-neutral-300 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      <Icon name="download" className="h-3.5 w-3.5" />
+      {downloading ? "Downloading…" : "Download"}
+    </button>
 
-      <button
-        type="button"
-        onClick={() => onOpen(backup)}
-        className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-[11px] font-medium text-neutral-700 hover:border-neutral-300"
-      >
-        Details
-      </button>
-    </div>
-  ),
-);
+    <button
+      type="button"
+      onClick={() => onOpen(backup)}
+      className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-[11px] font-medium text-neutral-700 hover:border-neutral-300"
+    >
+      Details
+    </button>
+  </div>
+));
 
 RowActions.displayName = "RowActions";
 
@@ -420,7 +419,10 @@ const SystemMaintenancePage = () => {
       const anchor = document.createElement("a");
 
       anchor.href = url;
-      anchor.download = filename || backup.filename || `onecare-backup-${backup.backupId}.backup`;
+      anchor.download =
+        filename ||
+        backup.filename ||
+        `onecare-backup-${backup.backupId}.backup`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
@@ -460,7 +462,10 @@ const SystemMaintenancePage = () => {
     }
 
     if (restoreSource === "stored" && !restoreBackupId) {
-      setToast({ type: "error", message: "Select a stored backup to restore." });
+      setToast({
+        type: "error",
+        message: "Select a stored backup to restore.",
+      });
       return;
     }
 
@@ -473,7 +478,8 @@ const SystemMaintenancePage = () => {
 
     try {
       const result = await restoreBackup({
-        backupId: restoreSource === "stored" ? Number(restoreBackupId) : undefined,
+        backupId:
+          restoreSource === "stored" ? Number(restoreBackupId) : undefined,
         file: restoreSource === "upload" ? restoreFile : undefined,
         confirm: restoreConfirmed,
       });
@@ -483,15 +489,17 @@ const SystemMaintenancePage = () => {
         type: "success",
         message: "System restore completed successfully.",
       });
-      setActivity((previous) => [
-        {
-          id: `restore-${Date.now()}`,
-          at: new Date(),
-          text: "System data restored successfully",
-          tone: "success",
-        },
-        ...previous,
-      ].slice(0, 5));
+      setActivity((previous) =>
+        [
+          {
+            id: `restore-${Date.now()}`,
+            at: new Date(),
+            text: "System data restored successfully",
+            tone: "success",
+          },
+          ...previous,
+        ].slice(0, 5),
+      );
 
       // Refresh metadata in case the restored system has changed.
       setBackupsReload((count) => count + 1);
@@ -586,11 +594,11 @@ const SystemMaintenancePage = () => {
             <p className="text-xs text-neutral-800">
               {b.createdAt
                 ? new Date(b.createdAt).toLocaleString(undefined, {
-                  month: "short",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
                 : "—"}
             </p>
             <p className="text-[11px] text-neutral-500">
@@ -688,12 +696,13 @@ const SystemMaintenancePage = () => {
             {activity.map((a) => (
               <li key={a.id} className="flex items-center gap-2 text-xs">
                 <span
-                  className={`h-1.5 w-1.5 rounded-full ${a.tone === "success"
-                    ? "bg-emerald-500"
-                    : a.tone === "info"
-                      ? "bg-primary-500"
-                      : "bg-neutral-400"
-                    }`}
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    a.tone === "success"
+                      ? "bg-emerald-500"
+                      : a.tone === "info"
+                        ? "bg-primary-500"
+                        : "bg-neutral-400"
+                  }`}
                 />
                 <span className="text-neutral-700">{a.text}</span>
                 <span className="ml-auto text-[11px] text-neutral-400">
@@ -905,7 +914,9 @@ const SystemMaintenancePage = () => {
                     <select
                       id="restore-backup-id"
                       value={restoreBackupId}
-                      onChange={(event) => setRestoreBackupId(event.target.value)}
+                      onChange={(event) =>
+                        setRestoreBackupId(event.target.value)
+                      }
                       disabled={restoring || backups.length === 0}
                       className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100"
                     >
@@ -995,8 +1006,8 @@ const SystemMaintenancePage = () => {
                     className="mt-1"
                   />
                   <span>
-                    I understand that restoring this backup will replace existing
-                    data.
+                    I understand that restoring this backup will replace
+                    existing data.
                   </span>
                 </label>
               </div>

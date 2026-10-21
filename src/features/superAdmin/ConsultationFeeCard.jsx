@@ -12,7 +12,6 @@ export const ConsultationFeeCard = ({
   onSave,
   onRetry,
 }) => {
-
   return (
     <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-xs">
       <div className="flex items-start justify-between gap-3 border-b border-neutral-100 pb-4">
