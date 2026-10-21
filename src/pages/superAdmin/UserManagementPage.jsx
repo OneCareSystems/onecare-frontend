@@ -157,7 +157,7 @@ UserStatusBadge.displayName = "UserStatusBadge";
 /* ------------------------------------------------------------------ */
 
 const RowActionsMenu = memo(
-  ({ row, onEdit, onUnlock, onDeactivate, onReset }) => {
+  ({ row, onEdit, onUnlock, onDeactivate }) => {
     const [open, setOpen] = useState(false);
     const ref = useRef(null);
 

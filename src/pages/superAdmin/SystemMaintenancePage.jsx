@@ -9,9 +9,12 @@ import Toast from "../../components/Toast";
 import { SuperAdminPageHeader } from "../../features/superAdmin/SuperAdminPageHeader";
 import BackupScheduleEditor from "../../features/superAdmin/BackupScheduleEditor";
 import BackupDetailDrawer from "../../features/superAdmin/BackupDetailDrawer";
-
-import { createBackup, listBackups } from "../../services/systemBackupService";
-
+import {
+  createBackup,
+  listBackups,
+  downloadBackup,
+  restoreBackup,
+} from "../../services/systemBackupService";
 import {
   getBackupSchedule,
   updateBackupSchedule,
@@ -200,10 +203,10 @@ const UpcomingRuns = memo(({ schedule }) => {
     () =>
       schedule
         ? computeUpcomingRuns(
-            Number(schedule.dayOfMonth),
-            schedule.executionTime,
-            3,
-          )
+          Number(schedule.dayOfMonth),
+          schedule.executionTime,
+          3,
+        )
         : [],
     [schedule],
   );
@@ -215,11 +218,10 @@ const UpcomingRuns = memo(({ schedule }) => {
       {runs.map((run, i) => (
         <div
           key={run.toISOString()}
-          className={`rounded-xl border p-3 ${
-            i === 0
-              ? "border-primary-200 bg-primary-50/60"
-              : "border-neutral-200 bg-white"
-          }`}
+          className={`rounded-xl border p-3 ${i === 0
+            ? "border-primary-200 bg-primary-50/60"
+            : "border-neutral-200 bg-white"
+            }`}
         >
           <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
             {i === 0 ? "Next run" : i === 1 ? "Then" : "After that"}
@@ -249,25 +251,40 @@ UpcomingRuns.displayName = "UpcomingRuns";
 /* Backup row actions                                                  */
 /* ------------------------------------------------------------------ */
 
-const RowActions = memo(({ backup, onOpen }) => (
-  <div className="flex items-center justify-end gap-1.5">
-    <button
-      type="button"
-      onClick={() => onOpen(backup)}
-      className="rounded-md border border-neutral-200 bg-white p-1.5 text-neutral-500 shadow-xs transition hover:border-neutral-300 hover:text-neutral-900"
-      aria-label={`View backup ${backup.backupId}`}
-    >
-      <Icon name="eye" className="h-3.5 w-3.5" />
-    </button>
-    <button
-      type="button"
-      onClick={() => onOpen(backup)}
-      className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-[11px] font-medium text-neutral-700 shadow-xs transition hover:border-neutral-300"
-    >
-      Details
-    </button>
-  </div>
-));
+const RowActions = memo(
+  ({ backup, onOpen, onDownload, downloading }) => (
+    <div className="flex items-center justify-end gap-1.5">
+      <button
+        type="button"
+        onClick={() => onOpen(backup)}
+        aria-label={`View backup ${backup.backupId}`}
+        className="rounded-md border border-neutral-200 bg-white p-1.5 text-neutral-500 hover:text-neutral-900"
+      >
+        <Icon name="eye" className="h-3.5 w-3.5" />
+      </button>
+
+      <button
+        type="button"
+        onClick={() => onDownload(backup)}
+        disabled={downloading}
+        aria-label={`Download backup #${backup.backupId}`}
+        className="inline-flex items-center gap-1 rounded-md border border-neutral-200 bg-white px-2 py-1 text-[11px] font-medium text-neutral-700 hover:border-neutral-300 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <Icon name="download" className="h-3.5 w-3.5" />
+        {downloading ? "Downloading…" : "Download"}
+      </button>
+
+      <button
+        type="button"
+        onClick={() => onOpen(backup)}
+        className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-[11px] font-medium text-neutral-700 hover:border-neutral-300"
+      >
+        Details
+      </button>
+    </div>
+  ),
+);
+
 RowActions.displayName = "RowActions";
 
 /* ------------------------------------------------------------------ */
@@ -284,6 +301,14 @@ const SystemMaintenancePage = () => {
   const [backupsStatus, setBackupsStatus] = useState("loading");
   const [backupsReload, setBackupsReload] = useState(0);
   const [creatingBackup, setCreatingBackup] = useState(false);
+
+  const [downloadingId, setDownloadingId] = useState(null);
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const [restoreSource, setRestoreSource] = useState("stored");
+  const [restoreBackupId, setRestoreBackupId] = useState("");
+  const [restoreFile, setRestoreFile] = useState(null);
+  const [restoreConfirmed, setRestoreConfirmed] = useState(false);
+  const [restoring, setRestoring] = useState(false);
 
   const [schedule, setSchedule] = useState(null);
   const [scheduleLoading, setScheduleLoading] = useState(true);
@@ -386,6 +411,102 @@ const SystemMaintenancePage = () => {
     }
   }, []);
 
+  const handleDownloadBackup = useCallback(async (backup) => {
+    setDownloadingId(backup.backupId);
+
+    try {
+      const { blob, filename } = await downloadBackup(backup.backupId);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+
+      anchor.href = url;
+      anchor.download = filename || backup.filename || `onecare-backup-${backup.backupId}.backup`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+
+      // Let the browser begin consuming the generated URL before cleanup.
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+      setToast({
+        type: "success",
+        message: `Backup #${backup.backupId} downloaded.`,
+      });
+    } catch (error) {
+      setToast({
+        type: "error",
+        message: error?.userMessage ?? "Could not download the backup.",
+      });
+    } finally {
+      setDownloadingId(null);
+    }
+  }, []);
+
+  const openRestoreDialog = useCallback((backup = null) => {
+    setRestoreSource("stored");
+    setRestoreBackupId(backup ? String(backup.backupId) : "");
+    setRestoreFile(null);
+    setRestoreConfirmed(false);
+    setShowRestoreDialog(true);
+  }, []);
+
+  const handleRestoreBackup = useCallback(async () => {
+    if (!restoreConfirmed) {
+      setToast({
+        type: "error",
+        message: "Confirm that you understand this will replace existing data.",
+      });
+      return;
+    }
+
+    if (restoreSource === "stored" && !restoreBackupId) {
+      setToast({ type: "error", message: "Select a stored backup to restore." });
+      return;
+    }
+
+    if (restoreSource === "upload" && !restoreFile) {
+      setToast({ type: "error", message: "Choose a backup file to restore." });
+      return;
+    }
+
+    setRestoring(true);
+
+    try {
+      const result = await restoreBackup({
+        backupId: restoreSource === "stored" ? Number(restoreBackupId) : undefined,
+        file: restoreSource === "upload" ? restoreFile : undefined,
+        confirm: restoreConfirmed,
+      });
+
+      setShowRestoreDialog(false);
+      setToast({
+        type: "success",
+        message: "System restore completed successfully.",
+      });
+      setActivity((previous) => [
+        {
+          id: `restore-${Date.now()}`,
+          at: new Date(),
+          text: "System data restored successfully",
+          tone: "success",
+        },
+        ...previous,
+      ].slice(0, 5));
+
+      // Refresh metadata in case the restored system has changed.
+      setBackupsReload((count) => count + 1);
+
+      return result;
+    } catch (error) {
+      setToast({
+        type: "error",
+        message: error?.userMessage ?? "Could not restore system data.",
+      });
+    } finally {
+      setRestoring(false);
+    }
+  }, [restoreConfirmed, restoreSource, restoreBackupId, restoreFile]);
+
   /* ---- shortcuts ---- */
   useEffect(() => {
     const onKey = (e) => {
@@ -465,11 +586,11 @@ const SystemMaintenancePage = () => {
             <p className="text-xs text-neutral-800">
               {b.createdAt
                 ? new Date(b.createdAt).toLocaleString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
                 : "—"}
             </p>
             <p className="text-[11px] text-neutral-500">
@@ -499,12 +620,19 @@ const SystemMaintenancePage = () => {
       },
       {
         key: "actions",
-        header: "",
+        header: "Actions",
         headerClass: "text-right",
-        render: (b) => <RowActions backup={b} onOpen={setSelectedBackup} />,
+        render: (backup) => (
+          <RowActions
+            backup={backup}
+            onOpen={setSelectedBackup}
+            onDownload={handleDownloadBackup}
+            downloading={downloadingId === backup.backupId}
+          />
+        ),
       },
     ],
-    [],
+    [handleDownloadBackup, downloadingId],
   );
 
   return (
@@ -560,13 +688,12 @@ const SystemMaintenancePage = () => {
             {activity.map((a) => (
               <li key={a.id} className="flex items-center gap-2 text-xs">
                 <span
-                  className={`h-1.5 w-1.5 rounded-full ${
-                    a.tone === "success"
-                      ? "bg-emerald-500"
-                      : a.tone === "info"
-                        ? "bg-primary-500"
-                        : "bg-neutral-400"
-                  }`}
+                  className={`h-1.5 w-1.5 rounded-full ${a.tone === "success"
+                    ? "bg-emerald-500"
+                    : a.tone === "info"
+                      ? "bg-primary-500"
+                      : "bg-neutral-400"
+                    }`}
                 />
                 <span className="text-neutral-700">{a.text}</span>
                 <span className="ml-auto text-[11px] text-neutral-400">
@@ -614,7 +741,7 @@ const SystemMaintenancePage = () => {
         </section>
 
         <section className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-5 shadow-xs lg:col-span-2">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-sm font-semibold text-neutral-900">
                 Backup history
@@ -625,6 +752,16 @@ const SystemMaintenancePage = () => {
                   : "Loading snapshots…"}
               </p>
             </div>
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => openRestoreDialog()}
+              disabled={restoring}
+            >
+              <Icon name="upload" className="mr-1.5 h-4 w-4" />
+              Restore backup
+            </Button>
           </div>
 
           {backupsStatus === "loading" ? (
@@ -691,6 +828,204 @@ const SystemMaintenancePage = () => {
               ))}
             </ul>
           </div>
+        </div>
+      )}
+
+      {showRestoreDialog && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/50 p-4 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !restoring) {
+              setShowRestoreDialog(false);
+            }
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="restore-dialog-title"
+            className="w-full max-w-lg rounded-2xl border border-neutral-200 bg-white p-5 shadow-2xl sm:p-6"
+          >
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-700">
+                <Icon name="database-backup" className="h-5 w-5" />
+              </span>
+
+              <div>
+                <h2
+                  id="restore-dialog-title"
+                  className="text-base font-semibold text-neutral-900"
+                >
+                  Restore system backup
+                </h2>
+                <p className="mt-1 text-sm text-neutral-500">
+                  Restore system data from an existing encrypted backup or an
+                  uploaded backup file.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 space-y-4">
+              <fieldset className="space-y-3">
+                <legend className="text-sm font-medium text-neutral-800">
+                  Backup source
+                </legend>
+
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-neutral-200 p-3">
+                  <input
+                    type="radio"
+                    name="restoreSource"
+                    value="stored"
+                    checked={restoreSource === "stored"}
+                    onChange={() => {
+                      setRestoreSource("stored");
+                      setRestoreFile(null);
+                    }}
+                    disabled={restoring}
+                    className="mt-1"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-neutral-900">
+                      Stored backup
+                    </span>
+                    <span className="mt-1 block text-xs text-neutral-500">
+                      Select a backup already stored in OneCare.
+                    </span>
+                  </span>
+                </label>
+
+                {restoreSource === "stored" && (
+                  <div>
+                    <label
+                      htmlFor="restore-backup-id"
+                      className="mb-1.5 block text-sm font-medium text-neutral-700"
+                    >
+                      Select backup
+                    </label>
+                    <select
+                      id="restore-backup-id"
+                      value={restoreBackupId}
+                      onChange={(event) => setRestoreBackupId(event.target.value)}
+                      disabled={restoring || backups.length === 0}
+                      className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100"
+                    >
+                      <option value="">Choose a backup</option>
+                      {backups.map((backup) => (
+                        <option key={backup.backupId} value={backup.backupId}>
+                          #{backup.backupId} — {backup.filename} (
+                          {fmtSize(backup.sizeBytes)})
+                        </option>
+                      ))}
+                    </select>
+                    {backups.length === 0 && (
+                      <p className="mt-1 text-xs text-neutral-500">
+                        No stored backups are available. Choose an uploaded file
+                        instead.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-neutral-200 p-3">
+                  <input
+                    type="radio"
+                    name="restoreSource"
+                    value="upload"
+                    checked={restoreSource === "upload"}
+                    onChange={() => {
+                      setRestoreSource("upload");
+                      setRestoreBackupId("");
+                    }}
+                    disabled={restoring}
+                    className="mt-1"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-neutral-900">
+                      Upload backup file
+                    </span>
+                    <span className="mt-1 block text-xs text-neutral-500">
+                      Use a previously downloaded OneCare backup.
+                    </span>
+                  </span>
+                </label>
+
+                {restoreSource === "upload" && (
+                  <div>
+                    <label
+                      htmlFor="restore-backup-file"
+                      className="mb-1.5 block text-sm font-medium text-neutral-700"
+                    >
+                      Backup file
+                    </label>
+                    <input
+                      id="restore-backup-file"
+                      type="file"
+                      accept=".backup,application/octet-stream"
+                      disabled={restoring}
+                      onChange={(event) =>
+                        setRestoreFile(event.target.files?.[0] ?? null)
+                      }
+                      className="block w-full rounded-lg border border-neutral-300 p-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-neutral-100 file:px-3 file:py-1.5 file:text-sm file:font-medium"
+                    />
+                    {restoreFile && (
+                      <p className="mt-1 text-xs text-neutral-600">
+                        {restoreFile.name} ({fmtSize(restoreFile.size)})
+                      </p>
+                    )}
+                  </div>
+                )}
+              </fieldset>
+
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+                <p className="text-sm font-semibold text-red-900">
+                  This action replaces existing system data.
+                </p>
+                <p className="mt-1 text-xs leading-5 text-red-800">
+                  Only restore a trusted backup. Confirm that you understand the
+                  consequences before proceeding.
+                </p>
+                <label className="mt-3 flex cursor-pointer items-start gap-2 text-sm text-red-900">
+                  <input
+                    type="checkbox"
+                    checked={restoreConfirmed}
+                    onChange={(event) =>
+                      setRestoreConfirmed(event.target.checked)
+                    }
+                    disabled={restoring}
+                    className="mt-1"
+                  />
+                  <span>
+                    I understand that restoring this backup will replace existing
+                    data.
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setShowRestoreDialog(false)}
+                disabled={restoring}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleRestoreBackup}
+                loading={restoring}
+                disabled={
+                  restoring ||
+                  !restoreConfirmed ||
+                  (restoreSource === "stored" && !restoreBackupId) ||
+                  (restoreSource === "upload" && !restoreFile)
+                }
+                className="bg-red-600 text-white hover:bg-red-700"
+              >
+                <Icon name="database-backup" className="mr-1.5 h-4 w-4" />
+                {restoring ? "Restoring…" : "Restore data"}
+              </Button>
+            </div>
+          </section>
         </div>
       )}
 

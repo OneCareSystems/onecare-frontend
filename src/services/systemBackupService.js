@@ -119,7 +119,9 @@ export const restoreBackup = async ({ backupId, file, confirm }) => {
     form.append("backupId", String(backupId));
   }
   if (file) form.append("file", file);
-  const response = await apiClient.post("/system/restore", form);
+  const response = await apiClient.post("/system/restore", form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
   return adaptRestoreResponse(response.data);
 };
 
