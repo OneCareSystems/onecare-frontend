@@ -21,6 +21,7 @@ export default defineConfig({
 
   use: {
     baseURL: "http://localhost:5173",
+    channel: process.env.PLAYWRIGHT_CHANNEL,
 
     // Capture screenshots when tests fail.
     screenshot: "only-on-failure",

@@ -15,9 +15,10 @@
     "format:check": "prettier --check .",
     "check:contrast": "node scripts/check-contrast.mjs",
     "test": "vitest",
-    "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "test:smoke": "playwright test --config playwright.smoke.config.js"
+    "test:coverage": "vitest run --coverage",
+    "test:smoke": "playwright test --config playwright.smoke.config.js",
+    "test:adm03": "vitest run --config vitest.adm03.config.js --maxWorkers=1"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.13.0",

@@ -13,6 +13,7 @@ const Select = ({
   required = false,
   disabled = false,
   placeholder,
+  showPlaceholder = true,
   error,
   submitted = false,
   className = "",
@@ -72,7 +73,7 @@ const Select = ({
           showError ? "border-danger-600" : "border-neutral-300"
         }`}
       >
-        <option value="">{placeholder ?? label}</option>
+        {showPlaceholder && <option value="">{placeholder ?? label}</option>}
 
         {options.map((option) => (
           <option key={option.value} value={option.value}>
