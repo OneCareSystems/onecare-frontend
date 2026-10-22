@@ -136,7 +136,7 @@ describe("Admin-only patient workflows and separate dashboards", () => {
     cleanup();
     open("SUPER_ADMIN", "/queue");
     expect(
-      screen.getByRole("heading", { name: "QueuePage" }),
+      screen.getByRole("heading", { name: "Queue Management" }),
     ).toBeInTheDocument();
     expect(screen.queryByText("FAMILY CLINIC")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Home" }));
