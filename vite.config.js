@@ -24,5 +24,6 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "html"],
     },
+    include: ["test/**/*.{test,spec}.{js,jsx}"],
   },
 });
