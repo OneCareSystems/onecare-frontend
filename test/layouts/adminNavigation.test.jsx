@@ -11,6 +11,8 @@ import { MemoryRouter } from "react-router-dom";
 import AppRoutes from "../../src/routes/AppRoutes";
 import { store } from "../../src/app/store";
 import { clearSession, setSession } from "../../src/features/auth/authSlice";
+import { http, HttpResponse } from "msw";
+import { server } from "../msw/server";
 afterEach(() => {
   cleanup();
   store.dispatch(clearSession());
@@ -19,6 +21,11 @@ describe("shared Admin shell", () => {
   it.each(["ADMIN"])(
     "preserves the same header and sidebar when %s navigates",
     async (role) => {
+      server.use(
+        http.get("*/appointments", () =>
+          HttpResponse.json({ success: true, data: [] }),
+        ),
+      );
       store.dispatch(
         setSession({
           accessToken: "synthetic-token",
@@ -41,7 +48,18 @@ describe("shared Admin shell", () => {
       const sidebar = screen.getByRole("navigation", {
         name: "Main navigation",
       });
-      for (const label of ["Register Patient", "Patient Search", "Dashboard"]) {
+      expect(
+        within(sidebar).queryByRole("link", {
+          name: "Book Appointment",
+          exact: true,
+        }),
+      ).not.toBeInTheDocument();
+      for (const label of [
+        "Register Patient",
+        "Patient Search",
+        "Appointment Hub",
+        "Dashboard",
+      ]) {
         fireEvent.click(
           within(sidebar).getByRole("link", { name: label, exact: true }),
         );
@@ -58,6 +76,14 @@ describe("shared Admin shell", () => {
         );
         expect(screen.getByText("Example Admin")).toBeInTheDocument();
         expect(within(header).getByTestId("admin-avatar")).toBeInTheDocument();
+        if (label === "Appointment Hub") {
+          expect(
+            screen.getByRole("navigation", { name: "Breadcrumb" }),
+          ).toHaveTextContent("AdminAppointment Hub");
+          expect(
+            screen.getByRole("button", { name: "+ Book Appointment" }),
+          ).toBeInTheDocument();
+        }
       }
       const breadcrumb = screen.getByRole("navigation", { name: "Breadcrumb" });
       fireEvent.click(

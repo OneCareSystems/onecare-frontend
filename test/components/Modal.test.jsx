@@ -105,4 +105,58 @@ describe("Modal", () => {
 
     expect(onClose).toHaveBeenCalledOnce();
   });
+
+  it("optionally traps focus, locks body scroll and restores focus to the opener", async () => {
+    const opener = document.createElement("button");
+    document.body.appendChild(opener);
+    opener.focus();
+    const { unmount } = renderModal({
+      ...defaultProps,
+      trapFocus: true,
+      children: (
+        <>
+          <input aria-label="Inside" />
+          <button>Last action</button>
+        </>
+      ),
+    });
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close).toHaveFocus();
+    expect(document.body.style.overflow).toBe("hidden");
+    fireEvent.keyDown(close, { key: "Tab", shiftKey: true });
+    expect(screen.getByRole("button", { name: "Last action" })).toHaveFocus();
+    fireEvent.keyDown(screen.getByRole("button", { name: "Last action" }), {
+      key: "Tab",
+    });
+    expect(close).toHaveFocus();
+    opener.focus();
+    expect(close).toHaveFocus();
+    unmount();
+    expect(opener).toHaveFocus();
+    expect(document.body.style.overflow).not.toBe("hidden");
+    opener.remove();
+  });
+
+  it("disables dismissal while saving and respects Escape handled by an inner combobox", () => {
+    const onClose = vi.fn();
+    const { container, rerender } = renderModal({
+      ...defaultProps,
+      onClose,
+      closeDisabled: true,
+    });
+    expect(screen.getByRole("button", { name: "Close" })).toBeDisabled();
+    fireEvent.keyDown(document, { key: "Escape" });
+    fireEvent.mouseDown(container.firstChild);
+    expect(onClose).not.toHaveBeenCalled();
+    rerender(
+      <Modal {...defaultProps} onClose={onClose}>
+        <input
+          aria-label="Dropdown"
+          onKeyDown={(event) => event.preventDefault()}
+        />
+      </Modal>,
+    );
+    fireEvent.keyDown(screen.getByLabelText("Dropdown"), { key: "Escape" });
+    expect(onClose).not.toHaveBeenCalled();
+  });
 });

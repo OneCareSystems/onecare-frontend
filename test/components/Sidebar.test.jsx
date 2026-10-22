@@ -76,7 +76,7 @@ describe("Sidebar — CFG-04 role-driven navigation", () => {
     );
   });
 
-  it("renders all seven SuperAdmin sections with their route destinations", () => {
+  it("renders SuperAdmin sections and shared clinic reports with their route destinations", () => {
     store.dispatch(setSession({ accessToken: "a", role: ROLES.SUPER_ADMIN }));
 
     renderSidebar();
@@ -88,7 +88,7 @@ describe("Sidebar — CFG-04 role-driven navigation", () => {
       ["Clinic Configuration", "/super-admin/clinic-configuration"],
       ["System Maintenance", "/super-admin/system-maintenance"],
       ["Audits & Reports", "/super-admin/audits-reports"],
-      ["Chatbot Knowledge Base", "/super-admin/knowledge-base"],
+      ["Clinic Reports", "/super-admin/clinic-reports"],
     ];
 
     for (const [label, destination] of expectedItems) {

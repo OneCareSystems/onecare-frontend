@@ -191,6 +191,7 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
         expect(
           await screen.findByRole("heading", {
             name: /queue/i,
+            level: 1,
           }),
         ).toBeInTheDocument();
 
@@ -365,6 +366,7 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
     expect(
       await screen.findByRole("heading", {
         name: /queue/i,
+        level: 1,
       }),
     ).toBeInTheDocument();
 
