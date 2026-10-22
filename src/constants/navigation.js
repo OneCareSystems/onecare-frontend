@@ -46,6 +46,12 @@ export const NAV_ITEMS = Object.freeze({
       label: "Audits & Reports",
       icon: "clipboard",
     }),
+    Object.freeze({
+      id: "clinic-reports",
+      to: "/super-admin/clinic-reports",
+      label: "Clinic Reports",
+      icon: "clipboard",
+    }),
   ]),
   [ROLES.ADMIN]: Object.freeze([
     Object.freeze({
@@ -55,22 +61,46 @@ export const NAV_ITEMS = Object.freeze({
       icon: "dashboard",
     }),
     Object.freeze({
-      id: "patient-search",
-      to: "/admin/patient-search",
-      label: "Patient Search",
-      icon: "search",
-    }),
-    Object.freeze({
       id: "register-patient",
       to: "/admin/register-patient",
       label: "Register Patient",
       icon: "user-check",
     }),
     Object.freeze({
+      id: "patient-search",
+      to: "/admin/patient-search",
+      label: "Patient Search",
+      icon: "search",
+    }),
+    Object.freeze({
+      id: "book-appointment",
+      to: "/admin/book-appointment",
+      label: "Book Appointment",
+      icon: "calendar",
+    }),
+    Object.freeze({
+      id: "appointments",
+      to: "/admin/appointments",
+      label: "Appointment Hub",
+      icon: "calendar-clock",
+    }),
+    Object.freeze({
       id: "queue",
       to: "/queue",
       label: "Queue",
       icon: "list-checks",
+    }),
+    Object.freeze({
+      id: "billing",
+      to: "/admin/billing",
+      label: "Billing",
+      icon: "clipboard",
+    }),
+    Object.freeze({
+      id: "clinic-reports",
+      to: "/admin/clinic-reports",
+      label: "Clinic Reports",
+      icon: "clipboard",
     }),
   ]),
   [ROLES.DOCTOR]: Object.freeze([
