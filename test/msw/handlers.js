@@ -130,6 +130,17 @@ export const mswState = {
   prescriptionCreateHits: [],
   prescriptionCreateResponses: [],
   prescriptionCreateErrorMode: null,
+    issuedPrescriptionHits: [],
+  issuedPrescriptionResponses: [],
+  issuedPrescriptionErrorMode: null,
+
+  lowStockMedicineHits: [],
+  lowStockMedicineResponses: [],
+  lowStockMedicineErrorMode: null,
+
+  nearExpiryMedicineHits: [],
+  nearExpiryMedicineResponses: [],
+  nearExpiryMedicineErrorMode: null,
   usersHits: [],
   usersResponses: [],
   usersErrorMode: null,
@@ -208,6 +219,17 @@ export const resetMswState = () => {
   mswState.prescriptionCreateHits = [];
   mswState.prescriptionCreateResponses = [];
   mswState.prescriptionCreateErrorMode = null;
+    mswState.issuedPrescriptionHits = [];
+  mswState.issuedPrescriptionResponses = [];
+  mswState.issuedPrescriptionErrorMode = null;
+
+  mswState.lowStockMedicineHits = [];
+  mswState.lowStockMedicineResponses = [];
+  mswState.lowStockMedicineErrorMode = null;
+
+  mswState.nearExpiryMedicineHits = [];
+  mswState.nearExpiryMedicineResponses = [];
+  mswState.nearExpiryMedicineErrorMode = null;
   mswState.usersHits = [];
   mswState.usersResponses = [];
   mswState.usersErrorMode = null;
@@ -560,6 +582,64 @@ export const handlers = [
       },
     );
   }),
+  http.get("*/prescriptions", ({ request }) => {
+    const url = new URL(request.url);
+
+    // This handler is specifically for the issued-prescriptions dashboard.
+    if (url.searchParams.get("status") !== "ISSUED") {
+      return ok([]);
+    }
+
+    mswState.issuedPrescriptionHits.push({
+      url: request.url,
+      authorization: request.headers.get("Authorization"),
+    });
+
+    if (mswState.issuedPrescriptionErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+
+    if (mswState.issuedPrescriptionErrorMode === "server-error") {
+      return fail(500, "Unable to load prescriptions");
+    }
+
+    return ok(mswState.issuedPrescriptionResponses.shift() ?? []);
+  }),
+
+  http.get("*/medicines/low-stock", ({ request }) => {
+    mswState.lowStockMedicineHits.push({
+      url: request.url,
+      authorization: request.headers.get("Authorization"),
+    });
+
+    if (mswState.lowStockMedicineErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+
+    if (mswState.lowStockMedicineErrorMode === "server-error") {
+      return fail(500, "Unable to load low-stock medicines");
+    }
+
+    return ok(mswState.lowStockMedicineResponses.shift() ?? []);
+  }),
+
+  http.get("*/medicines/near-expiry", ({ request }) => {
+    mswState.nearExpiryMedicineHits.push({
+      url: request.url,
+      authorization: request.headers.get("Authorization"),
+    });
+
+    if (mswState.nearExpiryMedicineErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+
+    if (mswState.nearExpiryMedicineErrorMode === "server-error") {
+      return fail(500, "Unable to load near-expiry medicines");
+    }
+
+    return ok(mswState.nearExpiryMedicineResponses.shift() ?? []);
+  }),
+
   // Super-admin user management (access governance): list, provision,
   // update email/role, unlock the failed-login lockout, admin reset and
   // deactivate. Account state (isActive + lockedUntil) is backend-

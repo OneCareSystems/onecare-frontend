@@ -31,6 +31,7 @@ for (const width of [360, 1280]) {
         address: null,
         email: null,
         gender: null,
+        bloodGroup: null,
       });
       await route.fulfill({
         status: 201,

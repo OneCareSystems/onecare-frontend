@@ -39,6 +39,35 @@ beforeEach(() => {
 });
 
 describe("TopBar — CFG-04 staff chrome", () => {
+  it.each([ROLES.ADMIN, ROLES.SUPER_ADMIN])(
+    "shows the shared avatar for %s",
+    (role) => {
+      store.dispatch(
+        setSession({ accessToken: "a", role, user: "Example Admin" }),
+      );
+      renderTopBar();
+      expect(screen.getByTestId("admin-avatar")).toHaveAttribute(
+        "aria-hidden",
+        "true",
+      );
+      expect(
+        screen.getByTestId("admin-avatar").querySelector("svg"),
+      ).toBeInTheDocument();
+      expect(screen.getByText("Example Admin")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Log out" })).toBeVisible();
+    },
+  );
+  it.each([ROLES.DOCTOR, ROLES.PHARMACIST])(
+    "preserves the header for %s",
+    (role) => {
+      store.dispatch(
+        setSession({ accessToken: "a", role, user: "Example Staff" }),
+      );
+      renderTopBar();
+      expect(screen.queryByTestId("admin-avatar")).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Home" })).toBeInTheDocument();
+    },
+  );
   it("shows the signed-in username", () => {
     store.dispatch(
       setSession({

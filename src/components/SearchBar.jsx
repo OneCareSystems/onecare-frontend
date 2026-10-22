@@ -12,6 +12,9 @@ const SearchBar = ({
   clearLabel,
   disabled = false,
   className = "",
+  error,
+  errorId,
+  inputMode,
 }) => {
   const { t } = useTranslation();
   const [internalValue, setInternalValue] = useState(defaultValue);
@@ -53,6 +56,9 @@ const SearchBar = ({
       <input
         id="component-search"
         type="search"
+        inputMode={inputMode}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
         value={searchValue}
         onChange={handleChange}
         placeholder={placeholder ?? resolvedSearchLabel}

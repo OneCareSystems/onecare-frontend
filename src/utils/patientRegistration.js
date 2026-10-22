@@ -5,6 +5,7 @@ export const emptyPatient = {
   gender: "",
   address: "",
   email: "",
+  bloodGroup: "",
 };
 
 export function validatePatient(values) {
@@ -14,10 +15,11 @@ export function validatePatient(values) {
     ["contactNo", "Phone number", 20, true],
     ["address", "Address", 255, false],
     ["email", "Email", 100, false],
+    ["bloodGroup", "Blood group", 10, false],
   ]) {
     if (required && !values[field].trim())
       errors[field] = `${label} is required.`;
-    else if (values[field].length > limit)
+    else if ((values[field] ?? "").length > limit)
       errors[field] = `${label} must be ${limit} characters or fewer.`;
   }
   if (!values.dateOfBirth) errors.dateOfBirth = "Date of birth is required.";

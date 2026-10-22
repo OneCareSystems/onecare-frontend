@@ -66,4 +66,28 @@ export const getPrescriptionById = async (prescriptionId, { signal } = {}) => {
   return adaptPrescriptionResponse(response.data);
 };
 
-export default { createPrescription, getPrescriptionById };
+/** Fetch all prescriptions with a given status. */
+export const getPrescriptionsByStatus = async (
+  status = "ISSUED",
+  { signal } = {},
+) => {
+  const response = await apiClient.get("/prescriptions", {
+    params: { status },
+    signal,
+  });
+
+  const payload = response.data;
+
+  if (payload?.success !== true || !Array.isArray(payload.data)) {
+    throw new Error("Unexpected prescriptions list response format");
+  }
+
+  return payload.data.filter(
+    (prescription) =>
+      prescription &&
+      (typeof prescription.prescriptionId === "string" ||
+        typeof prescription.prescriptionId === "number"),
+  );
+};
+
+export default { createPrescription, getPrescriptionById, getPrescriptionsByStatus };
