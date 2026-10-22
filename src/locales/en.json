@@ -12,6 +12,24 @@
     "close": "Close",
     "tabs": "Content tabs"
   },
+
+  "pharmacistDashboard": {
+  "title": "Pharmacist Dashboard",
+  "subtitle": "Monitor issued prescriptions and medicine inventory alerts.",
+  "issuedPrescriptions": "Issued Prescriptions",
+  "lowStock": "Low Stock Medicines",
+  "nearExpiry": "Near-Expiry Medicines",
+  "noPrescriptions": "No Issued Prescriptions",
+  "noPrescriptionsMessage": "There are no issued prescriptions to display.",
+  "noLowStock": "Stock Levels Look Good",
+  "noLowStockMessage": "No low-stock medicines were found.",
+  "noNearExpiry": "No Near-Expiry Medicines",
+  "noNearExpiryMessage": "No near-expiry medicines were found.",
+  "prescriptionNumber": "Prescription #{{id}}",
+  "patientId": "Patient ID",
+  "date": "Date",
+  "stock": "Stock"
+},
   "patient": {
     "welcome": "Welcome",
     "dashboard": "Patient Dashboard",
