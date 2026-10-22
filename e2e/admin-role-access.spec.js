@@ -7,7 +7,7 @@ for (const role of ["ADMIN", "SUPER_ADMIN"]) {
     const group = role === "ADMIN" ? "admin" : "super-admin";
     const dashboard = `/${group}/dashboard`;
     const heading =
-      role === "ADMIN" ? "AdminDashboardPage" : "SuperAdminDashboardPage";
+      role === "ADMIN" ? "AdminDashboardPage" : "Super Admin Dashboard";
     let patientRequests = 0;
     await page.route("**/api/**", async (route) => {
       const pathname = new URL(route.request().url()).pathname;
@@ -71,7 +71,9 @@ for (const role of ["ADMIN", "SUPER_ADMIN"]) {
       await page.goto("/super-admin/dashboard");
       await expect(page).toHaveURL(new RegExp(`${dashboard}$`));
     }
-    await nav.getByRole("link", { name: "Queue", exact: true }).click();
+    if (role === "ADMIN")
+      await nav.getByRole("link", { name: "Queue", exact: true }).click();
+    else await page.goto("/queue");
     if (role === "SUPER_ADMIN") {
       await page.getByRole("button", { name: "Home", exact: true }).click();
     } else {

@@ -76,7 +76,7 @@ describe("Sidebar — CFG-04 role-driven navigation", () => {
     );
   });
 
-  it("renders all six SuperAdmin sections with their route destinations", () => {
+  it("renders SuperAdmin sections and shared clinic reports with their route destinations", () => {
     store.dispatch(setSession({ accessToken: "a", role: ROLES.SUPER_ADMIN }));
 
     renderSidebar();

@@ -1,3 +1,4 @@
+
 {
   "name": "onecare-frontend",
   "private": true,
@@ -18,7 +19,10 @@
     "test:e2e": "playwright test",
     "test:coverage": "vitest run --coverage",
     "test:smoke": "playwright test --config playwright.smoke.config.js",
-    "test:adm03": "vitest run --config vitest.adm03.config.js --maxWorkers=1"
+    "test:adm03": "vitest run --config vitest.adm03.config.js --maxWorkers=1",
+    "test:admin-modules": "vitest run --config vitest.adminModules.config.js --maxWorkers=1",
+    "test:chatbot": "vitest run tests/chatbot",
+    "export-chips": "node scripts/export-chips.mjs"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.13.0",

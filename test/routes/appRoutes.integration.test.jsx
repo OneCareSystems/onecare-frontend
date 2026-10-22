@@ -58,6 +58,24 @@ afterEach(() => {
 });
 
 describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
+  it("allows Super Admin to open the persisted chatbot resource manager", async () => {
+    seed({ accessToken: "a", role: ROLES.SUPER_ADMIN });
+    server.use(http.get("*/api/chatbot/knowledge-base", () => HttpResponse.json({
+      success: true, data: { items: [], count: 0, page: 1, pageSize: 20, totalPages: 0 },
+    })));
+    renderAppAt("/super-admin/knowledge-base");
+    expect(await screen.findByRole("heading", { name: "Chatbot Knowledge Base Management" })).toBeInTheDocument();
+    expect(await screen.findByText("No knowledge resources found")).toBeInTheDocument();
+  });
+
+  it("keeps the Super Admin knowledge base route unavailable to ADMIN", async () => {
+    seed({ accessToken: "a", role: ROLES.ADMIN });
+    renderAppAt("/super-admin/knowledge-base");
+    expect(await screen.findByRole("heading", { name: /AdminDashboardPage/i })).toBeInTheDocument();
+    expectLocation("/admin/dashboard");
+    expect(screen.queryByRole("heading", { name: "Chatbot Knowledge Base Management" })).not.toBeInTheDocument();
+  });
+
   it("AC1: a Doctor opening /doctor/dashboard sees the doctor dashboard", async () => {
     seed({
       accessToken: "a",
@@ -173,6 +191,7 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
         expect(
           await screen.findByRole("heading", {
             name: /queue/i,
+            level: 1,
           }),
         ).toBeInTheDocument();
 
@@ -252,6 +271,12 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
         name: /sign in securely/i,
       }),
     );
+    // Wait for the asynchronous login to settle before asserting its destination.
+    // Failed logins keep an enabled button; successful logins unmount the form.
+    await waitFor(() => {
+      const button = screen.queryByRole("button", { name: /sign in securely/i });
+      if (button) expect(button).not.toBeDisabled();
+    }, { timeout: 4000 });
   };
 
   it.each([[ROLES.ADMIN, "/admin/register-patient"]])(
@@ -341,6 +366,7 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
     expect(
       await screen.findByRole("heading", {
         name: /queue/i,
+        level: 1,
       }),
     ).toBeInTheDocument();
 

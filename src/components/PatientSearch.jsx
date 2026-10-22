@@ -15,12 +15,14 @@ import {
 
 export default function PatientSearch({
   onSelect,
+  onSelectPatient,
   onSearchChange,
   registerAction,
   refreshKey = 0,
   pageSize = 10,
   debounceMs = 350,
   selectedId,
+  actionLabel = "Edit",
 }) {
   const [query, setQuery] = useState({
     text: "",
@@ -195,11 +197,14 @@ export default function PatientSearch({
                   variant="primary"
                   className="bg-primary-800 hover:bg-primary-900"
                   size="sm"
-                  aria-label={`Edit patient ${row.patientId}`}
+                  aria-label={`${actionLabel} patient ${row.patientId}`}
                   aria-pressed={String(row.patientId) === String(selectedId)}
-                  onClick={() => onSelect(row.patientId)}
+                  onClick={() => {
+                    onSelect(row.patientId);
+                    onSelectPatient?.(row);
+                  }}
                 >
-                  Edit
+                  {actionLabel}
                 </Button>
               ),
             },

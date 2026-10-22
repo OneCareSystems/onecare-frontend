@@ -34,5 +34,6 @@ export default defineConfig({
         lines: 80,
       },
     },
+    include: ["test/**/*.{test,spec}.{js,jsx}"],
   },
 });
