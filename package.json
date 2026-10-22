@@ -16,6 +16,7 @@
     "test:coverage": "vitest run --coverage",
     "test:admin-modules": "vitest run --config vitest.adminModules.config.js --maxWorkers=1",
     "test:e2e": "playwright test",
+    "test:adm03": "vitest run --config vitest.adm03.config.js --maxWorkers=1",
     "test:chatbot": "vitest run tests/chatbot",
     "export-chips": "node scripts/export-chips.mjs"
   },

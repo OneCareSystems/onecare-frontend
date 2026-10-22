@@ -9,6 +9,7 @@ import {
 } from "react";
 
 import Button from "../../components/Button";
+import KnowledgeBaseManager from "../../components/chatbot/KnowledgeBaseManager";
 import EmptyState from "../../components/EmptyState";
 import Icon from "../../components/Icon";
 import Input from "../../components/Input";
@@ -508,6 +509,7 @@ const KnowledgeBasePage = () => {
         </div>
       )}
 
+      <KnowledgeBaseManager />
       {showAddModal && <AddPdfModal onCancel={closeAdd} onAdd={handleAdd} />}
       {pendingRemoval && (
         <ConfirmRemoveModal
