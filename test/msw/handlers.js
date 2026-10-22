@@ -137,6 +137,13 @@ export const mswState = {
   lowStockMedicineHits: [],
   lowStockMedicineResponses: [],
   lowStockMedicineErrorMode: null,
+    medicineListHits: [],
+  medicineListResponses: [],
+  medicineListErrorMode: null,
+
+  stockAdjustmentHits: [],
+  stockAdjustmentResponses: [],
+  stockAdjustmentErrorMode: null,
 
   nearExpiryMedicineHits: [],
   nearExpiryMedicineResponses: [],
@@ -226,6 +233,13 @@ export const resetMswState = () => {
   mswState.lowStockMedicineHits = [];
   mswState.lowStockMedicineResponses = [];
   mswState.lowStockMedicineErrorMode = null;
+    mswState.medicineListHits = [];
+  mswState.medicineListResponses = [];
+  mswState.medicineListErrorMode = null;
+
+  mswState.stockAdjustmentHits = [];
+  mswState.stockAdjustmentResponses = [];
+  mswState.stockAdjustmentErrorMode = null;
 
   mswState.nearExpiryMedicineHits = [];
   mswState.nearExpiryMedicineResponses = [];
@@ -604,6 +618,54 @@ export const handlers = [
     }
 
     return ok(mswState.issuedPrescriptionResponses.shift() ?? []);
+  }),
+    http.get("*/medicines", ({ request }) => {
+    const url = new URL(request.url);
+
+    mswState.medicineListHits.push({
+      url: request.url,
+      search: url.searchParams.get("search"),
+      authorization: request.headers.get("Authorization"),
+    });
+
+    if (mswState.medicineListErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+
+    if (mswState.medicineListErrorMode === "server-error") {
+      return fail(500, "Unable to load medicines");
+    }
+
+    return ok(mswState.medicineListResponses.shift() ?? []);
+  }),
+
+  http.patch("*/medicines/:id/stock", async ({ request, params }) => {
+    const body = await request.json().catch(() => ({}));
+
+    mswState.stockAdjustmentHits.push({
+      id: params.id,
+      body,
+      authorization: request.headers.get("Authorization"),
+    });
+
+    if (mswState.stockAdjustmentErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+
+    if (mswState.stockAdjustmentErrorMode === "server-error") {
+      return fail(500, "Unable to update medicine stock");
+    }
+
+    if (mswState.stockAdjustmentErrorMode === "validation") {
+      return fail(400, "Invalid stock adjustment");
+    }
+
+    return ok(
+      mswState.stockAdjustmentResponses.shift() ?? {
+        medicineId: Number(params.id),
+        stockQuantity: 10,
+      },
+    );
   }),
 
   http.get("*/medicines/low-stock", ({ request }) => {

@@ -32,6 +32,7 @@ import ClinicConfigPage from "../pages/superAdmin/ClinicConfigPage";
 import SystemMaintenancePage from "../pages/superAdmin/SystemMaintenancePage";
 import AuditLogsPage from "../pages/superAdmin/AuditLogsPage";
 import DispensingQueuePage from "../pages/pharmacist/DispensingQueuePage";
+import InventoryManagementPage from "../pages/pharmacist/InventoryManagementPage";
 
 const AppRoutes = () => {
   return (
@@ -113,6 +114,7 @@ const AppRoutes = () => {
         <Route path="/pharmacist" element={<PharmacistLayout />}>
           <Route path="dashboard" element={<PharmacistDashboardPage />} />
           <Route path="dispensing-queue" element={<DispensingQueuePage />} />
+          <Route path="inventory" element={<InventoryManagementPage />} />
         </Route>
       </Route>
 
