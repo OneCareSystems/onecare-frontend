@@ -15,7 +15,7 @@
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "test:chatbot": "vitest run tests/chatbot",
+    "test:chatbot": "vitest run test/chatbot",
     "export-chips": "node scripts/export-chips.mjs",
     "test:adm03": "vitest run --config vitest.adm03.config.js --maxWorkers=1"
 

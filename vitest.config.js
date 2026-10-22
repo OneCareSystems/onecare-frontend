@@ -1,11 +1,2 @@
-import { defineConfig } from 'vitest/config';
-export default defineConfig(
-    {
-        test:
-        {
-            environment: 'jsdom',
-            include: ['tests/**/*.test.js'],
-            restoreMocks: true 
-        } 
-    }
-);
+// Keep CLI test discovery, React transforms, setup, and coverage in sync with Vite.
+export { default } from "./vite.config.js";
