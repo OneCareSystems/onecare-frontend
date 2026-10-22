@@ -9,6 +9,7 @@ const SEGMENT_LABELS = {
   "super-admin": "Super Admin",
   dashboard: "Dashboard",
   queue: "Queue",
+  appointments: "Appointment Hub",
 };
 
 const Breadcrumbs = () => {

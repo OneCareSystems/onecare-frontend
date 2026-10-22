@@ -7,7 +7,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { http, HttpResponse } from "msw";
 import { server } from "../../msw/server";
 import { store } from "../../../src/app/store";
@@ -26,6 +26,7 @@ const open = (Component) =>
 beforeEach(() => {
   store.dispatch(setSession({ accessToken: "fixture-token", role: "ADMIN" }));
   server.use(
+    http.get("*/appointments", () => ok([])),
     http.get("*/users", () => ok(doctorPage())),
     http.get("*/patients", () =>
       ok([
@@ -45,15 +46,29 @@ afterEach(() => {
   store.dispatch(clearSession());
   vi.restoreAllMocks();
 });
+function openBooking() {
+  open(AppointmentHubPage);
+  fireEvent.click(screen.getByRole("button", { name: "+ Book Appointment" }));
+}
 async function prepareBooking() {
-  fireEvent.change(screen.getByRole("searchbox"), {
-    target: { value: "Example" },
-  });
   fireEvent.click(
-    await screen.findByRole("button", { name: "Select patient 101" }),
+    screen.getByRole("combobox", { name: "Patient", exact: true }),
+  );
+  fireEvent.change(
+    screen.getByRole("combobox", { name: "Patient", exact: true }),
+    {
+      target: { value: "Example" },
+    },
+  );
+  fireEvent.click(
+    await screen.findByRole("option", {
+      name: /Example Patient.*Clinic ID: 101/,
+    }),
   );
   await waitFor(() =>
-    expect(screen.getByRole("combobox", { name: "Doctor" })).toHaveValue("301"),
+    expect(
+      screen.getByRole("combobox", { name: "Doctor", exact: true }),
+    ).toHaveValue("Example Doctor"),
   );
   fireEvent.change(screen.getByLabelText(/^Appointment Date/), {
     target: { value: "2090-01-15" },
@@ -72,8 +87,12 @@ describe("ADM-04 booking with real authenticated HTTP client", () => {
         return ok(appointment(), 201);
       }),
     );
-    open(BookAppointmentPage);
-    await screen.findByRole("option", { name: "Example Doctor" });
+    openBooking();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("combobox", { name: "Doctor", exact: true }),
+      ).toHaveValue("Example Doctor"),
+    );
     fireEvent.click(screen.getByRole("button", { name: "Book Appointment" }));
     expect(screen.getByRole("alert")).toHaveTextContent("Select a patient");
     await prepareBooking();
@@ -87,7 +106,11 @@ describe("ADM-04 booking with real authenticated HTTP client", () => {
       appointmentDateTime: "2090-01-15T16:00:00",
       reason: "Visit",
     });
-    expect(screen.getByText("Scheduled")).toBeInTheDocument();
+    expect(
+      within(
+        screen.getByRole("dialog", { name: "Book Appointment" }),
+      ).getByText("Scheduled"),
+    ).toBeInTheDocument();
     expect(screen.queryByText("CLINICAL_SECRET")).not.toBeInTheDocument();
     fireEvent.click(
       screen.getByRole("button", { name: "Book another appointment" }),
@@ -95,8 +118,12 @@ describe("ADM-04 booking with real authenticated HTTP client", () => {
     expect(screen.getByLabelText("Reason for visit (optional)")).toHaveValue(
       "Visit",
     );
-    fireEvent.click(screen.getByRole("button", { name: "Change patient" }));
-    expect(screen.getByRole("searchbox")).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("combobox", { name: "Patient", exact: true }),
+    );
+    expect(
+      screen.getByRole("combobox", { name: "Patient", exact: true }),
+    ).toBeInTheDocument();
   });
   it("retains input after conflict, refreshes slots, and requires explicit alternative selection", async () => {
     let posts = 0;
@@ -114,7 +141,7 @@ describe("ADM-04 booking with real authenticated HTTP client", () => {
           : ok(appointment({ timeSlot: "17:00:00" }), 201);
       }),
     );
-    open(BookAppointmentPage);
+    openBooking();
     await prepareBooking();
     server.use(http.get("*/appointments/available-slots", () => ok(["17:00"])));
     fireEvent.click(screen.getByRole("button", { name: "Book Appointment" }));
@@ -146,13 +173,20 @@ describe("ADM-04 booking with real authenticated HTTP client", () => {
         return new HttpResponse(null, { status: 500 });
       }),
     );
-    open(BookAppointmentPage);
+    openBooking();
     await prepareBooking();
     const submit = screen.getByRole("button", { name: "Book Appointment" });
     fireEvent.click(submit);
     fireEvent.click(submit);
     await waitFor(() => expect(posts).toBe(1));
     expect(submit).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Close booking" }),
+    ).toBeDisabled();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(
+      screen.getByRole("dialog", { name: "Book Appointment" }),
+    ).toBeInTheDocument();
     release();
     await screen.findByRole("alert");
     expect(screen.getByLabelText("Reason for visit (optional)")).toHaveValue(
@@ -178,12 +212,20 @@ describe("ADM-04 booking with real authenticated HTTP client", () => {
       ),
       http.get("*/appointments/available-slots", () => ok([])),
     );
-    open(BookAppointmentPage);
+    openBooking();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("combobox", { name: "Doctor", exact: true }),
+      ).toBeEnabled(),
+    );
+    fireEvent.click(
+      screen.getByRole("combobox", { name: "Doctor", exact: true }),
+    );
     await screen.findByRole("option", { name: "Second Doctor" });
-    expect(screen.getByRole("combobox", { name: "Doctor" })).toHaveValue("");
-    fireEvent.change(screen.getByRole("combobox", { name: "Doctor" }), {
-      target: { value: "302" },
-    });
+    expect(
+      screen.getByRole("combobox", { name: "Doctor", exact: true }),
+    ).toHaveValue("");
+    fireEvent.click(screen.getByRole("option", { name: "Second Doctor" }));
     fireEvent.change(screen.getByLabelText(/^Appointment Date/), {
       target: { value: "2090-01-15" },
     });
@@ -192,7 +234,7 @@ describe("ADM-04 booking with real authenticated HTTP client", () => {
     server.use(
       http.get("*/users", () => new HttpResponse(null, { status: 403 })),
     );
-    open(BookAppointmentPage);
+    openBooking();
     expect(await screen.findByRole("alert")).toHaveTextContent(/permission/);
     expect(
       screen.getByRole("button", { name: "Book Appointment" }),
@@ -202,14 +244,18 @@ describe("ADM-04 booking with real authenticated HTTP client", () => {
     });
     server.use(http.get("*/users", () => ok(doctorPage())));
     fireEvent.click(screen.getByRole("button", { name: "Retry doctors" }));
-    await screen.findByRole("option", { name: "Example Doctor" });
+    await waitFor(() =>
+      expect(
+        screen.getByRole("combobox", { name: "Doctor", exact: true }),
+      ).toHaveValue("Example Doctor"),
+    );
     expect(screen.getByLabelText("Reason for visit (optional)")).toHaveValue(
       "Keep this input",
     );
   });
   it("shows no eligible doctors without inventing a choice", async () => {
     server.use(http.get("*/users", () => ok({ content: [], totalPages: 0 })));
-    open(BookAppointmentPage);
+    openBooking();
     expect(
       await screen.findByText("No active doctors are available."),
     ).toBeInTheDocument();
@@ -354,5 +400,179 @@ describe("ADM-05 appointment hub", () => {
     fireEvent.click(screen.getByRole("button", { name: "Apply filters" }));
     expect(screen.getByRole("alert")).toHaveTextContent(/before/);
     expect(gets).toBe(1);
+  });
+});
+
+describe("unified booking navigation and selections", () => {
+  function CurrentLocation() {
+    const location = useLocation();
+    return (
+      <output aria-label="Current location">
+        {location.pathname}
+        {location.search}
+        {location.hash}
+      </output>
+    );
+  }
+  it("opens the old URL in the same Hub modal, preserves query/hash and refreshes the list only after a confirmed booking", async () => {
+    let gets = 0,
+      posts = 0;
+    server.use(
+      http.get("*/appointments", () => {
+        gets++;
+        return ok([]);
+      }),
+      http.post("*/appointments", () => {
+        posts++;
+        return ok(appointment(), 201);
+      }),
+    );
+    render(
+      <MemoryRouter
+        initialEntries={["/admin/book-appointment?source=shortcut#booking"]}
+      >
+        <Routes>
+          <Route
+            path="/admin/book-appointment"
+            element={<BookAppointmentPage />}
+          />
+          <Route path="/admin/appointments" element={<AppointmentHubPage />} />
+        </Routes>
+        <CurrentLocation />
+      </MemoryRouter>,
+    );
+    await screen.findByRole("dialog", { name: "Book Appointment" });
+    expect(screen.getByLabelText("Current location")).toHaveTextContent(
+      "/admin/appointments?source=shortcut&booking=new#booking",
+    );
+    expect(posts).toBe(0);
+    await prepareBooking();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Book Appointment", exact: true }),
+    );
+    await screen.findByText(/Appointment 201 booked/);
+    await waitFor(() => expect(gets).toBe(2));
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "+ Book Appointment" }),
+    ).toHaveFocus();
+    expect(screen.getByLabelText("Current location")).toHaveTextContent(
+      "/admin/appointments?source=shortcut#booking",
+    );
+  });
+  it("keeps selected patient while searching other names and clearing is intentional; supports shared phones and first-page pagination", async () => {
+    const requests = [];
+    server.use(
+      http.get("*/patients", ({ request }) => {
+        const url = new URL(request.url);
+        requests.push(url);
+        const page = Number(url.searchParams.get("page"));
+        return ok(
+          Array.from({ length: page ? 2 : 10 }, (_, index) => ({
+            patientId: 101 + index + page * 10,
+            fullName: `Example ${index + page * 10}`,
+            contactNo: "+94 771 234 567",
+          })),
+        );
+      }),
+    );
+    openBooking();
+    fireEvent.click(
+      screen.getByRole("combobox", { name: "Patient", exact: true }),
+    );
+    await screen.findByRole("option", { name: /Clinic ID: 101/ });
+    expect(requests[0].searchParams.has("search")).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Next patients" }));
+    await screen.findByRole("option", { name: /Clinic ID: 111/ });
+    expect(
+      screen.getByRole("button", { name: "Next patients" }),
+    ).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Previous patients" }));
+    fireEvent.click(
+      await screen.findByRole("option", { name: /Clinic ID: 102/ }),
+    );
+    const trigger = screen.getByRole("combobox", {
+      name: "Patient",
+      exact: true,
+    });
+    expect(trigger.value).toContain("Clinic ID: 102");
+    fireEvent.click(trigger);
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Patient", exact: true }),
+      { target: { value: "0771234567" } },
+    );
+    await screen.findByRole("option", { name: /Clinic ID: 101/ });
+    expect(requests.at(-1).searchParams.get("search")).toBe("+94 771 234 567");
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Patient", exact: true }),
+      { target: { value: "Another" } },
+    );
+    fireEvent.keyDown(
+      screen.getByRole("combobox", { name: "Patient", exact: true }),
+      { key: "Escape" },
+    );
+    expect(trigger.value).toContain("Clinic ID: 102");
+    expect(
+      screen.getByRole("dialog", { name: "Book Appointment" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Clear patient" }));
+    expect(trigger).toHaveValue("");
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+  it("filters real doctors without replacing the selected doctor and clears a slot only after intentionally choosing another doctor", async () => {
+    server.use(
+      http.get("*/users", () =>
+        ok({
+          content: [
+            {
+              userId: 301,
+              username: "Example Doctor",
+              role: "DOCTOR",
+              isActive: true,
+            },
+            {
+              userId: 302,
+              username: "Second Doctor",
+              role: "DOCTOR",
+              isActive: true,
+            },
+          ],
+          totalPages: 1,
+        }),
+      ),
+    );
+    openBooking();
+    const doctor = screen.getByRole("combobox", {
+      name: "Doctor",
+      exact: true,
+    });
+    await waitFor(() => expect(doctor).toBeEnabled());
+    fireEvent.click(doctor);
+    fireEvent.click(screen.getByRole("option", { name: "Example Doctor" }));
+    fireEvent.change(screen.getByLabelText(/^Appointment Date/), {
+      target: { value: "2090-01-15" },
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "16:00" }));
+    expect(screen.getByRole("button", { name: "16:00" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    fireEvent.click(doctor);
+    fireEvent.change(screen.getByRole("combobox", { name: "Doctor" }), {
+      target: { value: "Second" },
+    });
+    expect(
+      screen.queryByRole("option", { name: "Example Doctor" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("option", { name: "Second Doctor" }));
+    expect(doctor).toHaveValue("Second Doctor");
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "16:00" })).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      ),
+    );
   });
 });

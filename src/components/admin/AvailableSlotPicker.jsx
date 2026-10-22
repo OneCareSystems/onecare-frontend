@@ -1,10 +1,10 @@
-import { useMemo } from "react";
 import useWorkflowResource from "../../hooks/useWorkflowResource";
 import { availableSlots } from "../../services/adminWorkflowService";
 import { validDate, workflowError } from "../../utils/adminWorkflows";
 import Button from "../Button";
 import ErrorMessage from "../ErrorMessage";
 import LoadingSpinner from "../LoadingSpinner";
+import { clinicToday, isFutureClinicSlot } from "../../utils/clinicTime";
 
 const loadSlots = ({ doctorId, date, signal }) =>
   availableSlots(doctorId, date, { signal });
@@ -21,13 +21,7 @@ function SlotOptions({
     { doctorId, date },
     refreshKey,
   );
-  const slots = useMemo(
-    () =>
-      (data ?? []).filter(
-        (slot) => new Date(`${date}T${slot}:00`) > new Date(),
-      ),
-    [data, date],
-  );
+  const slots = (data ?? []).filter((slot) => isFutureClinicSlot(date, slot));
   return (
     <div className="space-y-3" aria-busy={loading}>
       {loading && <LoadingSpinner label="Loading available slots" />}
@@ -38,7 +32,7 @@ function SlotOptions({
         <p role="status">No available slots. Choose another date.</p>
       )}
       <div
-        className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+        className="grid grid-cols-3 gap-2 sm:grid-cols-4"
         role="group"
         aria-label="Available time slots"
       >
@@ -47,6 +41,7 @@ function SlotOptions({
             <Button
               key={slot}
               variant={value === slot ? "primary" : "outline"}
+              size="sm"
               aria-pressed={value === slot}
               disabled={disabled || loading}
               onClick={() => onChange(slot)}
@@ -64,6 +59,8 @@ function SlotOptions({
   );
 }
 export default function AvailableSlotPicker(props) {
+  if (validDate(props.date) && props.date < clinicToday())
+    return <p role="alert">Appointment date cannot be in the past.</p>;
   return props.doctorId && validDate(props.date) ? (
     <SlotOptions key={`${props.doctorId}:${props.date}`} {...props} />
   ) : (

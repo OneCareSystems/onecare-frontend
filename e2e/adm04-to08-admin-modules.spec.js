@@ -7,11 +7,11 @@ import {
 } from "../test/fixtures/adminWorkflows.js";
 
 test.use({ trace: "off", screenshot: "off", video: "off" });
-for (const width of [360, 1280]) {
+for (const width of [360, 768, 1280]) {
   test(`Admin booking, hub, queue, cash billing and report gap at ${width}px`, async ({
     page,
   }, testInfo) => {
-    await page.setViewportSize({ width, height: 900 });
+    await page.setViewportSize({ width, height: width === 360 ? 640 : 900 });
     await page.addInitScript(() => {
       window.print = () => {
         window.__invoicePrinted = true;
@@ -162,11 +162,63 @@ for (const width of [360, 1280]) {
     await page.getByLabel(/^Username/).fill("fixture-user");
     await page.getByLabel(/^Password/).fill("fixture-password");
     await page.getByRole("button", { name: "Sign in securely" }).click();
-    await page.getByRole("searchbox").fill("Example");
-    await page.getByRole("button", { name: "Select patient 102" }).click();
+    await expect(page).toHaveURL(/\/admin\/appointments\?booking=new/);
     await expect(
-      page.getByRole("combobox", { name: "Doctor", exact: true }),
-    ).toHaveValue("301");
+      nav.getByRole("link", { name: "Book Appointment", exact: true }),
+    ).toHaveCount(0);
+    const booking = page.getByRole("dialog", {
+      name: "Book Appointment",
+      exact: true,
+    });
+    const bookingButton = page.getByRole("button", {
+      name: "+ Book Appointment",
+      exact: true,
+    });
+    const close = booking.getByRole("button", { name: "Close booking" });
+    await expect(
+      booking.getByRole("combobox", { name: "Doctor", exact: true }),
+    ).toHaveValue("Example Doctor");
+    const modalBounds = await booking.boundingBox();
+    expect(modalBounds.x).toBeGreaterThanOrEqual(0);
+    expect(modalBounds.y).toBeGreaterThanOrEqual(0);
+    expect(modalBounds.y + modalBounds.height).toBeLessThanOrEqual(
+      page.viewportSize().height,
+    );
+    await page.addScriptTag({ path: "node_modules/axe-core/axe.min.js" });
+    const violations = await booking.evaluate(async (dialog) => {
+      const results = await window.axe.run(dialog, {
+        runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] },
+      });
+      return results.violations.map(({ id, impact }) => ({ id, impact }));
+    });
+    expect(violations).toEqual([]);
+    await close.focus();
+    await page.keyboard.press("Shift+Tab");
+    await expect(
+      booking.getByRole("button", { name: "Book Appointment", exact: true }),
+    ).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(close).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(booking).toHaveCount(0);
+    await expect(bookingButton).toBeFocused();
+    expect(bookings).toBe(0);
+    await bookingButton.click();
+    await booking
+      .getByRole("combobox", { name: "Patient", exact: true })
+      .click();
+    await booking
+      .getByRole("combobox", { name: "Patient", exact: true })
+      .fill("Example");
+    await expect(booking.getByRole("option")).toHaveCount(2);
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Enter");
+    await expect(
+      booking.getByRole("combobox", { name: "Patient", exact: true }),
+    ).toHaveValue(/Clinic ID: 102/);
+    await expect(
+      booking.getByRole("combobox", { name: "Doctor", exact: true }),
+    ).toHaveValue("Example Doctor");
     await page.getByLabel(/^Appointment Date/).fill("2090-01-15");
     await page.getByRole("button", { name: "16:00", exact: true }).click();
     await page.getByLabel("Reason for visit (optional)").fill("Visit");
@@ -185,10 +237,8 @@ for (const width of [360, 1280]) {
       .getByRole("button", { name: "Book Appointment", exact: true })
       .click();
     await expect(page.getByText(/Appointment 204 booked/)).toBeVisible();
-    await page
-      .getByRole("link", { name: "Appointment Hub", exact: true })
-      .last()
-      .click();
+    await page.getByRole("button", { name: "Done", exact: true }).click();
+    await expect(bookingButton).toBeFocused();
     await page
       .getByRole("button", { name: "Reschedule appointment 204" })
       .click();

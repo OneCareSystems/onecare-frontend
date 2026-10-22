@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Button from "../../components/Button";
 import Input from "../../components/Input";
 import Select from "../../components/Select";
@@ -7,6 +7,7 @@ import Table from "../../components/Table";
 import ErrorMessage from "../../components/ErrorMessage";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import AvailableSlotPicker from "../../components/admin/AvailableSlotPicker";
+import BookAppointmentModal from "../../components/admin/BookAppointmentModal";
 import {
   WorkflowPage,
   WorkflowCard,
@@ -25,9 +26,27 @@ import {
   statusLabel,
   workflowError,
 } from "../../utils/adminWorkflows";
-import { toLocalDateString } from "../../utils/dateUtils";
+import { clinicToday } from "../../utils/clinicTime";
 
 export default function AppointmentHubPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const searchParams = new URLSearchParams(location.search);
+  const bookingButton = useRef(null);
+  const bookingOpen = searchParams.get("booking") === "new";
+  const setBookingOpen = (open) => {
+    const next = new URLSearchParams(location.search);
+    if (open) next.set("booking", "new");
+    else next.delete("booking");
+    navigate(
+      {
+        pathname: location.pathname,
+        search: next.toString() ? `?${next}` : "",
+        hash: location.hash,
+      },
+      { replace: true, state: location.state },
+    );
+  };
   const [draft, setDraft] = useState({ from: "", to: "", search: "" }),
     [filters, setFilters] = useState({});
   const [status, setStatus] = useState(""),
@@ -126,203 +145,213 @@ export default function AppointmentHubPage() {
   return (
     <WorkflowPage
       title="Appointment Hub"
-      subtitle="View and manage appointments"
+      subtitle="Manage patient appointments"
     >
-      <Link
-        to="/admin/book-appointment"
-        className="inline-block rounded-md bg-primary-800 px-4 py-2 text-sm text-white"
+      <div
+        className="space-y-4"
+        aria-hidden={bookingOpen || undefined}
+        inert={bookingOpen || undefined}
       >
-        Book Appointment
-      </Link>
-      <WorkflowCard title="Find appointments">
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            const validation = dateRangeError(draft.from, draft.to);
-            setError(validation);
-            if (!validation) setFilters({ ...draft });
-          }}
-          className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-4"
-        >
-          <Input
-            name="from"
-            label="From date"
-            type="date"
-            value={draft.from}
-            onChange={changeFilter}
-          />
-          <Input
-            name="to"
-            label="To date"
-            type="date"
-            value={draft.to}
-            onChange={changeFilter}
-          />
-          <Input
-            name="search"
-            label="Patient name or stored phone"
-            value={draft.search}
-            onChange={changeFilter}
-          />
-          <Button type="submit">Apply filters</Button>
-        </form>
-        <div className="flex flex-wrap gap-3">
-          <Select
-            name="hub-status"
-            label="Status"
-            value={status}
-            onChange={(event) => setStatus(event.target.value)}
-            placeholder="All statuses"
-            options={APPOINTMENT_STATUSES.map((value) => ({
-              value,
-              label: statusLabel(value),
-            }))}
-          />
-          <Select
-            name="hub-doctor"
-            label="Doctor"
-            value={doctor}
-            onChange={(event) => setDoctor(event.target.value)}
-            placeholder="All doctors"
-            options={[...new Set(all.map((a) => String(a.doctorId)))].map(
-              (value) => ({ value, label: `Doctor ${value}` }),
-            )}
-          />
-          <Button
-            variant="outline"
-            onClick={() => setRefresh((key) => key + 1)}
-            disabled={records.loading}
+        <Button ref={bookingButton} onClick={() => setBookingOpen(true)}>
+          + Book Appointment
+        </Button>
+        <WorkflowCard title="Find appointments">
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              const validation = dateRangeError(draft.from, draft.to);
+              setError(validation);
+              if (!validation) setFilters({ ...draft });
+            }}
+            className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-4"
           >
-            Refresh appointments
-          </Button>
-        </div>
-      </WorkflowCard>
-      <ErrorMessage
-        message={
-          error ||
-          (records.error
-            ? workflowError(records.error, "load appointments")
-            : "")
-        }
-      />
-      {message && <p role="status">{message}</p>}
-      {records.loading && <p role="status">Loading appointments…</p>}
-      <WorkflowCard>
-        {records.data && (
-          <Table
-            className="[&_th]:px-2 [&_td]:px-2"
-            label="Appointments"
-            data={rows}
-            getRowKey={(a) => a.appointmentId}
-            emptyTitle="No appointments found"
-            emptyMessage="Try another date range or book an appointment."
-            columns={[
-              { key: "appointmentId", header: "Appointment ID" },
-              {
-                key: "appointmentDate",
-                header: "Date & Time",
-                render: (a) => `${a.appointmentDate} · ${a.timeSlot}`,
-              },
-              { key: "patientFullName", header: "Patient Name" },
-              { key: "patientId", header: "Patient ID" },
-              { key: "doctorId", header: "Doctor ID" },
-              {
-                key: "status",
-                header: "Status",
-                render: (a) => <WorkflowStatus status={a.status} />,
-              },
-              {
-                key: "actions",
-                header: "Actions",
-                render: (a) =>
-                  a.status === "SCHEDULED" ? (
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={pending}
-                        onClick={() => start("reschedule", a)}
-                        aria-label={`Reschedule appointment ${a.appointmentId}`}
-                      >
-                        Reschedule
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        disabled={pending}
-                        onClick={() => start("cancel", a)}
-                        aria-label={`Cancel appointment ${a.appointmentId}`}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  ) : (
-                    "—"
-                  ),
-              },
-            ]}
-          />
-        )}
-      </WorkflowCard>
-      {action?.type === "reschedule" && (
-        <WorkflowCard
-          title={`Reschedule appointment ${action.appointment.appointmentId}`}
-        >
-          <fieldset disabled={pending} className="space-y-3">
             <Input
-              name="reschedule-date"
-              label="New appointment date"
+              name="from"
+              label="From date"
               type="date"
-              min={toLocalDateString()}
-              value={date}
-              onChange={(event) => {
-                setDate(event.target.value);
-                setSlot("");
-              }}
+              value={draft.from}
+              onChange={changeFilter}
             />
-            <AvailableSlotPicker
-              doctorId={action.appointment.doctorId}
-              date={date}
-              value={slot}
-              onChange={setSlot}
-              refreshKey={slotRefresh}
-              disabled={pending}
+            <Input
+              name="to"
+              label="To date"
+              type="date"
+              value={draft.to}
+              onChange={changeFilter}
             />
-            <div className="flex gap-3">
-              <Button onClick={requestConfirmation}>Review reschedule</Button>
-              <Button variant="outline" onClick={() => setAction(null)}>
-                Close reschedule
-              </Button>
-            </div>
-          </fieldset>
+            <Input
+              name="search"
+              label="Patient name or stored phone"
+              value={draft.search}
+              onChange={changeFilter}
+            />
+            <Button type="submit">Apply filters</Button>
+          </form>
+          <div className="flex flex-wrap gap-3">
+            <Select
+              name="hub-status"
+              label="Status"
+              value={status}
+              onChange={(event) => setStatus(event.target.value)}
+              placeholder="All statuses"
+              options={APPOINTMENT_STATUSES.map((value) => ({
+                value,
+                label: statusLabel(value),
+              }))}
+            />
+            <Select
+              name="hub-doctor"
+              label="Doctor"
+              value={doctor}
+              onChange={(event) => setDoctor(event.target.value)}
+              placeholder="All doctors"
+              options={[...new Set(all.map((a) => String(a.doctorId)))].map(
+                (value) => ({ value, label: `Doctor ${value}` }),
+              )}
+            />
+            <Button
+              variant="outline"
+              onClick={() => setRefresh((key) => key + 1)}
+              disabled={records.loading}
+            >
+              Refresh appointments
+            </Button>
+          </div>
         </WorkflowCard>
-      )}
-      <ConfirmDialog
-        isOpen={confirm}
-        title={
-          action?.type === "cancel"
-            ? "Cancel appointment?"
-            : "Confirm reschedule"
-        }
-        message={
-          action?.type === "cancel"
-            ? `Cancel appointment ${action?.appointment.appointmentId}?`
-            : `Move appointment ${action?.appointment.appointmentId} to ${date} at ${slot}?`
-        }
-        confirmLabel={
-          action?.type === "cancel"
-            ? "Confirm cancellation"
-            : "Confirm reschedule"
-        }
-        loading={pending}
-        onClose={() => {
-          if (!pending) {
-            setConfirm(false);
-            if (action?.type === "cancel") setAction(null);
+        <ErrorMessage
+          message={
+            error ||
+            (records.error
+              ? workflowError(records.error, "load appointments")
+              : "")
           }
-        }}
-        onConfirm={execute}
-      />
+        />
+        {message && <p role="status">{message}</p>}
+        {records.loading && <p role="status">Loading appointments…</p>}
+        <WorkflowCard>
+          {records.data && (
+            <Table
+              className="[&_th]:px-2 [&_td]:px-2"
+              label="Appointments"
+              data={rows}
+              getRowKey={(a) => a.appointmentId}
+              emptyTitle="No appointments found"
+              emptyMessage="Try another date range or book an appointment."
+              columns={[
+                { key: "appointmentId", header: "Appointment ID" },
+                {
+                  key: "appointmentDate",
+                  header: "Date & Time",
+                  render: (a) => `${a.appointmentDate} · ${a.timeSlot}`,
+                },
+                { key: "patientFullName", header: "Patient Name" },
+                { key: "patientId", header: "Patient ID" },
+                { key: "doctorId", header: "Doctor ID" },
+                {
+                  key: "status",
+                  header: "Status",
+                  render: (a) => <WorkflowStatus status={a.status} />,
+                },
+                {
+                  key: "actions",
+                  header: "Actions",
+                  render: (a) =>
+                    a.status === "SCHEDULED" ? (
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={pending}
+                          onClick={() => start("reschedule", a)}
+                          aria-label={`Reschedule appointment ${a.appointmentId}`}
+                        >
+                          Reschedule
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          disabled={pending}
+                          onClick={() => start("cancel", a)}
+                          aria-label={`Cancel appointment ${a.appointmentId}`}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      "—"
+                    ),
+                },
+              ]}
+            />
+          )}
+        </WorkflowCard>
+        {action?.type === "reschedule" && (
+          <WorkflowCard
+            title={`Reschedule appointment ${action.appointment.appointmentId}`}
+          >
+            <fieldset disabled={pending} className="space-y-3">
+              <Input
+                name="reschedule-date"
+                label="New appointment date"
+                type="date"
+                min={clinicToday()}
+                value={date}
+                onChange={(event) => {
+                  setDate(event.target.value);
+                  setSlot("");
+                }}
+              />
+              <AvailableSlotPicker
+                doctorId={action.appointment.doctorId}
+                date={date}
+                value={slot}
+                onChange={setSlot}
+                refreshKey={slotRefresh}
+                disabled={pending}
+              />
+              <div className="flex gap-3">
+                <Button onClick={requestConfirmation}>Review reschedule</Button>
+                <Button variant="outline" onClick={() => setAction(null)}>
+                  Close reschedule
+                </Button>
+              </div>
+            </fieldset>
+          </WorkflowCard>
+        )}
+        <ConfirmDialog
+          isOpen={confirm}
+          title={
+            action?.type === "cancel"
+              ? "Cancel appointment?"
+              : "Confirm reschedule"
+          }
+          message={
+            action?.type === "cancel"
+              ? `Cancel appointment ${action?.appointment.appointmentId}?`
+              : `Move appointment ${action?.appointment.appointmentId} to ${date} at ${slot}?`
+          }
+          confirmLabel={
+            action?.type === "cancel"
+              ? "Confirm cancellation"
+              : "Confirm reschedule"
+          }
+          loading={pending}
+          onClose={() => {
+            if (!pending) {
+              setConfirm(false);
+              if (action?.type === "cancel") setAction(null);
+            }
+          }}
+          onConfirm={execute}
+        />
+      </div>
+      {bookingOpen && (
+        <BookAppointmentModal
+          returnFocusRef={bookingButton}
+          onClose={() => setBookingOpen(false)}
+          onBooked={() => setRefresh((key) => key + 1)}
+        />
+      )}
     </WorkflowPage>
   );
 }

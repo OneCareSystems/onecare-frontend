@@ -1,4 +1,4 @@
-import { toLocalDateString } from "./dateUtils";
+import { clinicToday, isFutureClinicSlot } from "./clinicTime";
 
 export const APPOINTMENT_STATUSES = [
   "SCHEDULED",
@@ -44,11 +44,10 @@ export function bookingError(
   if (!patientId) return "Select a patient.";
   if (!doctorId) return "Select a doctor.";
   if (!validDate(date)) return "Select a valid appointment date.";
-  if (date < toLocalDateString(now))
-    return "Appointment date cannot be in the past.";
+  if (date < clinicToday(now)) return "Appointment date cannot be in the past.";
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(slot))
     return "Select an available time slot.";
-  if (new Date(`${date}T${slot}:00`).getTime() <= now.getTime())
+  if (!isFutureClinicSlot(date, slot, now))
     return "Select a future appointment time.";
   return "";
 }

@@ -73,12 +73,6 @@ export const NAV_ITEMS = Object.freeze({
       icon: "search",
     }),
     Object.freeze({
-      id: "book-appointment",
-      to: "/admin/book-appointment",
-      label: "Book Appointment",
-      icon: "calendar",
-    }),
-    Object.freeze({
       id: "appointments",
       to: "/admin/appointments",
       label: "Appointment Hub",

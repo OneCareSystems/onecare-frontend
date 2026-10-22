@@ -8,6 +8,9 @@ export default mergeConfig(baseConfig, {
       "test/utils/demoClinicReports.test.js",
       "test/services/adminWorkflowService.test.js",
       "test/hooks/useAdminQueue.test.jsx",
+      "test/hooks/usePatientOptions.test.jsx",
+      "test/components/AutocompleteCombobox.test.jsx",
+      "test/utils/clinicTime.test.js",
       "test/pages/admin/admin*.test.jsx",
     ],
     coverage: {
@@ -15,9 +18,12 @@ export default mergeConfig(baseConfig, {
       include: [
         "src/utils/adminWorkflows.js",
         "src/utils/demoClinicReports.js",
+        "src/utils/clinicTime.js",
+        "src/components/AutocompleteCombobox.jsx",
         "src/services/adminWorkflowService.js",
         "src/hooks/useAdminQueue.js",
         "src/hooks/useWorkflowResource.js",
+        "src/hooks/usePatientOptions.js",
         "src/components/admin/*.jsx",
         "src/pages/admin/BookAppointmentPage.jsx",
         "src/pages/admin/AppointmentHubPage.jsx",
