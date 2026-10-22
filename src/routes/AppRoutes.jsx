@@ -24,6 +24,7 @@ import { CHANGE_PASSWORD_PATH, ROUTE_ACCESS } from "../constants/routeAccess";
 import PatientRecordsPage from "../pages/doctor/PatientRecordsPage";
 import PatientDetails from "../pages/doctor/PatientDetails";
 import KnowledgeBasePage from "../pages/doctor/KnowledgeBasePage";
+import KnowledgeBaseManagementPage from "../pages/superAdmin/KnowledgeBaseManagementPage";
 import RegisterPatientPage from "../pages/admin/RegisterPatientPage";
 import PatientRegistrationLayout from "../layouts/PatientRegistrationLayout";
 import UserManagementPage from "../pages/superAdmin/UserManagementPage";
@@ -117,6 +118,7 @@ const AppRoutes = () => {
             element={<SystemMaintenancePage />}
           />
           <Route path="audits-reports" element={<AuditLogsPage />} />
+          <Route path="knowledge-base" element={<KnowledgeBaseManagementPage />} />
         </Route>
       </Route>
       {/* SHARED SCREENS (AC4) — several roles, one route */}

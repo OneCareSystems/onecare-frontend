@@ -46,6 +46,7 @@ export const NAV_ITEMS = Object.freeze({
       label: "Audits & Reports",
       icon: "clipboard",
     }),
+    Object.freeze({ id: "chatbot-knowledge-base", to: "/super-admin/knowledge-base", label: "Chatbot Knowledge Base", icon: "clipboard" }),
   ]),
   [ROLES.ADMIN]: Object.freeze([
     Object.freeze({
