@@ -31,6 +31,7 @@ import AccessControlPage from "../pages/superAdmin/AccessControlPage";
 import ClinicConfigPage from "../pages/superAdmin/ClinicConfigPage";
 import SystemMaintenancePage from "../pages/superAdmin/SystemMaintenancePage";
 import AuditLogsPage from "../pages/superAdmin/AuditLogsPage";
+import DispensingQueuePage from "../pages/pharmacist/DispensingQueuePage";
 
 const AppRoutes = () => {
   return (
@@ -111,6 +112,7 @@ const AppRoutes = () => {
       <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.pharmacist} />}>
         <Route path="/pharmacist" element={<PharmacistLayout />}>
           <Route path="dashboard" element={<PharmacistDashboardPage />} />
+          <Route path="dispensing-queue" element={<DispensingQueuePage />} />
         </Route>
       </Route>
 
