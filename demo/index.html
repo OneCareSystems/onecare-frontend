@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OneCare chat widget demo</title>
+  <style>
+    body { font-family: system-ui, "Noto Sans Tamil", sans-serif; margin: 0; padding: 24px; max-width: 760px; line-height: 1.5; }
+    fieldset { border: 1px solid #ccd; border-radius: 8px; margin: 16px 0; } legend { font-weight: 600; }
+    label { display: block; margin: 4px 0; } code { background: #eef; padding: 1px 5px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>OneCare Patient Portal (demo page)</h1>
+  <p>The chat button is at the bottom right. Pick a backend below to see every state of the widget.</p>
+  <fieldset>
+    <legend>Backend</legend>
+    <div id="modes"></div>
+  </fieldset>
+  <fieldset>
+    <legend>Portal language (the <code>lang</code> attribute)</legend>
+    <label><input type="radio" name="lang" value="en" checked> English</label>
+    <label><input type="radio" name="lang" value="ta"> தமிழ்</label>
+  </fieldset>
+  <p><button id="ask">Portal button: ask about clinic hours</button></p>
+  <pre id="events" aria-label="events from the widget" style="background:#f6f6f8;padding:8px;min-height:3em;font-size:.8rem"></pre>
+
+  <onecare-chat-widget id="chat" api-url="/api/chatbot/query"></onecare-chat-widget>
+
+  <script type="module">
+    import '../src/components/chatbot/onecare-chat-widget.js';
+    import { MODES } from './mock-backend.js';
+    const chat = document.getElementById('chat');
+    const modes = document.getElementById('modes');
+    const params = new URLSearchParams(location.search);
+    const start = params.get('mode') || 'real';
+    modes.innerHTML = `<label><input type="radio" name="mode" value="real"> Real API (<code>/api/chatbot/query</code> through the dev server)</label>`
+      + Object.entries(MODES).map(([key, m]) => `<label><input type="radio" name="mode" value="${key}"> ${m.label}</label>`).join('');
+    const apply = (key) => { chat.fetchImpl = key === 'real' ? null : MODES[key].fetch; };
+    modes.querySelector(`input[value="${start}"]`).checked = true;
+    apply(start);
+    modes.addEventListener('change', (e) => apply(e.target.value));
+    document.querySelectorAll('input[name=lang]').forEach((r) => r.addEventListener('change', (e) => { chat.setAttribute('lang', e.target.value); document.documentElement.lang = e.target.value; }));
+    document.getElementById('ask').addEventListener('click', () => chat.ask('What are the clinic hours?'));
+    const log = document.getElementById('events');
+    for (const name of ['open', 'close', 'response', 'error']) chat.addEventListener(`onecare-chat:${name}`, (e) => { log.textContent += `${name} ${JSON.stringify(e.detail)}\n`; });
+    if (params.has('open')) chat.open();
+  </script>
+</body>
+</html>

@@ -69,7 +69,7 @@ describe("StaffLayout — CFG-04 staff chrome (integration)", () => {
     renderAppAt("/queue");
 
     expect(
-      screen.getByRole("heading", { name: "QueuePage" }),
+      screen.getByRole("heading", { name: "Queue Management" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("navigation", { name: "Breadcrumb" }),

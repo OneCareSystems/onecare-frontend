@@ -164,6 +164,7 @@ export default function RegisterPatientPage() {
                 maxLength: 100,
                 autoComplete: "email",
               })}
+              {field("bloodGroup", "Blood Group (Optional)", { maxLength: 10 })}
             </div>
             <div className="mt-5 flex items-center justify-between gap-3">
               <Button variant="outline" onClick={reset}>
