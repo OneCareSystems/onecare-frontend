@@ -1,4 +1,3 @@
-
 import { afterEach, describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -78,9 +77,7 @@ describe("PharmacistDashboardPage", () => {
     expect(mswState.lowStockMedicineHits).toHaveLength(1);
     expect(mswState.nearExpiryMedicineHits).toHaveLength(1);
 
-    expect(mswState.issuedPrescriptionHits[0].url).toContain(
-      "status=ISSUED",
-    );
+    expect(mswState.issuedPrescriptionHits[0].url).toContain("status=ISSUED");
   });
 
   it("shows an error and retries the failed section", async () => {

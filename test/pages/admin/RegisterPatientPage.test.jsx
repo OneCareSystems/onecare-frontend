@@ -60,11 +60,13 @@ const success = (duplicateSuspected = false) =>
 describe("ADM-02 registration through real routing and authenticated HTTP client", () => {
   it.each(["ADMIN"])("allows %s", (role) => {
     open(role);
-    expect(screen.getByRole("heading", { name: "Register New Patient" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Register New Patient" }),
+    ).toBeInTheDocument();
   });
   it.each([
     [null, /sign in to onecare/i],
-    ["DOCTOR", /today.s appointments/i],
+    ["DOCTOR", /today.s overview/i],
     ["PHARMACIST", /PharmacistDashboardPage/],
   ])("blocks %s", async (role, heading) => {
     open(role);
@@ -98,9 +100,18 @@ describe("ADM-02 registration through real routing and authenticated HTTP client
     fill(" Example  Patient ");
     save();
     expect(await screen.findByText("101")).toBeInTheDocument();
-    expect(requests[0]).toEqual({ auth: "Bearer registration-token", body: {
-      full_name: " Example  Patient ", dateOfBirth: "2090-01-15", contactNo: "example-phone", address: null, email: null, gender: null, bloodGroup: null,
-    } });
+    expect(requests[0]).toEqual({
+      auth: "Bearer registration-token",
+      body: {
+        full_name: " Example  Patient ",
+        dateOfBirth: "2090-01-15",
+        contactNo: "example-phone",
+        address: null,
+        email: null,
+        gender: null,
+        bloodGroup: null,
+      },
+    });
     expect(screen.queryByText("CLINICAL_SECRET")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Save Patient" }),
