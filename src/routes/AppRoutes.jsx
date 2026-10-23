@@ -24,7 +24,6 @@ import { CHANGE_PASSWORD_PATH, ROUTE_ACCESS } from "../constants/routeAccess";
 import PatientRecordsPage from "../pages/doctor/PatientRecordsPage";
 import PatientDetails from "../pages/doctor/PatientDetails";
 import KnowledgeBasePage from "../pages/doctor/KnowledgeBasePage";
-import KnowledgeBaseManagementPage from "../pages/superAdmin/KnowledgeBaseManagementPage";
 import RegisterPatientPage from "../pages/admin/RegisterPatientPage";
 import PatientSearchEditPage from "../pages/admin/PatientSearchEditPage";
 import UserManagementPage from "../pages/superAdmin/UserManagementPage";
@@ -36,6 +35,7 @@ import BookAppointmentPage from "../pages/admin/BookAppointmentPage";
 import AppointmentHubPage from "../pages/admin/AppointmentHubPage";
 import BillingPage from "../pages/admin/BillingPage";
 import ClinicReports from "../components/admin/ClinicReports";
+import ReportsPage from "../pages/superAdmin/ReportsPage";
 
 const AppRoutes = () => {
   return (
@@ -120,15 +120,13 @@ const AppRoutes = () => {
           <Route path="access-control" element={<AccessControlPage />} />
           <Route path="clinic-configuration" element={<ClinicConfigPage />} />
           <Route
-            path="knowledge-base"
-            element={<KnowledgeBaseManagementPage />}
-          />
-          <Route
             path="system-maintenance"
             element={<SystemMaintenancePage />}
           />
-          <Route path="audits-reports" element={<AuditLogsPage />} />
-          <Route path="clinic-reports" element={<ClinicReports />} />
+          <Route path="audits" element={<AuditLogsPage />} />
+          <Route path="reports" element={<ReportsPage />} />
+          <Route path="clinic-reports" element={<Navigate to="/super-admin/reports" replace />} />
+          <Route path="pharmacy-reports" element={<Navigate to="/super-admin/reports?section=pharmacy" replace />} />
         </Route>
       </Route>
       {/* SHARED SCREENS (AC4) — several roles, one route */}

@@ -58,34 +58,12 @@ afterEach(() => {
 });
 
 describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
-  it("allows Super Admin to open the persisted chatbot resource manager", async () => {
+  it("does not expose the knowledge base page in the Super Admin module", async () => {
     seed({ accessToken: "a", role: ROLES.SUPER_ADMIN });
-    server.use(
-      http.get("*/api/chatbot/knowledge-base", () =>
-        HttpResponse.json({
-          success: true,
-          data: { items: [], count: 0, page: 1, pageSize: 20, totalPages: 0 },
-        }),
-      ),
-    );
     renderAppAt("/super-admin/knowledge-base");
     expect(
-      await screen.findByRole("heading", {
-        name: "Chatbot Knowledge Base Management",
-      }),
+      await screen.findByRole("heading", { name: "Page not found" }),
     ).toBeInTheDocument();
-    expect(
-      await screen.findByText("No knowledge resources found"),
-    ).toBeInTheDocument();
-  });
-
-  it("keeps the Super Admin knowledge base route unavailable to ADMIN", async () => {
-    seed({ accessToken: "a", role: ROLES.ADMIN });
-    renderAppAt("/super-admin/knowledge-base");
-    expect(
-      await screen.findByRole("heading", { name: /AdminDashboardPage/i }),
-    ).toBeInTheDocument();
-    expectLocation("/admin/dashboard");
     expect(
       screen.queryByRole("heading", {
         name: "Chatbot Knowledge Base Management",

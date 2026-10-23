@@ -41,9 +41,15 @@ export const NAV_ITEMS = Object.freeze({
       icon: "activity",
     }),
     Object.freeze({
-      id: "audits-reports",
-      to: "/super-admin/audits-reports",
-      label: "Audits & Reports",
+      id: "audits",
+      to: "/super-admin/audits",
+      label: "Audit Logs",
+      icon: "clipboard",
+    }),
+    Object.freeze({
+      id: "reports",
+      to: "/super-admin/reports",
+      label: "Reports",
       icon: "clipboard",
     }),
   ]),
