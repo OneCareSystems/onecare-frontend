@@ -4,7 +4,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { mswState } from "../../msw/handlers";
 import { closePage, openPage } from "./superAdminHarness";
 
-const PATH = "/super-admin/audits-reports";
+const PATH = "/super-admin/audits";
 
 afterEach(() => {
   closePage();

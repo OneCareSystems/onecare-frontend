@@ -8,6 +8,8 @@ import {
   useState,
 } from "react";
 
+import { Link } from "react-router-dom";
+
 import Button from "../../components/Button";
 import ErrorMessage from "../../components/ErrorMessage";
 import Icon from "../../components/Icon";
@@ -415,6 +417,20 @@ const AuditLogsPage = () => {
                 Updated {lastUpdated.toLocaleTimeString()}
               </span>
             )}
+            <Link
+              to="/super-admin/clinic-reports"
+              className="inline-flex items-center gap-1.5 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium text-neutral-900 hover:bg-neutral-50"
+            >
+              <Icon name="stethoscope" className="h-3.5 w-3.5" />
+              Clinic report
+            </Link>
+            <Link
+              to="/super-admin/pharmacy-reports"
+              className="inline-flex items-center gap-1.5 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium text-neutral-900 hover:bg-neutral-50"
+            >
+              <Icon name="pill" className="h-3.5 w-3.5" />
+              Pharmacy report
+            </Link>
             <Button
               variant="outline"
               size="sm"
