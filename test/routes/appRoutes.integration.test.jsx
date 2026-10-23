@@ -86,7 +86,7 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
 
     expect(
       await screen.findByRole("heading", {
-        name: /today.s appointments/i,
+        name: /today.s overview/i,
       }),
     ).toBeInTheDocument();
 
@@ -103,7 +103,7 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
       {
         role: ROLES.DOCTOR,
         path: "/doctor/dashboard",
-        heading: /today.s appointments/i,
+        heading: /today.s overview/i,
       },
       {
         role: ROLES.PHARMACIST,
@@ -343,7 +343,7 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
 
     expect(
       await screen.findByRole("heading", {
-        name: /today.s appointments/i,
+        name: /today.s Overview/i,
       }),
     ).toBeInTheDocument();
 

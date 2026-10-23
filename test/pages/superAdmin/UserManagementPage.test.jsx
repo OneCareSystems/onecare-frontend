@@ -395,7 +395,7 @@ describe("super-admin user management — REST cases", () => {
     openPage(PATH, { role: "DOCTOR" });
 
     expect(
-      await screen.findByRole("heading", { name: /today.s appointments/i }),
+      await screen.findByRole("heading", { name: /today.s overview/i }),
     ).toBeInTheDocument();
     expect(screen.queryByText("User Management")).not.toBeInTheDocument();
     expect(mswState.usersHits).toHaveLength(0);

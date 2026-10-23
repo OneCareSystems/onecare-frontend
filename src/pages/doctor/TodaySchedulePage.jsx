@@ -254,21 +254,21 @@ const TodaySchedulePage = () => {
           </>
         }
         actions={
-          <>
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-end">
             <DatePicker
               id="schedule-date"
               name="scheduleDate"
               label="Date"
               value={selectedDate}
               onChange={handleDateChange}
-              className="min-w-40"
+              className="w-full min-w-40 sm:w-48"
             />
 
             <Button
               variant="outline"
               onClick={refresh}
               disabled={firstLoad}
-              className="inline-flex items-center gap-2"
+              className="h-[38px] shrink-0 self-end inline-flex items-center gap-2 sm:self-auto"
             >
               <Icon
                 name="refresh"
@@ -277,7 +277,7 @@ const TodaySchedulePage = () => {
               />
               {refreshing ? "Refreshing…" : "Refresh"}
             </Button>
-          </>
+          </div>
         }
       />
 

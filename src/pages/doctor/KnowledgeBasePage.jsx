@@ -4,7 +4,6 @@ import {
   useDeferredValue,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 
@@ -14,16 +13,14 @@ import EmptyState from "../../components/EmptyState";
 import Icon from "../../components/Icon";
 import Modal from "../../components/doctor/Modal";
 import { PageHeader, PageShell } from "../../components/doctor/PageLayout";
-import { ErrorPanel, Panel, SkeletonBlock } from "../../components/doctor/Panel";
+import { ErrorPanel, SkeletonBlock } from "../../components/doctor/Panel";
 import {
   deleteDocument,
   listDocuments,
-  uploadDocument,
 } from "../../services/knowledgeBaseService";
 
 const FIELD_CLASS =
   "w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20";
-const LABEL_CLASS = "mb-1 block text-sm font-medium text-neutral-700";
 
 const formatBytes = (bytes) => {
   if (!Number.isFinite(bytes) || bytes <= 0) return null;
@@ -47,19 +44,46 @@ const formatDate = (value) => {
   });
 };
 
-// ---------------------------------------------------------------------------
-// Document card
-// ---------------------------------------------------------------------------
-
 const DocumentCard = memo(function DocumentCard({ doc, onRemove, removing }) {
   const size = formatBytes(doc.sizeBytes);
   const uploaded = formatDate(doc.uploadedAt);
 
+  const openUrl =
+    doc.fileUrl ||
+    doc.downloadUrl ||
+    doc.url ||
+    doc.sourceUrl ||
+    (doc.id ? `/api/knowledge-base/documents/${doc.id}/file` : null);
+
+  const handleOpen = (e) => {
+    e.stopPropagation();
+    if (!openUrl) return;
+    window.open(openUrl, "_blank", "noopener,noreferrer");
+  };
+
   return (
-    <article className="group flex flex-col justify-between gap-4 rounded-2xl border border-neutral-200 bg-white p-5 shadow-xs transition-all hover:border-primary-300 hover:shadow-sm">
+    <article
+      className={`group flex flex-col justify-between gap-4 rounded-2xl border border-neutral-200 bg-white p-5 shadow-xs transition-all hover:border-primary-300 hover:shadow-sm ${
+        openUrl ? "cursor-pointer" : ""
+      }`}
+      onClick={openUrl ? handleOpen : undefined}
+      role={openUrl ? "button" : undefined}
+      tabIndex={openUrl ? 0 : undefined}
+      onKeyDown={
+        openUrl
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleOpen(e);
+              }
+            }
+          : undefined
+      }
+      aria-label={openUrl ? `Open ${doc.title} in a new tab` : undefined}
+    >
       <div className="space-y-3">
         <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-50 text-primary-700 ring-1 ring-inset ring-primary-100">
               <Icon name="file-text" className="h-4 w-4" />
             </span>
@@ -74,20 +98,24 @@ const DocumentCard = memo(function DocumentCard({ doc, onRemove, removing }) {
           </div>
           <button
             type="button"
-            onClick={() => onRemove(doc)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove(doc);
+            }}
             disabled={removing}
             aria-label={`Remove ${doc.title}`}
             className="rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-2 focus-visible:outline-primary-600 disabled:opacity-40"
           >
             <Icon
               name={removing ? "loader" : "trash"}
-              className={`h-4 w-4 ${removing ? "motion-safe:animate-spin text-rose-500" : ""
-                }`}
+              className={`h-4 w-4 ${
+                removing ? "motion-safe:animate-spin text-rose-500" : ""
+              }`}
             />
           </button>
         </div>
 
-        <h3 className="line-clamp-2 text-base font-semibold text-neutral-900">
+        <h3 className="line-clamp-2 text-base font-semibold text-neutral-900 group-hover:text-primary-700">
           {doc.title}
         </h3>
 
@@ -101,7 +129,7 @@ const DocumentCard = memo(function DocumentCard({ doc, onRemove, removing }) {
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-neutral-100 pt-3 text-xs text-neutral-500">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           {doc.fileName && (
-            <span className="inline-flex items-center gap-1 truncate max-w-[12rem]">
+            <span className="inline-flex max-w-[12rem] items-center gap-1 truncate">
               <Icon name="file" className="h-3 w-3" />
               {doc.fileName}
             </span>
@@ -119,137 +147,24 @@ const DocumentCard = memo(function DocumentCard({ doc, onRemove, removing }) {
             </span>
           )}
         </div>
+
+        {openUrl && (
+          <a
+            href={openUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-primary-600 hover:underline"
+          >
+            Open
+            <Icon name="arrow-right" className="h-3 w-3" />
+          </a>
+        )}
       </div>
     </article>
   );
 });
-
-// ---------------------------------------------------------------------------
-// Upload modal
-// ---------------------------------------------------------------------------
-
-const UploadModal = ({ onCancel, onUpload, uploading, error }) => {
-  const fileRef = useRef(null);
-  const [file, setFile] = useState(null);
-  const [localError, setLocalError] = useState(null);
-  const [dragging, setDragging] = useState(false);
-
-  const chooseFile = useCallback((picked) => {
-    if (!picked) return;
-    const isPdf =
-      picked.type === "application/pdf" ||
-      picked.name?.toLowerCase().endsWith(".pdf");
-    if (!isPdf) {
-      setLocalError("Please select a PDF file.");
-      setFile(null);
-      return;
-    }
-    setLocalError(null);
-    setFile(picked);
-  }, []);
-
-  const handleFileInput = (event) => chooseFile(event.target.files?.[0]);
-
-  const handleDrop = (event) => {
-    event.preventDefault();
-    setDragging(false);
-    chooseFile(event.dataTransfer.files?.[0]);
-  };
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    if (!file) {
-      setLocalError("Attach a PDF file.");
-      return;
-    }
-    onUpload(file);
-  };
-
-  const shownError = localError ?? error;
-
-  return (
-    <Modal title="Upload PDF reference" onClose={onCancel}>
-      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        <div>
-          <span className={LABEL_CLASS}>PDF file</span>
-          <label
-            onDragOver={(event) => {
-              event.preventDefault();
-              setDragging(true);
-            }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={handleDrop}
-            className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-6 text-center transition-colors ${dragging
-                ? "border-primary-400 bg-primary-50/60"
-                : "border-neutral-200 bg-neutral-50/60 hover:border-primary-300 hover:bg-primary-50/30"
-              }`}
-          >
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-primary-600 shadow-sm ring-1 ring-neutral-200">
-              <Icon name="upload" className="h-4 w-4" />
-            </span>
-            {file ? (
-              <span className="flex flex-col items-center">
-                <span className="text-sm font-medium text-neutral-900">
-                  {file.name}
-                </span>
-                <span className="text-xs text-neutral-500">
-                  {formatBytes(file.size) ?? ""}
-                </span>
-              </span>
-            ) : (
-              <span className="flex flex-col items-center">
-                <span className="text-sm font-medium text-neutral-800">
-                  Drop a PDF here or click to browse
-                </span>
-                <span className="text-xs text-neutral-500">
-                  Only PDF files are accepted
-                </span>
-              </span>
-            )}
-            <input
-              ref={fileRef}
-              type="file"
-              accept="application/pdf"
-              onChange={handleFileInput}
-              className="hidden"
-              aria-label="PDF file"
-            />
-          </label>
-          {shownError && (
-            <p role="alert" className="mt-1 text-sm text-rose-600">
-              {shownError}
-            </p>
-          )}
-        </div>
-
-        <div className="flex justify-end gap-2 border-t border-neutral-100 pt-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onCancel}
-            disabled={uploading}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            size="sm"
-            loading={uploading}
-            disabled={uploading || !file}
-            className="inline-flex items-center gap-1.5"
-          >
-            <Icon name="upload" className="h-4 w-4" />
-            {uploading ? "Uploading…" : "Upload reference"}
-          </Button>
-        </div>
-      </form>
-    </Modal>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// Remove confirmation
-// ---------------------------------------------------------------------------
+DocumentCard.displayName = "DocumentCard";
 
 const ConfirmRemoveModal = ({ doc, onCancel, onConfirm, removing, error }) => (
   <Modal title="Remove reference" onClose={onCancel} widthClass="max-w-md">
@@ -258,7 +173,10 @@ const ConfirmRemoveModal = ({ doc, onCancel, onConfirm, removing, error }) => (
       knowledge base? The chatbot will no longer reference this document.
     </p>
     {error && (
-      <p role="alert" className="mt-3 rounded-lg bg-rose-50 p-2 text-sm text-rose-700">
+      <p
+        role="alert"
+        className="mt-3 rounded-lg bg-rose-50 p-2 text-sm text-rose-700"
+      >
         {error}
       </p>
     )}
@@ -287,32 +205,21 @@ const ConfirmRemoveModal = ({ doc, onCancel, onConfirm, removing, error }) => (
   </Modal>
 );
 
-// ---------------------------------------------------------------------------
-// Page
-// ---------------------------------------------------------------------------
-
-/**
- * Clinical reference library backed by the chatbot knowledge-base API.
- * Uploads, listings, and removals are all server-driven.
- */
 const KnowledgeBasePage = () => {
   const [documents, setDocuments] = useState([]);
-  const [status, setStatus] = useState("loading"); // loading | ready | failed
+  const [status, setStatus] = useState("loading");
   const [reloadKey, setReloadKey] = useState(0);
 
   const [searchQuery, setSearchQuery] = useState("");
   const deferredQuery = useDeferredValue(searchQuery);
 
-  const [showUpload, setShowUpload] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState(null);
+  const [showManager, setShowManager] = useState(false);
 
   const [pendingRemoval, setPendingRemoval] = useState(null);
-  const [removing, setRemoving] = useState(false);
-  const [removeError, setRemoveError] = useState(null);
   const [removingId, setRemovingId] = useState(null);
+  const [removeError, setRemoveError] = useState(null);
+  const removing = removingId !== null;
 
-  // Initial + retry fetch.
   useEffect(() => {
     const controller = new AbortController();
     setStatus("loading");
@@ -327,16 +234,15 @@ const KnowledgeBasePage = () => {
           err?.name === "AbortError" ||
           err?.name === "CanceledError" ||
           err?.code === "ERR_CANCELED"
-        ) return;
+        )
+          return;
         setStatus("failed");
       });
 
     return () => controller.abort();
   }, [reloadKey]);
 
-  const retry = useCallback(() => {
-    setReloadKey((key) => key + 1);
-  }, []);
+  const retry = useCallback(() => setReloadKey((k) => k + 1), []);
 
   const filtered = useMemo(() => {
     const query = deferredQuery.trim().toLowerCase();
@@ -350,42 +256,10 @@ const KnowledgeBasePage = () => {
     });
   }, [documents, deferredQuery]);
 
-  const openUpload = useCallback(() => {
-    setUploadError(null);
-    setShowUpload(true);
-  }, []);
-  const closeUpload = useCallback(() => {
-    if (uploading) return;
-    setShowUpload(false);
-  }, [uploading]);
-
-  const handleUpload = useCallback(
-    (file) => {
-      setUploading(true);
-      setUploadError(null);
-
-      uploadDocument(file)
-        .then((created) => {
-          setDocuments((current) => {
-            if (!created) return current;
-            if (current.some((doc) => doc.id === created.id)) return current;
-            return [created, ...current];
-          });
-          setShowUpload(false);
-          // Re-sync from the server so order/metadata match the backend.
-          setReloadKey((key) => key + 1);
-        })
-        .catch((error) => {
-          if (error?.status === 400) {
-            setUploadError("The server rejected this file. Ensure it is a valid PDF.");
-          } else if (error?.status === 401 || error?.status === 403) {
-            setUploadError("You don't have permission to upload documents.");
-          } else {
-            setUploadError("Unable to upload the file. Please try again.");
-          }
-        })
-        .finally(() => setUploading(false));
-    },
+  const openManager = useCallback(() => setShowManager(true), []);
+  const closeManager = useCallback(() => setShowManager(false), []);
+  const handleManagerUpload = useCallback(
+    () => setReloadKey((k) => k + 1),
     [],
   );
 
@@ -402,23 +276,17 @@ const KnowledgeBasePage = () => {
     if (!pendingRemoval) return;
     const target = pendingRemoval;
 
-    setRemoving(true);
     setRemovingId(target.id);
     setRemoveError(null);
 
     deleteDocument(target.id)
       .then(() => {
-        setDocuments((current) =>
-          current.filter((doc) => doc.id !== target.id),
-        );
+        setDocuments((cur) => cur.filter((d) => d.id !== target.id));
         setPendingRemoval(null);
       })
       .catch((error) => {
         if (error?.status === 404) {
-          // Already gone server-side; reconcile the local list.
-          setDocuments((current) =>
-            current.filter((doc) => doc.id !== target.id),
-          );
+          setDocuments((cur) => cur.filter((d) => d.id !== target.id));
           setPendingRemoval(null);
           return;
         }
@@ -428,13 +296,8 @@ const KnowledgeBasePage = () => {
             : "Unable to remove the document. Please try again.",
         );
       })
-      .finally(() => {
-        setRemoving(false);
-        setRemovingId(null);
-      });
+      .finally(() => setRemovingId(null));
   }, [pendingRemoval]);
-
-  // ----- render: loading / error / list ------------------------------------
 
   const countLabel = useMemo(() => {
     const total = documents.length;
@@ -442,6 +305,8 @@ const KnowledgeBasePage = () => {
     if (deferredQuery.trim()) return `${shown} of ${total} references`;
     return `${total} ${total === 1 ? "reference" : "references"}`;
   }, [documents.length, filtered.length, deferredQuery]);
+
+  const isSearching = deferredQuery.trim().length > 0;
 
   return (
     <PageShell>
@@ -458,12 +323,12 @@ const KnowledgeBasePage = () => {
         }
         actions={
           <Button
-            onClick={openUpload}
+            onClick={openManager}
             className="inline-flex items-center gap-2"
             disabled={status === "loading"}
           >
             <Icon name="plus" className="h-4 w-4" />
-            Upload PDF Reference
+            Upload Reference
           </Button>
         }
       />
@@ -478,50 +343,50 @@ const KnowledgeBasePage = () => {
           onAction={retry}
         />
       ) : (
-        <>
-          <Panel bodyClassName="space-y-4">
-            <div className="relative">
-              <label htmlFor="kb-search" className="sr-only">
-                Search references
-              </label>
-              <Icon
-                name="search"
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
-              />
-              <input
-                id="kb-search"
-                type="search"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search by title, description, or filename…"
-                className={`${FIELD_CLASS} pl-9 pr-9 [&::-webkit-search-cancel-button]:hidden`}
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  aria-label="Clear search"
-                  className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700 focus-visible:outline-2 focus-visible:outline-primary-600"
-                >
-                  <Icon name="x" className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-          </Panel>
+        <div className="space-y-4">
+          <div className="relative">
+            <label htmlFor="kb-search" className="sr-only">
+              Search references
+            </label>
+            <Icon
+              name="search"
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
+            />
+            <input
+              id="kb-search"
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by title, description, or filename…"
+              className={`${FIELD_CLASS} pl-9 pr-9 [&::-webkit-search-cancel-button]:hidden`}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+              >
+                <Icon name="x" className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
 
           {filtered.length === 0 ? (
             <div className="rounded-2xl border border-neutral-200 bg-white shadow-xs">
               <EmptyState
                 title={
-                  deferredQuery.trim()
+                  isSearching
                     ? "No matching references found"
                     : "No references yet"
                 }
                 message={
-                  deferredQuery.trim()
+                  isSearching
                     ? "Try a different search, or upload a new PDF reference."
                     : "Upload your first PDF reference to make it available to the chatbot."
                 }
+                actionLabel={isSearching ? "Clear search" : "Upload reference"}
+                onAction={isSearching ? () => setSearchQuery("") : openManager}
               />
             </div>
           ) : (
@@ -536,20 +401,23 @@ const KnowledgeBasePage = () => {
               ))}
             </div>
           )}
-        </>
+        </div>
       )}
 
-      {showUpload && (
-        <UploadModal
-          onCancel={closeUpload}
-          onUpload={handleUpload}
-          uploading={uploading}
-          error={uploadError}
-        />
+      {showManager && (
+        <Modal
+          title="Add to Knowledge Base"
+          onClose={closeManager}
+          widthClass="max-w-5xl"
+          bodyClassName="max-h-[80vh] overflow-y-auto"
+        >
+          <KnowledgeBaseManager
+            embedded
+            onUploaded={handleManagerUpload}
+          />
+        </Modal>
       )}
 
-      <KnowledgeBaseManager />
-      {showAddModal && <AddPdfModal onCancel={closeAdd} onAdd={handleAdd} />}
       {pendingRemoval && (
         <ConfirmRemoveModal
           doc={pendingRemoval}

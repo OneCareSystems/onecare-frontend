@@ -27,17 +27,25 @@ const Sidebar = () => {
             <li key={item.id} className="shrink-0">
               <NavLink
                 to={item.to}
+                aria-label={item.label}
+                title={item.label}
                 className={({ isActive }) =>
                   [
-                    "flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold",
+                    "flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold lg:justify-start",
                     isActive
                       ? "bg-gradient-to-r from-primary-800 to-primary-600 text-white shadow-sm"
                       : "text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900",
                   ].join(" ")
                 }
               >
-                {item.icon && <Icon name={item.icon} className="h-5 w-5" />}
-                {item.label}
+                {item.icon && (
+                  <Icon
+                    name={item.icon}
+                    className="h-5 w-5 shrink-0"
+                    aria-hidden="true"
+                  />
+                )}
+                <span className="sr-only lg:not-sr-only">{item.label}</span>
               </NavLink>
             </li>
           );
