@@ -6,12 +6,12 @@ import Icon from "../../components/Icon";
 import StatusBadge from "../../components/StatusBadge";
 import { PageHeader, PageShell } from "../../components/doctor/PageLayout";
 import {
-  DetailTile,
   ErrorPanel,
   Panel,
   SkeletonBlock,
 } from "../../components/doctor/Panel";
 import { getPatientHistory } from "../../services/appointmentService";
+import { tintFor, initialsFor } from "../../utils/avatarUtils";
 import { formatDisplayDate } from "../../utils/dateUtils";
 import { formatTimeSlot, toDateOnly } from "../../utils/timeUtils";
 
@@ -37,31 +37,6 @@ const PROFILE_ICONS = {
   contactNo: "phone",
   email: "mail",
   address: "map-pin",
-};
-
-const AVATAR_TINTS = [
-  "bg-primary-50 text-primary-700 ring-primary-100",
-  "bg-emerald-50 text-emerald-700 ring-emerald-100",
-  "bg-amber-50 text-amber-700 ring-amber-100",
-  "bg-sky-50 text-sky-700 ring-sky-100",
-  "bg-violet-50 text-violet-700 ring-violet-100",
-  "bg-rose-50 text-rose-700 ring-rose-100",
-];
-
-const tintFor = (name) => {
-  const key = String(name ?? "");
-  let hash = 0;
-  for (let i = 0; i < key.length; i += 1) {
-    hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
-  }
-  return AVATAR_TINTS[hash % AVATAR_TINTS.length];
-};
-
-const initialsFor = (name) => {
-  const parts = String(name ?? "").trim().split(/\s+/);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
 };
 
 const visitSortKey = (visit) =>

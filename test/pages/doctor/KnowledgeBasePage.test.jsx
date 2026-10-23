@@ -230,7 +230,12 @@ describe("KnowledgeBasePage", () => {
     );
     expect(screen.getByText("0 of 2 references")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Clear search" }));
+    await user.click(
+      within(screen.getByRole("searchbox").parentElement).getByRole(
+        "button",
+        { name: "Clear search" },
+      ),
+    );
     await waitFor(() =>
       expect(screen.getByText("2 references")).toBeInTheDocument(),
     );

@@ -14,13 +14,15 @@ import Icon from "../../components/Icon";
 import Modal from "../../components/doctor/Modal";
 import { PageHeader, PageShell } from "../../components/doctor/PageLayout";
 import { ErrorPanel, SkeletonBlock } from "../../components/doctor/Panel";
+import ConfirmRemoveDialog from "../../features/doctor/ConfirmRemoveDialog";
 import {
   deleteDocument,
   listDocuments,
 } from "../../services/knowledgeBaseService";
 
-const FIELD_CLASS =
-  "w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20";
+/** Shared input class for search fields within this page. */
+const SEARCH_INPUT_CLASS =
+  "w-full rounded-xl border border-neutral-200 bg-white py-2 pl-9 pr-9 text-sm text-neutral-900 shadow-sm transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 [&::-webkit-search-cancel-button]:hidden";
 
 const formatBytes = (bytes) => {
   if (!Number.isFinite(bytes) || bytes <= 0) return null;
@@ -166,45 +168,6 @@ const DocumentCard = memo(function DocumentCard({ doc, onRemove, removing }) {
 });
 DocumentCard.displayName = "DocumentCard";
 
-const ConfirmRemoveModal = ({ doc, onCancel, onConfirm, removing, error }) => (
-  <Modal title="Remove reference" onClose={onCancel} widthClass="max-w-md">
-    <p className="text-sm text-neutral-700">
-      Remove <span className="font-semibold">{doc.title}</span> from the
-      knowledge base? The chatbot will no longer reference this document.
-    </p>
-    {error && (
-      <p
-        role="alert"
-        className="mt-3 rounded-lg bg-rose-50 p-2 text-sm text-rose-700"
-      >
-        {error}
-      </p>
-    )}
-    <div className="mt-5 flex justify-end gap-2">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={onCancel}
-        disabled={removing}
-      >
-        Cancel
-      </Button>
-      <Button
-        type="button"
-        variant="danger"
-        size="sm"
-        onClick={onConfirm}
-        loading={removing}
-        disabled={removing}
-        className="inline-flex items-center gap-1.5"
-      >
-        <Icon name="trash" className="h-4 w-4" />
-        {removing ? "Removing…" : "Remove"}
-      </Button>
-    </div>
-  </Modal>
-);
-
 const KnowledgeBasePage = () => {
   const [documents, setDocuments] = useState([]);
   const [status, setStatus] = useState("loading");
@@ -344,6 +307,7 @@ const KnowledgeBasePage = () => {
         />
       ) : (
         <div className="space-y-4">
+          {/* Search bar */}
           <div className="relative">
             <label htmlFor="kb-search" className="sr-only">
               Search references
@@ -358,14 +322,14 @@ const KnowledgeBasePage = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by title, description, or filename…"
-              className={`${FIELD_CLASS} pl-9 pr-9 [&::-webkit-search-cancel-button]:hidden`}
+              className={SEARCH_INPUT_CLASS}
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
                 aria-label="Clear search"
-                className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+                className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700 focus-visible:outline-2 focus-visible:outline-primary-600"
               >
                 <Icon name="x" className="h-3.5 w-3.5" />
               </button>
@@ -385,8 +349,15 @@ const KnowledgeBasePage = () => {
                     ? "Try a different search, or upload a new PDF reference."
                     : "Upload your first PDF reference to make it available to the chatbot."
                 }
-                actionLabel={isSearching ? "Clear search" : "Upload reference"}
-                onAction={isSearching ? () => setSearchQuery("") : openManager}
+                action={
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={isSearching ? () => setSearchQuery("") : openManager}
+                  >
+                    {isSearching ? "Clear search" : "Upload reference"}
+                  </Button>
+                }
               />
             </div>
           ) : (
@@ -404,6 +375,7 @@ const KnowledgeBasePage = () => {
         </div>
       )}
 
+      {/* Upload modal */}
       {showManager && (
         <Modal
           title="Add to Knowledge Base"
@@ -418,8 +390,9 @@ const KnowledgeBasePage = () => {
         </Modal>
       )}
 
+      {/* Confirm remove dialog */}
       {pendingRemoval && (
-        <ConfirmRemoveModal
+        <ConfirmRemoveDialog
           doc={pendingRemoval}
           onCancel={closeRemove}
           onConfirm={confirmRemove}

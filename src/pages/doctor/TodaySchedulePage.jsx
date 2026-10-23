@@ -12,6 +12,7 @@ import {
   SectionTitle,
   SkeletonBlock,
 } from "../../components/doctor/Panel";
+import PatientAvatarCell from "../../features/doctor/PatientAvatarCell";
 
 import { getAppointments } from "../../services/appointmentService";
 import useQueuePolling from "../../hooks/useQueuePolling";
@@ -154,20 +155,7 @@ const TodaySchedulePage = () => {
         key: "patientFullName",
         header: "Patient",
         render: (row) => (
-          <div className="flex items-center gap-2.5">
-            <span
-              aria-hidden="true"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-semibold text-primary-700 ring-1 ring-inset ring-primary-100"
-            >
-              {String(row.patientFullName ?? "?")
-                .trim()
-                .charAt(0)
-                .toUpperCase() || "?"}
-            </span>
-            <span className="font-medium text-neutral-900">
-              {row.patientFullName ?? DASH}
-            </span>
-          </div>
+          <PatientAvatarCell name={row.patientFullName} avatarSize="sm" />
         ),
       },
       {
@@ -237,17 +225,19 @@ const TodaySchedulePage = () => {
             </span>
 
             <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${pageVisible
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                pageVisible
                   ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
                   : "bg-amber-50 text-amber-700 ring-1 ring-amber-100"
-                }`}
+              }`}
             >
               <span
                 aria-hidden="true"
-                className={`h-1.5 w-1.5 rounded-full ${pageVisible
+                className={`h-1.5 w-1.5 rounded-full ${
+                  pageVisible
                     ? "bg-emerald-500 motion-safe:animate-pulse"
                     : "bg-amber-500"
-                  }`}
+                }`}
               />
               {pageVisible ? "Live" : "Paused"}
             </span>
@@ -272,8 +262,9 @@ const TodaySchedulePage = () => {
             >
               <Icon
                 name="refresh"
-                className={`h-4 w-4 ${refreshing ? "text-primary-600 motion-safe:animate-spin" : ""
-                  }`}
+                className={`h-4 w-4 ${
+                  refreshing ? "text-primary-600 motion-safe:animate-spin" : ""
+                }`}
               />
               {refreshing ? "Refreshing…" : "Refresh"}
             </Button>
