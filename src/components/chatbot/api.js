@@ -23,9 +23,6 @@ export function parseRetryAfter(value, fallback = 30) {
     ? Number(raw)
     : Math.ceil((Date.parse(raw) - Date.now()) / 1000);
   return Number.isFinite(seconds) && seconds > 0 ? seconds : fallback;
-  const seconds = Number.parseInt(String(value ?? "").trim(), 10);
-  if (!Number.isFinite(seconds) || seconds < 1) return fallback;
-  return Math.min(seconds, 3600);
 }
 
 /** Accepts both {data: {...}} (ApiResponse wrapper) and a bare object. Anything unexpected throws 'unexpected'. */

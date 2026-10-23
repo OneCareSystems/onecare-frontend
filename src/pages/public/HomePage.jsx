@@ -45,7 +45,6 @@ export default function HomePage() {
     };
   }, [navigate]);
   return (
-
     <div className="patient-shell">
       <section className="patient-hero">
         <h1>{t("publicLanding.welcome")}</h1>
@@ -102,17 +101,6 @@ export default function HomePage() {
       <section className="patient-card">
         <h2>{t("publicLanding.chatTitle")}</h2>
 
-    <div className="mx-auto max-w-5xl space-y-6 px-4 py-10">
-      <h1 className="text-3xl font-bold text-neutral-900">
-        Welcome to OneCare
-      </h1>
-      <section aria-labelledby="chat-heading" className="space-y-3">
-        <h2
-          id="chat-heading"
-          className="text-xl font-semibold text-neutral-900"
-        >
-          How can we help?
-        </h2>
         <p className="text-neutral-600">
           Ask the OneCare assistant about clinic hours, services, and other
           clinic information.

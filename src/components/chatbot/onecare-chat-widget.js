@@ -254,13 +254,11 @@ export class OneCareChatWidget extends HTMLElement {
       ? this._initialLang()
       : detectScriptLanguage(text);
     if (isRetry) {
-
       this._messages = this._messages.filter(
         (m) => !(m.role === "error" && m.question === text),
       );
 
       this._messages = this._messages.filter((m) => m.role !== "error");
-
     } else {
       this._push({ role: "user", text, lang });
       this._input.value = "";
@@ -328,10 +326,6 @@ export class OneCareChatWidget extends HTMLElement {
         kind,
         retryable: true,
         question: this._lastText,
-
-        text: format(E.rateLimit, { seconds }),
-        kind,
-
       });
       this._startCooldown(seconds);
     } else if (kind === "bad_request") {
@@ -386,9 +380,6 @@ export class OneCareChatWidget extends HTMLElement {
 
   _retry(question) {
     return this._submit(question, { isRetry: true });
-
-  _retry() {
-    return this._submit(this._lastText, { isRetry: true });
   }
   _clearInputError() {
     if (this._inputError) {
@@ -456,8 +447,6 @@ export class OneCareChatWidget extends HTMLElement {
           class: `msg ${m.role}`,
           lang: m.role === "error" ? this._uiLang : m.lang,
 
-          lang: m.lang,
-
           "data-type": m.type,
           role: m.role === "error" ? "alert" : null,
         },
@@ -467,11 +456,6 @@ export class OneCareChatWidget extends HTMLElement {
       );
       if (m.role === "bot" && m.sources?.length)
         node.append(this._renderSources(m.sources, this._uiLang));
-
-        el("p", { text: m.text }),
-      );
-      if (m.role === "bot" && m.sources?.length)
-        node.append(this._renderSources(m.sources, m.lang));
 
       if (m.booking) {
         const booking = el("button", {
@@ -491,10 +475,6 @@ export class OneCareChatWidget extends HTMLElement {
         });
         retry.disabled = this._busy() || this._inCooldown();
         retry.addEventListener("click", () => this._retry(m.question));
-
-          text: STRINGS[m.lang].retry,
-        });
-        retry.addEventListener("click", () => this._retry());
 
         node.append(retry);
       }
@@ -559,9 +539,6 @@ export class OneCareChatWidget extends HTMLElement {
     const groups = [];
 
     for (const lang of [this._uiLang]) {
-
-    for (const lang of ["en", "ta"]) {
-
       const list = this._chips[lang] || [];
       if (!list.length) continue;
       const group = el("div", { class: "chip-group", lang, role: "group" });
@@ -600,9 +577,6 @@ export class OneCareChatWidget extends HTMLElement {
           class: "cooldown",
 
           text: format(S.cooldown, { seconds }, this._uiLang),
-
-          text: format(S.cooldown, { seconds }),
-
         }),
       );
     }

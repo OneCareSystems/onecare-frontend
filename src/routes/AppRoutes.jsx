@@ -31,10 +31,7 @@ import QueuePage from "../pages/shared/QueuePage";
 import StaffLayout from "../layouts/StaffLayout";
 
 import RequireAuth from "./RequireAuth";
-import {
-  CHANGE_PASSWORD_PATH,
-  ROUTE_ACCESS,
-} from "../constants/routeAccess";
+import { CHANGE_PASSWORD_PATH, ROUTE_ACCESS } from "../constants/routeAccess";
 
 import PatientRecordsPage from "../pages/doctor/PatientRecordsPage";
 import PatientDetails from "../pages/doctor/PatientDetails";
@@ -58,39 +55,24 @@ const AppRoutes = () => {
   return (
     <Routes>
       {/* ROOT: Redirect to public home page */}
-      <Route
-        path="/"
-        element={<Navigate to="/home" replace />}
-      />
+      <Route path="/" element={<Navigate to="/home" replace />} />
 
       {/* AUTHENTICATION & PASSWORD RECOVERY */}
       {/* These pages do not use PublicLayout */}
       <Route path="/login" element={<LoginPage />} />
 
-      <Route
-        path="/forgot-password"
-        element={<ForgotPasswordPage />}
-      />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
-      <Route
-        path="/reset-password"
-        element={<ResetPasswordPage />}
-      />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* PUBLIC PATIENT AREA */}
       {/* No staff authentication required */}
       <Route element={<PublicLayout />}>
         {/* PUB-01: Patient Landing Page */}
-        <Route
-          path="/home"
-          element={<HomePage />}
-        />
+        <Route path="/home" element={<HomePage />} />
 
         {/* PUB-02: Public Appointment Booking */}
-        <Route
-          path="/appointments"
-          element={<BookingPage />}
-        />
+        <Route path="/appointments" element={<BookingPage />} />
 
         {/* PUB-03: Booking Confirmation */}
         <Route
@@ -99,228 +81,100 @@ const AppRoutes = () => {
         />
 
         {/* Existing Style Guide */}
-        <Route
-          path="/styleguide"
-          element={<ThemeReferencePage />}
-        />
+        <Route path="/styleguide" element={<ThemeReferencePage />} />
 
         {/* Public 404 page */}
-        <Route
-          path="*"
-          element={<NotFoundPage />}
-        />
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
 
       {/* CHANGE PASSWORD - AUTHENTICATED STAFF */}
       <Route element={<RequireAuth />}>
-        <Route
-          path={CHANGE_PASSWORD_PATH}
-          element={<ChangePasswordPage />}
-        />
+        <Route path={CHANGE_PASSWORD_PATH} element={<ChangePasswordPage />} />
       </Route>
 
       {/* ADMIN AREA */}
-      <Route
-        element={
-          <RequireAuth
-            allowedRoles={ROUTE_ACCESS.admin}
-          />
-        }
-      >
+      <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.admin} />}>
         <Route path="/admin" element={<AdminLayout />}>
-          <Route
-            index
-            element={
-              <Navigate
-                to="/admin/dashboard"
-                replace
-              />
-            }
-          />
+          <Route index element={<Navigate to="/admin/dashboard" replace />} />
 
-          <Route
-            path="dashboard"
-            element={<AdminDashboardPage />}
-          />
+          <Route path="dashboard" element={<AdminDashboardPage />} />
 
-          <Route
-            path="register-patient"
-            element={<RegisterPatientPage />}
-          />
+          <Route path="register-patient" element={<RegisterPatientPage />} />
 
-          <Route
-            path="patient-search"
-            element={<PatientSearchEditPage />}
-          />
+          <Route path="patient-search" element={<PatientSearchEditPage />} />
 
-          <Route
-            path="book-appointment"
-            element={<BookAppointmentPage />}
-          />
+          <Route path="book-appointment" element={<BookAppointmentPage />} />
 
-          <Route
-            path="appointments"
-            element={<AppointmentHubPage />}
-          />
+          <Route path="appointments" element={<AppointmentHubPage />} />
 
-          <Route
-            path="billing"
-            element={<BillingPage />}
-          />
+          <Route path="billing" element={<BillingPage />} />
 
-          <Route
-            path="clinic-reports"
-            element={<ClinicReports />}
-          />
+          <Route path="clinic-reports" element={<ClinicReports />} />
         </Route>
       </Route>
 
       {/* SHARED QUEUE - EXISTING ROLE PERMISSIONS */}
-      <Route
-        element={
-          <RequireAuth
-            allowedRoles={ROUTE_ACCESS.queue}
-          />
-        }
-      >
+      <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.queue} />}>
         <Route element={<StaffLayout />}>
-          <Route
-            path="/queue"
-            element={<QueuePage />}
-          />
+          <Route path="/queue" element={<QueuePage />} />
         </Route>
       </Route>
 
       {/* DOCTOR AREA */}
-      <Route
-        element={
-          <RequireAuth
-            allowedRoles={ROUTE_ACCESS.doctor}
-          />
-        }
-      >
-        <Route
-          path="/doctor"
-          element={<DoctorLayout />}
-        >
-          <Route
-            path="dashboard"
-            element={<DoctorDashboardPage />}
-          />
+      <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.doctor} />}>
+        <Route path="/doctor" element={<DoctorLayout />}>
+          <Route path="dashboard" element={<DoctorDashboardPage />} />
 
-          <Route
-            path="today-schedule"
-            element={<TodaySchedulePage />}
-          />
+          <Route path="today-schedule" element={<TodaySchedulePage />} />
 
           <Route
             path="consultation/:appointmentId"
             element={<ConsultationPage />}
           />
 
-          <Route
-            path="patient-records"
-            element={<PatientRecordsPage />}
-          />
+          <Route path="patient-records" element={<PatientRecordsPage />} />
 
           <Route
             path="patient-records/:patientId"
             element={<PatientDetails />}
           />
 
-          <Route
-            path="knowledge-base"
-            element={<KnowledgeBasePage />}
-          />
+          <Route path="knowledge-base" element={<KnowledgeBasePage />} />
         </Route>
       </Route>
 
       {/* PHARMACIST AREA */}
-      <Route
-        element={
-          <RequireAuth
-            allowedRoles={ROUTE_ACCESS.pharmacist}
-          />
-        }
-      >
-        <Route
-          path="/pharmacist"
-          element={<PharmacistLayout />}
-        >
-          <Route
-            path="dashboard"
-            element={<PharmacistDashboardPage />}
-          />
+      <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.pharmacist} />}>
+        <Route path="/pharmacist" element={<PharmacistLayout />}>
+          <Route path="dashboard" element={<PharmacistDashboardPage />} />
         </Route>
       </Route>
 
       {/* SUPER ADMIN AREA */}
       <Route
-        element={
-          <RequireAuth
-            allowedRoles={
-              ROUTE_ACCESS["super-admin"]
-            }
-          />
-        }
+        element={<RequireAuth allowedRoles={ROUTE_ACCESS["super-admin"]} />}
       >
-
-        <Route
-          path="/super-admin"
-          element={<SuperAdminLayout />}
-        >
-          <Route
-            path="dashboard"
-            element={<SuperAdminDashboardPage />}
-          />
-
-          <Route
-            path="user-management"
-            element={<UserManagementPage />}
-          />
-
-          <Route
-            path="access-control"
-            element={<AccessControlPage />}
-          />
-
-          <Route
-            path="clinic-configuration"
-            element={<ClinicConfigPage />}
-          />
-
-          <Route
-            path="knowledge-base"
-            element={
-              <KnowledgeBaseManagementPage />
-            }
-          />
-
-
         <Route path="/super-admin" element={<SuperAdminLayout />}>
           <Route path="dashboard" element={<SuperAdminDashboardPage />} />
+
           <Route path="user-management" element={<UserManagementPage />} />
+
           <Route path="access-control" element={<AccessControlPage />} />
+
           <Route path="clinic-configuration" element={<ClinicConfigPage />} />
+
           <Route
             path="knowledge-base"
             element={<KnowledgeBaseManagementPage />}
           />
-
           <Route
             path="system-maintenance"
             element={<SystemMaintenancePage />}
           />
 
-          <Route
-            path="audits-reports"
-            element={<AuditLogsPage />}
-          />
+          <Route path="audits-reports" element={<AuditLogsPage />} />
 
-          <Route
-            path="clinic-reports"
-            element={<ClinicReports />}
-          />
+          <Route path="clinic-reports" element={<ClinicReports />} />
         </Route>
       </Route>
     </Routes>
