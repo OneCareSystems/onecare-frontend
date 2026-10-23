@@ -123,6 +123,7 @@ const ConsultationPage = () => {
   const [notesError, setNotesError] = useState(null);
   const [notesDirty, setNotesDirty] = useState(false);
   const notesDirtyRef = useRef(false);
+  const notesRevisionRef = useRef(0);
 
   const [history, setHistory] = useState(null);
 
@@ -238,6 +239,7 @@ const ConsultationPage = () => {
   }, [load]);
 
   const handleNotesChange = useCallback((event) => {
+    notesRevisionRef.current += 1;
     notesDirtyRef.current = true;
     setNotesDirty(true);
     setNotes(event.target.value);
@@ -247,13 +249,16 @@ const ConsultationPage = () => {
   const handleSaveNotes = useCallback(() => {
     if (notesSaving) return;
 
+    const submittedRevision = notesRevisionRef.current;
     setNotesSaving(true);
     setNotesError(null);
 
     saveClinicalNotes(appointmentId, notes)
       .then(() => {
-        notesDirtyRef.current = false;
-        setNotesDirty(false);
+        if (notesRevisionRef.current === submittedRevision) {
+          notesDirtyRef.current = false;
+          setNotesDirty(false);
+        }
         setToast({ type: "success", message: SAVED_NOTES_MESSAGE });
       })
       .catch((error) => {
