@@ -131,9 +131,7 @@ describe("TodaySchedulePage — doctor's consultation queue", () => {
     renderPage();
 
     expect(
-      await screen.findByText(
-        "No appointments scheduled for the selected date.",
-      ),
+      await screen.findByText("No appointments scheduled"),
     ).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
