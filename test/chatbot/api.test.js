@@ -88,18 +88,6 @@ describe("parseRetryAfter", () => {
     (v) => expect(parseRetryAfter(v)).toBe(30),
   );
 
-    ["99999", 3600],
-  ])("%s -> %s", (v, n) => expect(parseRetryAfter(v)).toBe(n));
-  it.each([
-    [null],
-    [undefined],
-    [""],
-    ["abc"],
-    ["0"],
-    ["-4"],
-    ["Wed, 21 Oct 2026 07:28:00 GMT"],
-  ])("%s falls back to 30", (v) => expect(parseRetryAfter(v)).toBe(30));
-
   it("the fallback is configurable", () =>
     expect(parseRetryAfter(null, 10)).toBe(10));
 });

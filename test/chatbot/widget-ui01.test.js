@@ -108,7 +108,6 @@ describe("language of the interface and of the messages", () => {
 
   it("the interface stays in the selected language until the language setting changes", async () => {
 
-  it("the interface goes back to English when the patient switches language", async () => {
 
     const fetchImpl = vi.fn(async () => response(200, reply()));
     const w = mount({ fetchImpl, attrs: { lang: "ta" } });

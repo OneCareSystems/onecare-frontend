@@ -11,17 +11,14 @@ afterEach(() => {
 
 describe("chips", () => {
 
-  it("shows only chips in the active language and changes them with the language", () => {
+  it("keeps both languages visible when the portal language changes", () => {
     const w = mount();
-    expect(w.$$(".chip").map((b) => b.textContent)).toEqual(
-      DEFAULT_CHIPS.en.map((c) => c.label),
-    );
-    expect(w.$$('.chip-group[lang="ta"]')).toHaveLength(0);
+    expect(w.$$('.chip-group[lang="en"] button')).toHaveLength(DEFAULT_CHIPS.en.length);
+    expect(w.$$('.chip-group[lang="ta"] button')).toHaveLength(DEFAULT_CHIPS.ta.length);
     w.widget.setAttribute("lang", "ta");
-    expect(w.$$(".chip").map((b) => b.textContent)).toEqual(
-      DEFAULT_CHIPS.ta.map((c) => c.label),
-    );
-    expect(w.$$('.chip-group[lang="en"]')).toHaveLength(0);
+    expect(w.$(".chip").getAttribute("lang")).toBe("ta");
+    expect(w.$$('.chip-group[lang="en"] button')).toHaveLength(DEFAULT_CHIPS.en.length);
+  });
 
   it("shows every English and every Tamil chip as a real button, each group marked with its language", () => {
     const w = mount();
@@ -78,8 +75,6 @@ describe("chips", () => {
       ),
     );
 
-    const w = mount({ fetchImpl, attrs: { lang: "ta" } });
-
     const w = mount({ fetchImpl });
 
     w.$('.chip[data-chip="hours"][lang="ta"]').click();
@@ -124,10 +119,6 @@ describe("chips", () => {
         { id: "a", label: "வாகன நிறுத்தம்", query: "வாகன நிறுத்தம் உள்ளதா?" },
       ],
     };
-
-    expect(w.$$(".chip").map((b) => b.textContent)).toEqual(["Parking"]);
-    w.widget.setAttribute("lang", "ta");
-    expect(w.$$(".chip").map((b) => b.textContent)).toEqual(["வாகன நிறுத்தம்"]);
 
     expect(w.$$(".chip").map((b) => b.textContent)).toEqual([
       "Parking",

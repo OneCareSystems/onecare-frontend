@@ -219,8 +219,6 @@ describe("rate limit (HTTP 429)", () => {
 
     expect(lastError(w).querySelector(".retry").disabled).toBe(true);
 
-    expect(lastError(w).querySelector(".retry")).toBeNull();
-
     expect(w.$(".cooldown").textContent).toBe(
       STRINGS.en.cooldown.replace("{seconds}", "3"),
     );

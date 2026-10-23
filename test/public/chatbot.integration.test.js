@@ -11,7 +11,7 @@ afterEach(() => {
   document.body.replaceChildren();
   vi.useRealTimers();
 });
-it("sends only the active Tamil chip through the public API", async () => {
+it("sends a Tamil chip through the public API with both languages visible", async () => {
   const queries = [];
   server.use(
     http.post("*/api/chatbot/query", async ({ request }) => {
@@ -28,7 +28,7 @@ it("sends only the active Tamil chip through the public API", async () => {
   w.$(".chip").click();
   await waitFor(() => expect(w.texts()).toContain("பதில்"));
   expect(queries).toEqual([{ query: DEFAULT_CHIPS.ta[0].query }]);
-  expect(w.$$('.chip[lang="en"]')).toHaveLength(0);
+  expect(w.$$('.chip[lang="en"]')).toHaveLength(DEFAULT_CHIPS.en.length);
 });
 it("keeps Tamil errors for an English question and retries it once without duplication", async () => {
   let calls = 0;

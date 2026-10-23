@@ -287,7 +287,6 @@ export class OneCareChatWidget extends HTMLElement {
       if (!this.isConnected) return;
       if (!this.hasAttribute("lang")) this._uiLang = reply.language;
 
-      this._uiLang = reply.language;
       this._push({
         role: "bot",
         text: reply.message,
@@ -538,7 +537,7 @@ export class OneCareChatWidget extends HTMLElement {
     this._chipsSummary.textContent = S.chipsLabel;
     const groups = [];
 
-    for (const lang of [this._uiLang]) {
+    for (const lang of [this._uiLang, this._uiLang === "en" ? "ta" : "en"]) {
       const list = this._chips[lang] || [];
       if (!list.length) continue;
       const group = el("div", { class: "chip-group", lang, role: "group" });
