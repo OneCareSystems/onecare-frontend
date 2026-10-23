@@ -54,11 +54,19 @@ const DispensingQueuePage = () => {
     }
   }, []);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    loadPrescriptions(controller.signal);
-    return () => controller.abort();
-  }, [loadPrescriptions, attempt]);
+ 
+useEffect(() => {
+  const controller = new AbortController();
+
+  Promise.resolve().then(() => {
+    if (!controller.signal.aborted) {
+      void loadPrescriptions(controller.signal);
+    }
+  });
+
+  return () => controller.abort();
+}, [loadPrescriptions, attempt]);
+
 
   const selectedPrescription = prescriptions.find(
     (prescription) =>

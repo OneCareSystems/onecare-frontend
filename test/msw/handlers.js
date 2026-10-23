@@ -1,4 +1,4 @@
-import { http, HttpResponse } from "msw";
+import { delay,http, HttpResponse } from "msw";
 
 import {
   PERMISSION_CODES,
@@ -141,6 +141,11 @@ export const mswState = {
   medicineListResponses: [],
   medicineListErrorMode: null,
 
+  medicineCreateDelayMs: 0,
+    medicineCreateHits: [],
+  medicineCreateResponses: [],
+  medicineCreateErrorMode: null,
+
   stockAdjustmentHits: [],
   stockAdjustmentResponses: [],
   stockAdjustmentErrorMode: null,
@@ -236,6 +241,11 @@ export const resetMswState = () => {
     mswState.medicineListHits = [];
   mswState.medicineListResponses = [];
   mswState.medicineListErrorMode = null;
+
+  mswState.medicineCreateDelayMs = 0;
+    mswState.medicineCreateHits = [];
+  mswState.medicineCreateResponses = [];
+  mswState.medicineCreateErrorMode = null;
 
   mswState.stockAdjustmentHits = [];
   mswState.stockAdjustmentResponses = [];
@@ -619,6 +629,66 @@ export const handlers = [
 
     return ok(mswState.issuedPrescriptionResponses.shift() ?? []);
   }),
+
+    // PHARM-04 — Add New Medicine
+  http.post("*/medicines", async ({ request }) => {
+    const body = await request.json().catch(() => ({}));
+
+    mswState.medicineCreateHits.push({
+      body,
+      authorization: request.headers.get("Authorization"),
+    });
+
+    if (mswState.medicineCreateDelayMs > 0) {
+  await delay(mswState.medicineCreateDelayMs);
+}
+
+    if (mswState.medicineCreateErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+
+    if (mswState.medicineCreateErrorMode === "conflict") {
+      return fail(409, "A medicine with these details already exists");
+    }
+
+    if (mswState.medicineCreateErrorMode === "validation") {
+      return fail(400, "Invalid medicine details");
+    }
+
+    if (mswState.medicineCreateErrorMode === "forbidden") {
+      return fail(403, "Access denied");
+    }
+
+    if (mswState.medicineCreateErrorMode === "server-error") {
+      return fail(500, "Unable to create medicine");
+    }
+
+    const createdMedicine =
+      mswState.medicineCreateResponses.shift() ?? {
+        medicineId: 9001,
+        name: body.name,
+        genericName: body.genericName ?? null,
+        category: body.category,
+        unit: body.unit,
+        price: body.price,
+        stockQuantity: 0,
+        expiryDate: body.expiryDate,
+        reorderLevel: body.reorderLevel,
+        isQuarantined: false,
+        createdAt: "2026-10-23T09:00:00",
+        updatedAt: "2026-10-23T09:00:00",
+      };
+
+    return HttpResponse.json(
+      {
+        success: true,
+        message: "Medicine created successfully",
+        data: createdMedicine,
+      },
+      { status: 201 },
+    );
+  }),
+
     http.get("*/medicines", ({ request }) => {
     const url = new URL(request.url);
 

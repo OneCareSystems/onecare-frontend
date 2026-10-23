@@ -12,6 +12,13 @@ import {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+
+const dateAfterDays = (days) => {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+};
+
 const getMedicineId = (medicine) => medicine.medicineId ?? medicine.id;
 
 const getMedicineName = (medicine) =>
@@ -65,11 +72,19 @@ const InventoryManagementPage = () => {
     }
   }, [filter, search]);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    loadMedicines(controller.signal);
-    return () => controller.abort();
-  }, [loadMedicines, retry]);
+ 
+useEffect(() => {
+  const controller = new AbortController();
+
+  Promise.resolve().then(() => {
+    if (!controller.signal.aborted) {
+      void loadMedicines(controller.signal);
+    }
+  });
+
+  return () => controller.abort();
+}, [loadMedicines, retry]);
+
 
   const visibleMedicines = medicines.filter((medicine) => {
     const name = getMedicineName(medicine).toLowerCase();
@@ -280,10 +295,7 @@ const InventoryManagementPage = () => {
                   const nearExpiry =
                     Boolean(expiryDate) &&
                     expiryDate >= today() &&
-                    expiryDate <=
-                      new Date(Date.now() + 30 * 86400000)
-                        .toISOString()
-                        .slice(0, 10);
+                  expiryDate <= dateAfterDays(30);
 
                   return (
                     <tr key={getMedicineId(medicine)} className="align-top">
