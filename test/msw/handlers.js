@@ -93,6 +93,7 @@ const defaultRolePermissions = () =>
 
 export const mswState = {
   tokenValid: true,
+  authMeHits: [],
   refreshValid: true,
   refreshCount: 0,
   protectedHits: [],
@@ -130,7 +131,7 @@ export const mswState = {
   prescriptionCreateHits: [],
   prescriptionCreateResponses: [],
   prescriptionCreateErrorMode: null,
-    issuedPrescriptionHits: [],
+  issuedPrescriptionHits: [],
   issuedPrescriptionResponses: [],
   issuedPrescriptionErrorMode: null,
 
@@ -163,6 +164,13 @@ export const mswState = {
   doctorScheduleHits: [],
   doctorScheduleWriteHits: [],
   doctorScheduleErrorMode: null,
+  kbListHits: [],
+  kbListResponses: [],
+  kbListErrorMode: null,
+  kbDeleteHits: [],
+  kbDeleteErrorMode: null,
+  kbUploadHits: [],
+  kbUploadErrorMode: null,
   systemBackups: defaultSystemBackups(),
   systemBackupHits: [],
   systemBackupCreateHits: [],
@@ -223,7 +231,7 @@ export const resetMswState = () => {
   mswState.prescriptionCreateHits = [];
   mswState.prescriptionCreateResponses = [];
   mswState.prescriptionCreateErrorMode = null;
-    mswState.issuedPrescriptionHits = [];
+  mswState.issuedPrescriptionHits = [];
   mswState.issuedPrescriptionResponses = [];
   mswState.issuedPrescriptionErrorMode = null;
 
@@ -256,6 +264,14 @@ export const resetMswState = () => {
   mswState.doctorScheduleHits = [];
   mswState.doctorScheduleWriteHits = [];
   mswState.doctorScheduleErrorMode = null;
+  mswState.kbListHits = [];
+  mswState.kbListResponses = [];
+  mswState.kbListErrorMode = null;
+  mswState.kbDeleteHits = [];
+  mswState.kbDeleteErrorMode = null;
+  mswState.kbUploadHits = [];
+  mswState.kbUploadErrorMode = null;
+  mswState.authMeHits = [];
   mswState.systemBackups = defaultSystemBackups();
   mswState.systemBackupHits = [];
   mswState.systemBackupCreateHits = [];
@@ -323,6 +339,13 @@ export const handlers = [
         email: body?.username ?? "test@onecare.test",
       },
     });
+  }),
+  http.get("*/auth/me", ({ request }) => {
+    mswState.authMeHits.push({
+      authorization: request.headers.get("Authorization"),
+    });
+    if (!mswState.tokenValid) return fail(401, "Access token expired");
+    return ok({ userId: 4, id: 4, username: "doctor", role: "DOCTOR" });
   }),
   http.post("*/auth/forgot-password", async ({ request }) => {
     const body = await request.json().catch(() => ({}));
@@ -1384,6 +1407,71 @@ export const handlers = [
     );
   }),
   http.get("*/reports/:id", protectedReply),
+  // Chatbot knowledge base. The page-level helpers (`listDocuments`,
+  // `uploadDocument`, `deleteDocument`) read the same `{ success, data }`
+  // envelope as the legacy resource functions, and the list is paginated.
+  http.get("*/chatbot/knowledge-base", ({ request }) => {
+    const url = new URL(request.url);
+    mswState.kbListHits.push({
+      url: request.url,
+      authorization: request.headers.get("Authorization"),
+      params: url.searchParams,
+    });
+    if (mswState.kbListErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    if (mswState.kbListErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    return ok(
+      mswState.kbListResponses.shift() ?? {
+        items: [],
+        count: 0,
+        totalPages: 1,
+      },
+    );
+  }),
+  http.post("*/chatbot/knowledge-base", async ({ request }) => {
+    const form = await request.formData().catch(() => null);
+    const uploaded = form?.get("file");
+    mswState.kbUploadHits.push({
+      fileName: uploaded && typeof uploaded === "object" ? uploaded.name : null,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.kbUploadErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    if (mswState.kbUploadErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    return ok({
+      id: 501,
+      title: form?.get("title") || "Uploaded reference",
+      originalFilename:
+        uploaded && typeof uploaded === "object" ? uploaded.name : null,
+      sourceType: "PDF",
+      status: "PENDING",
+    });
+  }),
+  http.delete("*/chatbot/knowledge-base/:id", ({ request, params }) => {
+    mswState.kbDeleteHits.push({
+      id: params.id,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.kbDeleteErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    if (mswState.kbDeleteErrorMode === "forbidden") {
+      return fail(403, "Access denied");
+    }
+    if (mswState.kbDeleteErrorMode === "not-found") {
+      return fail(404, "Document not found");
+    }
+    if (mswState.kbDeleteErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    return ok(null);
+  }),
   http.get("*", ({ request }) => {
     const path = new URL(request.url).pathname;
     if (path.endsWith("/forbidden")) {

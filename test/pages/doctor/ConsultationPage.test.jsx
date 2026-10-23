@@ -170,11 +170,17 @@ describe("ConsultationPage (DOC-04) — full consultation workflow", () => {
     renderAt("/doctor/consultation/101");
 
     await waitForLoaded();
+    await user.type(notesTextarea(), "Follow-up required.");
     await user.click(screen.getByRole("button", { name: /save notes/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Clinical notes cannot be added to a cancelled appointment",
+      /^Clinical notes cannot be added to a cancelled appointment$/,
     );
+    expect(mswState.appointmentUpdateHits).toHaveLength(1);
+    expect(mswState.appointmentUpdateHits[0]).toMatchObject({
+      id: "101",
+      body: { clinicalNotes: "Follow-up required." },
+    });
   });
 
   it("issues a prescription with free-text items via POST /api/prescriptions", async () => {

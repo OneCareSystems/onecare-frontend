@@ -2,10 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import Button from "../../components/Button";
-import EmptyState from "../../components/EmptyState";
-import ErrorMessage from "../../components/ErrorMessage";
 import Icon from "../../components/Icon";
-import Input from "../../components/Input";
 import StatusBadge from "../../components/StatusBadge";
 import Toast from "../../components/Toast";
 import { PageHeader, PageShell } from "../../components/doctor/PageLayout";
@@ -15,13 +12,14 @@ import {
   Panel,
   SkeletonBlock,
 } from "../../components/doctor/Panel";
+import ClinicalNotesPanel from "../../features/doctor/ClinicalNotesPanel";
+import PrescriptionBuilder from "../../features/doctor/PrescriptionBuilder";
 import {
   getAppointmentById,
   getPatientHistory,
   saveClinicalNotes,
 } from "../../services/appointmentService";
 import { getPatient } from "../../services/patientService";
-import { searchMedicines } from "../../services/medicineService";
 import {
   createPrescription,
   getPrescriptionById,
@@ -51,44 +49,6 @@ const COMPLETE_FAILED_MESSAGE =
   "Unable to complete the consultation. Please try again.";
 const PRESCRIPTION_CREATED_MESSAGE = "Prescription issued.";
 
-const EMPTY_ITEM = {
-  medicineName: "",
-  dosage: "",
-  frequency: "",
-  durationDays: "1",
-  quantity: "1",
-};
-
-const DRAFT_FIELDS = [
-  {
-    key: "medicineName",
-    id: "rx-medicine",
-    label: "Medicine Name",
-    wide: true,
-  },
-  { key: "dosage", id: "rx-dosage", label: "Dosage", placeholder: "1 tablet" },
-  {
-    key: "frequency",
-    id: "rx-frequency",
-    label: "Frequency",
-    placeholder: "Twice daily",
-  },
-  {
-    key: "durationDays",
-    id: "rx-duration",
-    label: "Duration (days)",
-    type: "number",
-    min: "1",
-  },
-  {
-    key: "quantity",
-    id: "rx-quantity",
-    label: "Quantity",
-    type: "number",
-    min: "1",
-  },
-];
-
 /**
  * The elapsed-time clock lives in its own component so its once-a-second
  * state update re-renders only this badge, never the whole consultation form.
@@ -111,7 +71,7 @@ const ConsultationTimer = memo(function ConsultationTimer({ running }) {
     <span
       role="timer"
       aria-label="Elapsed time"
-      className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 font-mono text-xs font-semibold tabular-nums text-amber-900"
+      className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-gradient-to-r from-amber-50 to-amber-100/60 px-3 py-1 font-mono text-xs font-semibold tabular-nums text-amber-900 shadow-sm"
     >
       <Icon
         name="clock"
@@ -124,45 +84,18 @@ const ConsultationTimer = memo(function ConsultationTimer({ running }) {
   );
 });
 
-const MedicationRow = memo(function MedicationRow({ item, index, onRemove }) {
-  return (
-    <li className="flex items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-      <div className="min-w-0">
-        <p className="text-sm font-semibold text-neutral-900">
-          {item.medicineName}{" "}
-          <span className="font-mono font-medium text-primary-600">
-            ({item.dosage})
-          </span>
-        </p>
-        <p className="mt-0.5 text-xs text-neutral-500">
-          {item.frequency}, {item.durationDays} day
-          {item.durationDays === 1 ? "" : "s"}, quantity {item.quantity}
-        </p>
-      </div>
-
-      <button
-        type="button"
-        aria-label={`Remove ${item.medicineName}`}
-        onClick={() => onRemove(index)}
-        className="rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-2 focus-visible:outline-primary-600"
-      >
-        <Icon name="trash" className="h-4 w-4" />
-      </button>
-    </li>
-  );
-});
-
 const PreviousNote = memo(function PreviousNote({ record }) {
   return (
-    <li className="space-y-2 rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm">
-      <div className="flex items-center justify-between gap-2">
+    <li className="relative space-y-2 rounded-xl border border-neutral-200 bg-white p-4 text-sm shadow-sm">
+      <span className="absolute inset-y-4 left-0 w-0.5 rounded-full bg-primary-300" />
+      <div className="flex items-center justify-between gap-2 pl-2">
         <span className="font-semibold text-neutral-800">
           {formatDisplayDate(toDateOnly(record.appointmentDate))}
         </span>
         <StatusBadge status={record.status} />
       </div>
 
-      <p className="whitespace-pre-wrap leading-relaxed text-neutral-700">
+      <p className="whitespace-pre-wrap pl-2 leading-relaxed text-neutral-700">
         {record.clinicalNotes}
       </p>
     </li>
@@ -188,15 +121,11 @@ const ConsultationPage = () => {
   const [notes, setNotes] = useState("");
   const [notesSaving, setNotesSaving] = useState(false);
   const [notesError, setNotesError] = useState(null);
+  const [notesDirty, setNotesDirty] = useState(false);
   const notesDirtyRef = useRef(false);
+  const notesRevisionRef = useRef(0);
 
   const [history, setHistory] = useState(null);
-
-  const [items, setItems] = useState([]);
-  const [itemDraft, setItemDraft] = useState(EMPTY_ITEM);
-  const [medicineSuggestions, setMedicineSuggestions] = useState([]);
-  const [medicineSuggestionsForQuery, setMedicineSuggestionsForQuery] =
-    useState("");
 
   const [creatingPrescription, setCreatingPrescription] = useState(false);
   const [prescriptionError, setPrescriptionError] = useState(null);
@@ -208,47 +137,6 @@ const ConsultationPage = () => {
   const [toast, setToast] = useState(null);
 
   const loadIdRef = useRef(0);
-
-  // Medicine autocomplete.
-  // Suggestions are displayed only when they match the current query.
-  // This avoids synchronously clearing state inside the effect.
-  useEffect(() => {
-    const query = itemDraft.medicineName.trim();
-
-    if (query.length < 2) {
-      return undefined;
-    }
-
-    const controller = new AbortController();
-
-    const timeoutId = setTimeout(() => {
-      searchMedicines(query, { signal: controller.signal })
-        .then((suggestions) => {
-          if (controller.signal.aborted) return;
-
-          setMedicineSuggestions(suggestions);
-          setMedicineSuggestionsForQuery(query);
-        })
-        .catch(() => {
-          if (controller.signal.aborted) return;
-
-          setMedicineSuggestions([]);
-          setMedicineSuggestionsForQuery("");
-        });
-    }, 250);
-
-    return () => {
-      clearTimeout(timeoutId);
-      controller.abort();
-    };
-  }, [itemDraft.medicineName]);
-
-  const medicineQuery = itemDraft.medicineName.trim();
-
-  const visibleMedicineSuggestions =
-    medicineQuery.length >= 2 && medicineSuggestionsForQuery === medicineQuery
-      ? medicineSuggestions
-      : [];
 
   const isClosed =
     appointment?.status === "COMPLETED" || appointment?.status === "CANCELLED";
@@ -264,10 +152,7 @@ const ConsultationPage = () => {
       .then((found) => {
         if (isStale()) return;
 
-        // Update related prescription state after the request resolves,
-        // rather than synchronously when the loading effect starts.
         setRelatedPrescriptions(null);
-
         setAppointment(found);
 
         if (!notesDirtyRef.current) {
@@ -354,7 +239,9 @@ const ConsultationPage = () => {
   }, [load]);
 
   const handleNotesChange = useCallback((event) => {
+    notesRevisionRef.current += 1;
     notesDirtyRef.current = true;
+    setNotesDirty(true);
     setNotes(event.target.value);
     setNotesError(null);
   }, []);
@@ -362,16 +249,17 @@ const ConsultationPage = () => {
   const handleSaveNotes = useCallback(() => {
     if (notesSaving) return;
 
+    const submittedRevision = notesRevisionRef.current;
     setNotesSaving(true);
     setNotesError(null);
 
     saveClinicalNotes(appointmentId, notes)
       .then(() => {
-        notesDirtyRef.current = false;
-        setToast({
-          type: "success",
-          message: SAVED_NOTES_MESSAGE,
-        });
+        if (notesRevisionRef.current === submittedRevision) {
+          notesDirtyRef.current = false;
+          setNotesDirty(false);
+        }
+        setToast({ type: "success", message: SAVED_NOTES_MESSAGE });
       })
       .catch((error) => {
         const status = error?.response?.status;
@@ -388,85 +276,46 @@ const ConsultationPage = () => {
       });
   }, [appointmentId, notes, notesSaving]);
 
-  const handleDraftChange = useCallback(
-    (key) => (event) =>
-      setItemDraft((draft) => ({
-        ...draft,
-        [key]: event.target.value,
-      })),
-    [],
-  );
+  /**
+   * Called by PrescriptionBuilder when the user clicks "Transmit Prescription".
+   * `onClearItems` is a callback provided by the builder to reset its local state.
+   */
+  const handleCreatePrescription = useCallback(
+    (items, onClearItems) => {
+      if (creatingPrescription || items.length === 0) return;
 
-  const handleAddItem = useCallback(() => {
-    const draft = itemDraft;
+      setCreatingPrescription(true);
+      setPrescriptionError(null);
 
-    if (
-      !draft.medicineName.trim() ||
-      !draft.dosage.trim() ||
-      !draft.frequency.trim() ||
-      !(Number(draft.durationDays) >= 1) ||
-      !(Number(draft.quantity) >= 1)
-    ) {
-      setPrescriptionError(
-        "Fill in medicine name, dosage, frequency, duration (days) and quantity.",
-      );
-      return;
-    }
+      createPrescription({
+        patientId: appointment.patientId,
+        appointmentId: appointment.appointmentId,
+        items,
+      })
+        .then((prescription) => {
+          setCreatedPrescriptions((current) => [...current, prescription]);
 
-    setPrescriptionError(null);
+          setRelatedPrescriptions((current) =>
+            Array.isArray(current)
+              ? [...current, prescription]
+              : [prescription],
+          );
 
-    setItems((current) => [
-      ...current,
-      {
-        medicineName: draft.medicineName.trim(),
-        dosage: draft.dosage.trim(),
-        frequency: draft.frequency.trim(),
-        durationDays: Number(draft.durationDays),
-        quantity: Number(draft.quantity),
-      },
-    ]);
-
-    setItemDraft(EMPTY_ITEM);
-  }, [itemDraft]);
-
-  const handleRemoveItem = useCallback((index) => {
-    setItems((current) => current.filter((_, i) => i !== index));
-  }, []);
-
-  const handleCreatePrescription = useCallback(() => {
-    if (creatingPrescription || items.length === 0) return;
-
-    setCreatingPrescription(true);
-    setPrescriptionError(null);
-
-    createPrescription({
-      patientId: appointment.patientId,
-      appointmentId: appointment.appointmentId,
-      items,
-    })
-      .then((prescription) => {
-        setCreatedPrescriptions((current) => [...current, prescription]);
-
-        setRelatedPrescriptions((current) =>
-          Array.isArray(current) ? [...current, prescription] : [prescription],
-        );
-
-        setItems([]);
-        setToast({
-          type: "success",
-          message: PRESCRIPTION_CREATED_MESSAGE,
+          onClearItems();
+          setToast({ type: "success", message: PRESCRIPTION_CREATED_MESSAGE });
+        })
+        .catch((error) => {
+          setPrescriptionError(
+            error?.userMessage ??
+              "Unable to create the prescription. Please try again.",
+          );
+        })
+        .finally(() => {
+          setCreatingPrescription(false);
         });
-      })
-      .catch((error) => {
-        setPrescriptionError(
-          error?.userMessage ??
-            "Unable to create the prescription. Please try again.",
-        );
-      })
-      .finally(() => {
-        setCreatingPrescription(false);
-      });
-  }, [appointment, creatingPrescription, items]);
+    },
+    [appointment, creatingPrescription],
+  );
 
   const handleComplete = useCallback(() => {
     if (completingRef.current) return;
@@ -481,26 +330,16 @@ const ConsultationPage = () => {
           status: updated?.status ?? "COMPLETED",
         }));
 
-        setToast({
-          type: "success",
-          message: COMPLETED_TOAST_MESSAGE,
-        });
+        setToast({ type: "success", message: COMPLETED_TOAST_MESSAGE });
       })
       .catch((error) => {
         const status = error?.response?.status;
 
         if (status === 409 || status === 400) {
-          setToast({
-            type: "warning",
-            message: CONCURRENT_CHANGE_MESSAGE,
-          });
-
+          setToast({ type: "warning", message: CONCURRENT_CHANGE_MESSAGE });
           load();
         } else {
-          setToast({
-            type: "error",
-            message: COMPLETE_FAILED_MESSAGE,
-          });
+          setToast({ type: "error", message: COMPLETE_FAILED_MESSAGE });
         }
       })
       .finally(() => {
@@ -542,8 +381,9 @@ const ConsultationPage = () => {
         }
         meta={
           <>
-            <span className="rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-semibold text-primary-700">
-              Appt #{appointmentId}
+            <span className="inline-flex items-center gap-1 rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-semibold text-primary-700 ring-1 ring-primary-100">
+              <Icon name="hash" className="h-3 w-3" />
+              {appointmentId}
             </span>
             <ConsultationTimer running={canComplete} />
           </>
@@ -555,7 +395,7 @@ const ConsultationPage = () => {
               loading={completing}
               disabled={completing}
               size="sm"
-              className="inline-flex items-center gap-2"
+              className="inline-flex items-center gap-2 shadow-sm"
             >
               <Icon name="circle-check" className="h-4 w-4" />
               Complete Consultation
@@ -592,6 +432,7 @@ const ConsultationPage = () => {
         />
       ) : (
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+          {/* LEFT: Clinical workspace */}
           <div className="space-y-6 lg:col-span-7">
             <Panel
               icon="user"
@@ -615,65 +456,25 @@ const ConsultationPage = () => {
               </dl>
             </Panel>
 
-            <Panel
-              icon="clipboard"
-              title="Clinical Examination & Notes"
-              titleId="clinical-notes-heading"
-              aside={
-                <span className="text-xs font-medium tabular-nums text-neutral-500">
-                  {notes.length}/{CLINICAL_NOTES_MAX_LENGTH}
-                </span>
-              }
-              bodyClassName="space-y-3"
-            >
-              {isClosed ? (
-                <>
-                  <p className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-600">
-                    {appointment.status === "CANCELLED"
-                      ? "Clinical notes cannot be added to a cancelled appointment."
-                      : "This consultation is completed; its clinical notes are read-only."}
-                  </p>
-
-                  {appointment.status === "COMPLETED" && notes.trim() && (
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-800">
-                      {notes}
-                    </p>
-                  )}
-                </>
-              ) : (
-                <>
-                  <textarea
-                    id="clinical-notes"
-                    aria-labelledby="clinical-notes-heading"
-                    rows={7}
-                    maxLength={CLINICAL_NOTES_MAX_LENGTH}
-                    value={notes}
-                    onChange={handleNotesChange}
-                    className="w-full resize-y rounded-xl border border-neutral-200 bg-neutral-50/60 p-4 text-sm leading-relaxed text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-                    placeholder="Diagnosis, advice, follow-up..."
-                  />
-
-                  <div className="flex justify-end">
-                    <Button
-                      onClick={handleSaveNotes}
-                      loading={notesSaving}
-                      disabled={notesSaving}
-                      size="sm"
-                    >
-                      Save Notes
-                    </Button>
-                  </div>
-                </>
-              )}
-
-              {notesError && <ErrorMessage message={notesError} />}
-            </Panel>
+            <ClinicalNotesPanel
+              notes={notes}
+              isClosed={isClosed}
+              appointmentStatus={appointment.status}
+              notesSaving={notesSaving}
+              notesDirty={notesDirty}
+              notesError={notesError}
+              onNotesChange={handleNotesChange}
+              onSaveNotes={handleSaveNotes}
+            />
 
             <Panel icon="history" title="Previous Clinical Notes">
               {previousNotes.length === 0 ? (
-                <p className="text-sm text-neutral-500">
-                  No previous clinical notes for this patient.
-                </p>
+                <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-neutral-200 bg-neutral-50/50 py-8 text-center">
+                  <Icon name="history" className="h-6 w-6 text-neutral-300" />
+                  <p className="text-sm text-neutral-500">
+                    No previous clinical notes for this patient.
+                  </p>
+                </div>
               ) : (
                 <ul className="max-h-80 space-y-3 overflow-y-auto pr-1">
                   {previousNotes.map((record) => (
@@ -684,247 +485,17 @@ const ConsultationPage = () => {
             </Panel>
           </div>
 
+          {/* RIGHT: Prescription builder */}
           <div className="lg:col-span-5">
-            <Panel
-              icon="pill"
-              title="E-Prescription Builder"
-              aside={
-                <span className="rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-medium text-primary-700">
-                  Pharmacy Queue
-                </span>
-              }
-            >
-              {createdPrescriptions.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-neutral-600">
-                    Issued prescriptions
-                  </p>
-
-                  <ul className="space-y-2">
-                    {createdPrescriptions.map((prescription) => (
-                      <li
-                        key={prescription.prescriptionId}
-                        className="flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900"
-                      >
-                        <span className="font-medium">
-                          Prescription #{prescription.prescriptionId} &mdash;{" "}
-                          {prescription.items?.length ?? 0}{" "}
-                          {prescription.items?.length === 1 ? "item" : "items"}
-                        </span>
-
-                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
-                          {prescription.status}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {isClosed ? (
-                <div className="space-y-3">
-                  <p className="text-sm text-neutral-500">
-                    This consultation is closed; no further prescriptions can be
-                    issued here.
-                  </p>
-
-                  {appointment.status === "COMPLETED" && (
-                    <div className="space-y-2" aria-live="polite">
-                      <p className="text-sm font-medium text-neutral-700">
-                        Prescriptions for this appointment
-                      </p>
-
-                      {relatedPrescriptions === null ? (
-                        <p className="text-sm text-neutral-500">
-                          Loading prescriptions...
-                        </p>
-                      ) : relatedPrescriptions === "failed" ? (
-                        <p className="text-sm text-neutral-600">
-                          Prescription details are unavailable right now.
-                        </p>
-                      ) : relatedPrescriptions.length === 0 ? (
-                        <p className="text-sm text-neutral-500">
-                          No prescriptions are linked to this appointment.
-                        </p>
-                      ) : (
-                        <ul className="space-y-2">
-                          {relatedPrescriptions.map((prescription) => (
-                            <li
-                              key={prescription.prescriptionId}
-                              className="rounded-xl border border-neutral-200 bg-neutral-50 p-3"
-                            >
-                              <div className="flex items-center justify-between gap-2 text-sm">
-                                <span className="font-semibold text-neutral-900">
-                                  Prescription #{prescription.prescriptionId}
-                                </span>
-
-                                <span className="rounded-full bg-neutral-200 px-2 py-0.5 text-xs font-medium text-neutral-700">
-                                  {prescription.status}
-                                </span>
-                              </div>
-
-                              <ul className="mt-2 space-y-1 text-sm text-neutral-700">
-                                {prescription.items.map((item, index) => (
-                                  <li
-                                    key={
-                                      item.itemId ??
-                                      `${item.medicineName}-${index}`
-                                    }
-                                  >
-                                    <span className="font-medium">
-                                      {item.medicineName}
-                                    </span>
-                                    {item.dosage ? ` — ${item.dosage}` : ""}
-                                    {item.frequency
-                                      ? `, ${item.frequency}`
-                                      : ""}
-                                    {item.durationDays
-                                      ? ` for ${item.durationDays} days`
-                                      : ""}
-                                    {item.quantity
-                                      ? ` (qty ${item.quantity})`
-                                      : ""}
-                                  </li>
-                                ))}
-                              </ul>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <fieldset className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
-                  <legend className="px-1 text-sm font-semibold text-neutral-800">
-                    Add Medication Item
-                  </legend>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="relative col-span-2">
-                      <Input
-                        id="rx-medicine"
-                        label="Medicine Name"
-                        placeholder="Type at least 2 characters to search"
-                        value={itemDraft.medicineName}
-                        onChange={handleDraftChange("medicineName")}
-                        autoComplete="off"
-                        role="combobox"
-                        aria-autocomplete="list"
-                        aria-expanded={visibleMedicineSuggestions.length > 0}
-                      />
-
-                      {visibleMedicineSuggestions.length > 0 && (
-                        <ul
-                          role="listbox"
-                          aria-label="Available medicines"
-                          className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-neutral-200 bg-white py-1 shadow-lg"
-                        >
-                          {visibleMedicineSuggestions.map((medicine, index) => {
-                            const name = medicine.medicineName ?? medicine.name;
-
-                            return (
-                              <li
-                                key={
-                                  medicine.medicineId ??
-                                  medicine.id ??
-                                  `${name}-${index}`
-                                }
-                              >
-                                <button
-                                  type="button"
-                                  role="option"
-                                  aria-selected={false}
-                                  onMouseDown={(event) =>
-                                    event.preventDefault()
-                                  }
-                                  onClick={() => {
-                                    setItemDraft((draft) => ({
-                                      ...draft,
-                                      medicineName: name,
-                                    }));
-
-                                    setMedicineSuggestions([]);
-                                    setMedicineSuggestionsForQuery("");
-                                  }}
-                                  className="w-full px-4 py-2.5 text-left text-sm text-neutral-800 hover:bg-primary-50 focus:bg-primary-50 focus:outline-none"
-                                >
-                                  {name}
-                                </button>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      )}
-                    </div>
-
-                    {DRAFT_FIELDS.filter(
-                      (field) => field.key !== "medicineName",
-                    ).map((field) => (
-                      <div
-                        key={field.key}
-                        className={field.wide ? "col-span-2" : ""}
-                      >
-                        <Input
-                          id={field.id}
-                          label={field.label}
-                          type={field.type}
-                          min={field.min}
-                          placeholder={field.placeholder}
-                          value={itemDraft[field.key]}
-                          onChange={handleDraftChange(field.key)}
-                        />
-                      </div>
-                    ))}
-                  </div>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleAddItem}
-                    className="inline-flex w-full items-center justify-center gap-1.5"
-                  >
-                    <Icon name="plus" className="h-4 w-4" />
-                    Add Medication
-                  </Button>
-                </fieldset>
-              )}
-
-              {items.length === 0 ? (
-                <EmptyState
-                  title="No medicines added yet."
-                  message="Add a medicine above to build this prescription."
-                />
-              ) : (
-                <ul className="max-h-64 space-y-2 overflow-y-auto pr-1">
-                  {items.map((item, index) => (
-                    <MedicationRow
-                      key={`${item.medicineName}-${index}`}
-                      item={item}
-                      index={index}
-                      onRemove={handleRemoveItem}
-                    />
-                  ))}
-                </ul>
-              )}
-
-              {!isClosed && items.length > 0 && (
-                <Button
-                  onClick={handleCreatePrescription}
-                  loading={creatingPrescription}
-                  disabled={creatingPrescription}
-                  size="sm"
-                  className="inline-flex w-full items-center justify-center gap-1.5"
-                >
-                  <Icon name="arrow-up-right" className="h-4 w-4" />
-                  Transmit Prescription
-                </Button>
-              )}
-
-              {prescriptionError && (
-                <ErrorMessage message={prescriptionError} />
-              )}
-            </Panel>
+            <PrescriptionBuilder
+              isClosed={isClosed}
+              creatingPrescription={creatingPrescription}
+              prescriptionError={prescriptionError}
+              createdPrescriptions={createdPrescriptions}
+              relatedPrescriptions={relatedPrescriptions}
+              onCreatePrescription={handleCreatePrescription}
+              onPrescriptionError={setPrescriptionError}
+            />
           </div>
         </div>
       )}
