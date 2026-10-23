@@ -1,4 +1,3 @@
-
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import LoginPage from "../pages/public/LoginPage";
@@ -265,6 +264,7 @@ const AppRoutes = () => {
           />
         }
       >
+
         <Route
           path="/super-admin"
           element={<SuperAdminLayout />}
@@ -294,6 +294,17 @@ const AppRoutes = () => {
             element={
               <KnowledgeBaseManagementPage />
             }
+          />
+
+
+        <Route path="/super-admin" element={<SuperAdminLayout />}>
+          <Route path="dashboard" element={<SuperAdminDashboardPage />} />
+          <Route path="user-management" element={<UserManagementPage />} />
+          <Route path="access-control" element={<AccessControlPage />} />
+          <Route path="clinic-configuration" element={<ClinicConfigPage />} />
+          <Route
+            path="knowledge-base"
+            element={<KnowledgeBaseManagementPage />}
           />
 
           <Route

@@ -1,7 +1,3 @@
-// UI-01 / UI-02 / UI-03: the patient-portal chat widget. A framework-free Web Component:
-//   <script type="module" src="/assets/onecare-chat-widget.js"></script>
-//   <onecare-chat-widget api-url="/api/chatbot/query"></onecare-chat-widget>
-// Works unchanged in React, Angular, Thymeleaf or plain HTML. No data is stored: messages live in memory only.
 import { ChatApiError, sendQuery } from "./api.js";
 import { DEFAULT_CHIPS } from "./chips.js";
 import { STRINGS, format } from "./il8n.js";
@@ -258,9 +254,13 @@ export class OneCareChatWidget extends HTMLElement {
       ? this._initialLang()
       : detectScriptLanguage(text);
     if (isRetry) {
+
       this._messages = this._messages.filter(
         (m) => !(m.role === "error" && m.question === text),
       );
+
+      this._messages = this._messages.filter((m) => m.role !== "error");
+
     } else {
       this._push({ role: "user", text, lang });
       this._input.value = "";
@@ -288,6 +288,8 @@ export class OneCareChatWidget extends HTMLElement {
       });
       if (!this.isConnected) return;
       if (!this.hasAttribute("lang")) this._uiLang = reply.language;
+
+      this._uiLang = reply.language;
       this._push({
         role: "bot",
         text: reply.message,
@@ -326,6 +328,10 @@ export class OneCareChatWidget extends HTMLElement {
         kind,
         retryable: true,
         question: this._lastText,
+
+        text: format(E.rateLimit, { seconds }),
+        kind,
+
       });
       this._startCooldown(seconds);
     } else if (kind === "bad_request") {
@@ -339,6 +345,7 @@ export class OneCareChatWidget extends HTMLElement {
         text: E.network,
         kind,
         retryable: true,
+
         question: this._lastText,
       });
     } else if (kind === "timeout") {
@@ -357,6 +364,7 @@ export class OneCareChatWidget extends HTMLElement {
         text: E.server,
         kind: "server",
         retryable: true,
+
         question: this._lastText,
       });
     }
@@ -378,6 +386,9 @@ export class OneCareChatWidget extends HTMLElement {
 
   _retry(question) {
     return this._submit(question, { isRetry: true });
+
+  _retry() {
+    return this._submit(this._lastText, { isRetry: true });
   }
   _clearInputError() {
     if (this._inputError) {
@@ -444,14 +455,24 @@ export class OneCareChatWidget extends HTMLElement {
         {
           class: `msg ${m.role}`,
           lang: m.role === "error" ? this._uiLang : m.lang,
+
+          lang: m.lang,
+
           "data-type": m.type,
           role: m.role === "error" ? "alert" : null,
         },
         el("span", { class: "who", text: `${who}: ` }),
+
         el("p", { text: m.role === "error" ? this._errorText(m) : m.text }),
       );
       if (m.role === "bot" && m.sources?.length)
         node.append(this._renderSources(m.sources, this._uiLang));
+
+        el("p", { text: m.text }),
+      );
+      if (m.role === "bot" && m.sources?.length)
+        node.append(this._renderSources(m.sources, m.lang));
+
       if (m.booking) {
         const booking = el("button", {
           class: "booking-link",
@@ -465,10 +486,16 @@ export class OneCareChatWidget extends HTMLElement {
         const retry = el("button", {
           class: "retry",
           type: "button",
+
           text: S.retry,
         });
         retry.disabled = this._busy() || this._inCooldown();
         retry.addEventListener("click", () => this._retry(m.question));
+
+          text: STRINGS[m.lang].retry,
+        });
+        retry.addEventListener("click", () => this._retry());
+
         node.append(retry);
       }
       nodes.push(node);
@@ -530,7 +557,11 @@ export class OneCareChatWidget extends HTMLElement {
     const S = this._S;
     this._chipsSummary.textContent = S.chipsLabel;
     const groups = [];
+
     for (const lang of [this._uiLang]) {
+
+    for (const lang of ["en", "ta"]) {
+
       const list = this._chips[lang] || [];
       if (!list.length) continue;
       const group = el("div", { class: "chip-group", lang, role: "group" });
@@ -567,7 +598,11 @@ export class OneCareChatWidget extends HTMLElement {
         el("p", {
           role: "status",
           class: "cooldown",
+
           text: format(S.cooldown, { seconds }, this._uiLang),
+
+          text: format(S.cooldown, { seconds }),
+
         }),
       );
     }
@@ -594,8 +629,10 @@ export class OneCareChatWidget extends HTMLElement {
     this._sendBtn.disabled = blocked || over || !value.trim();
     for (const chip of this._chipsBody.querySelectorAll(".chip"))
       chip.disabled = blocked;
+
     for (const retry of this._log.querySelectorAll(".retry"))
       retry.disabled = blocked;
+
     this._input.setAttribute("aria-busy", String(this._busy()));
   }
 
