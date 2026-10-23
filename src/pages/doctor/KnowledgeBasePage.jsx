@@ -74,6 +74,7 @@ const DocumentCard = memo(function DocumentCard({ doc, onRemove, removing }) {
       onKeyDown={
         openUrl
           ? (e) => {
+              if (e.target !== e.currentTarget) return;
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
                 handleOpen(e);
