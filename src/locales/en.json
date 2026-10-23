@@ -173,7 +173,32 @@
     "email": "Email",
     "address": "Address",
     "addressValue": "123 Main Street, Colombo",
-    "contactExample": "Example contact details — please confirm these with the clinic before use."
+    "contactExample": "Example contact details — please confirm these with the clinic before use.",
+    "footerContent": {
+      "description": "OneCare is your trusted healthcare companion, making it easier to access medical services, connect with healthcare professionals, and find reliable health information.",
+      "tagline": "Your Health, Our Priority.",
+      "quickLinks": "Quick Links",
+      "home": "Home",
+      "doctors": "Our Doctors",
+      "appointment": "Book an Appointment",
+      "contact": "Contact Us",
+      "contactHeading": "Contact Information",
+      "contactPending": "Clinic contact details will be available here once confirmed.",
+      "support": "Patient Support",
+      "guidelines": "Appointment Guidelines",
+      "guidance": "Choose a doctor and an available time when booking. Contact your care provider for help with your visit.",
+      "emergencyTitle": "In an emergency",
+      "emergency": "For urgent medical assistance, contact your local emergency services. Do not wait for a website or chatbot response.",
+      "connected": "Stay Connected With OneCare",
+      "updates": "Stay informed about healthcare updates, wellness tips, and the latest news from OneCare.",
+      "emailLabel": "Your email address",
+      "emailPlaceholder": "Enter your email address",
+      "subscribe": "Subscribe",
+      "newsletterPending": "Newsletter subscriptions are not available yet.",
+      "socialPending": "Official social channels will appear here when available.",
+      "copyright": "© {{year}} OneCare. All rights reserved.",
+      "socialLabel": "OneCare on {{network}}"
+    }
   },
   "publicError": {
     "title": "Something went wrong",

@@ -1,12 +1,24 @@
 import PublicErrorBoundary from "../components/PublicErrorBoundary";
 import "../styles/patient-public.css";
-import { Outlet } from "react-router-dom";
-import { useTranslation } from "react-i18next";
-import ClinicContact from "../components/ClinicContact";
+import { useLayoutEffect } from "react";
+import { Outlet, useLocation } from "react-router-dom";
+import Footer from "../components/Footer";
 import SiteHeader from "../components/SiteHeader";
 
 const PublicLayout = () => {
-  const { t } = useTranslation();
+  const { pathname, hash, key } = useLocation();
+
+  useLayoutEffect(() => {
+    if (hash) {
+      document.getElementById(hash.slice(1))?.scrollIntoView({
+        block: "start",
+        behavior: "instant",
+      });
+    } else {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }
+  }, [pathname, hash, key]);
+
   return (
     <div className="flex min-h-screen flex-col bg-neutral-0">
       <SiteHeader />
@@ -15,12 +27,7 @@ const PublicLayout = () => {
           <Outlet />
         </PublicErrorBoundary>
       </main>
-      <footer className="border-t border-neutral-200 bg-neutral-50">
-        <div className="page-container py-6 text-sm text-neutral-600">
-          {t("publicCommon.footer")}
-          <ClinicContact />
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

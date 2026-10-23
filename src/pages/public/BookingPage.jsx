@@ -44,7 +44,7 @@ function validateBooking(form) {
   )
     errors.appointmentDate = "booking.invalidDate";
   if (!form.slot) errors.slot = "booking.required";
-  return errors;
+    return errors;
 }
 
 export default function BookingPage() {
@@ -108,6 +108,11 @@ export default function BookingPage() {
           : "idle",
       );
     }
+    if (name=="phone"&& !/^\+?[0-9\s()-]*$/.test(value)){
+      setErrors((previous)=>({...previous, phone: "booking.invalidPhone"}));
+      return;
+    }
+
     setForm((f) => ({
       ...f,
       [name]: value,
