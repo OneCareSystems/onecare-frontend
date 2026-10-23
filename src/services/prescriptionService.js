@@ -90,4 +90,50 @@ export const getPrescriptionsByStatus = async (
   );
 };
 
-export default { createPrescription, getPrescriptionById, getPrescriptionsByStatus };
+/** Read-only preview of in-house dispensing and current stock. */
+export const getDispensePreview = async (
+  prescriptionId,
+  { signal } = {},
+) => {
+  const response = await apiClient.get(
+    `/prescriptions/${prescriptionId}/dispense-preview`,
+    { signal },
+  );
+
+  const payload = response.data;
+
+  if (
+    payload?.success !== true ||
+    !payload.data ||
+    !Array.isArray(payload.data.items)
+  ) {
+    throw new Error("Unexpected dispense preview response format");
+  }
+
+  return payload.data;
+};
+
+/** Perform atomic in-house dispensing through the backend. */
+export const dispensePrescription = async (
+  prescriptionId,
+  { confirmPartial = false, signal } = {},
+) => {
+  const response = await apiClient.post(
+    `/prescriptions/${prescriptionId}/dispense`,
+    { confirmPartial },
+    { signal },
+  );
+
+  const payload = response.data;
+
+  if (payload?.success !== true || !payload.data) {
+    throw new Error(
+      payload?.message || "Unexpected dispense response format",
+    );
+  }
+
+  return payload.data;
+};
+
+
+export default { createPrescription, getPrescriptionById, getPrescriptionsByStatus, getDispensePreview, dispensePrescription };

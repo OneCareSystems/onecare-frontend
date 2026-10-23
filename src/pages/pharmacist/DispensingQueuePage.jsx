@@ -1,39 +1,78 @@
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import EmptyState from "../../components/EmptyState";
 import ErrorMessage from "../../components/ErrorMessage";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import Button from "../../components/Button";
 import StatusBadge from "../../components/StatusBadge";
-import { getPrescriptionsByStatus } from "../../services/prescriptionService";
+import {
+  getPrescriptionsByStatus,
+  getDispensePreview,
+  dispensePrescription,
+} from "../../services/prescriptionService";
 
-const getMedicineName = (item) =>
-  item.medicineName ?? item.name ?? "Medicine name unavailable";
+const getMedicineName = (item, fallbackItem) =>
+  fallbackItem?.medicineName ??
+  fallbackItem?.name ??
+  (item?.medicineId != null
+    ? `Medicine #${item.medicineId}`
+    : "Medicine name unavailable");
 
-const getQuantity = (item) => {
-  const quantity = Number(item.quantity);
-  return Number.isFinite(quantity) && quantity > 0 ? quantity : 0;
-};
+const isStockShortfall = (error) =>
+  error?.status === 409 &&
+  typeof error?.message === "string" &&
+  error.message.toLowerCase().includes("insufficient stock") &&
+  Array.isArray(error?.data?.items);
 
 const DispensingQueuePage = () => {
   const [prescriptions, setPrescriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [attempt, setAttempt] = useState(0);
+  const [queueAttempt, setQueueAttempt] = useState(0);
+
   const [selectedId, setSelectedId] = useState(null);
   const [verified, setVerified] = useState(false);
-  const [quantities, setQuantities] = useState({});
+  const [dispenseConfirmed, setDispenseConfirmed] = useState(false);
+  const [partialConfirmed, setPartialConfirmed] = useState(false);
+
+  const [preview, setPreview] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState("");
+  const [previewAttempt, setPreviewAttempt] = useState(0);
+
+  const [dispensing, setDispensing] = useState(false);
   const [notice, setNotice] = useState("");
 
-  const loadPrescriptions = useCallback(async (signal) => {
-    setLoading(true);
-    setError(false);
+  // Load issued and partially dispensed prescriptions.
+  useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
 
-    try {
-      const data = await getPrescriptionsByStatus("ISSUED", { signal });
+    const loadPrescriptions = async () => {
+      try {
+        const [issued, partiallyDispensed] = await Promise.all([
+          getPrescriptionsByStatus("ISSUED", { signal }),
+          getPrescriptionsByStatus("PARTIALLY_DISPENSED", { signal }),
+        ]);
 
-      if (!signal.aborted) {
+        if (signal.aborted) return;
+
+        const merged = new Map();
+
+        [...issued, ...partiallyDispensed].forEach((prescription) => {
+          merged.set(String(prescription.prescriptionId), prescription);
+        });
+
+        const data = [...merged.values()].sort((a, b) =>
+          String(b.prescriptionId).localeCompare(
+            String(a.prescriptionId),
+            undefined,
+            { numeric: true },
+          ),
+        );
+
         setPrescriptions(data);
+
         setSelectedId((currentId) =>
           data.some(
             (prescription) =>
@@ -42,102 +81,174 @@ const DispensingQueuePage = () => {
             ? currentId
             : null,
         );
+      } catch {
+        if (!signal.aborted) {
+          setError(true);
+        }
+      } finally {
+        if (!signal.aborted) {
+          setLoading(false);
+        }
       }
-    } catch {
-      if (!signal.aborted) {
-        setError(true);
+    };
+
+    void loadPrescriptions();
+
+    return () => controller.abort();
+  }, [queueAttempt]);
+
+  // Load the current stock preview for the selected prescription.
+  useEffect(() => {
+    if (selectedId == null) return undefined;
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    const loadPreview = async () => {
+      try {
+        const data = await getDispensePreview(selectedId, { signal });
+
+        if (!signal.aborted) {
+          setPreview(data);
+        }
+      } catch (requestError) {
+        if (!signal.aborted) {
+          setPreviewError(
+            requestError?.userMessage ??
+              requestError?.message ??
+              "Unable to retrieve the stock preview.",
+          );
+        }
+      } finally {
+        if (!signal.aborted) {
+          setPreviewLoading(false);
+        }
       }
-    } finally {
-      if (!signal.aborted) {
-        setLoading(false);
-      }
-    }
-  }, []);
+    };
 
- 
-useEffect(() => {
-  const controller = new AbortController();
+    void loadPreview();
 
-  Promise.resolve().then(() => {
-    if (!controller.signal.aborted) {
-      void loadPrescriptions(controller.signal);
-    }
-  });
-
-  return () => controller.abort();
-}, [loadPrescriptions, attempt]);
-
+    return () => controller.abort();
+  }, [selectedId, previewAttempt]);
 
   const selectedPrescription = prescriptions.find(
     (prescription) =>
       String(prescription.prescriptionId) === String(selectedId),
   );
 
-  const items = selectedPrescription?.items ?? [];
+  const prescriptionItems = selectedPrescription?.items ?? [];
+  const previewItems = preview?.items ?? [];
+
+  const hasPartialShortfall = previewItems.some(
+    (item) => Number(item.shortfallQuantity) > 0,
+  );
+
+ 
+const hasDispensableItems = previewItems.some((item) => {
+  const remaining = Number(item.remainingQuantity);
+  const available = Number(item.availableStock);
+  const shortfall = Number(item.shortfallQuantity);
+
+  const canPartiallyDispense =
+    item.reason === "Insufficient stock" &&
+    available > 0 &&
+    shortfall > 0;
+
+  const canFullyDispense =
+    item.dispensable !== false && !item.reason;
+
+  return (
+    item.medicineId != null &&
+    remaining > 0 &&
+    (canPartiallyDispense || canFullyDispense)
+  );
+});
+
 
   const handleSelect = (prescription) => {
     setSelectedId(prescription.prescriptionId);
     setVerified(false);
+    setDispenseConfirmed(false);
+    setPartialConfirmed(false);
+    setPreview(null);
+    setPreviewError("");
+    setPreviewLoading(true);
     setNotice("");
-    setQuantities(
-      Object.fromEntries(
-        (prescription.items ?? []).map((item, index) => [
-          String(index),
-          getQuantity(item),
-        ]),
-      ),
-    );
+    setPreviewAttempt((current) => current + 1);
   };
 
-  const handleQuantityChange = (index, value, maximum) => {
-    const parsed = value === "" ? "" : Number(value);
-
-    setQuantities((current) => ({
-      ...current,
-      [String(index)]:
-        value === ""
-          ? ""
-          : Number.isFinite(parsed) && parsed >= 0
-            ? Math.min(parsed, maximum)
-            : 0,
-    }));
-    setNotice("");
-  };
-
-  const handlePreviewConfirmation = () => {
-    if (!selectedPrescription || !verified) {
-      setNotice("Verify the patient and prescription before continuing.");
+  const handleDispense = async () => {
+    if (!selectedPrescription || !preview || previewLoading) {
+      setNotice("Select a prescription and load its stock preview first.");
       return;
     }
 
-    const invalid = items.some((item, index) => {
-      const quantity = quantities[String(index)];
-      return (
-        quantity === "" ||
-        !Number.isInteger(Number(quantity)) ||
-        Number(quantity) < 0 ||
-        Number(quantity) > getQuantity(item)
+    if (!verified) {
+      setNotice("Verify the patient identity and prescription first.");
+      return;
+    }
+
+    if (!hasDispensableItems) {
+      setNotice(
+        "No safe in-house medicine quantities are available to dispense. Review the preview and medicine reasons.",
       );
-    });
-
-    if (invalid) {
-      setNotice("Enter a valid quantity for every medicine.");
       return;
     }
 
-    const total = items.reduce(
-      (sum, item, index) => sum + Number(quantities[String(index)] ?? 0),
-      0,
-    );
-
-    if (total === 0) {
-      setNotice("Enter at least one medicine quantity.");
+    if (!dispenseConfirmed) {
+      setNotice("Confirm that you want to dispense the available medicines.");
       return;
     }
 
-    setNotice(
-      "Preview only: no medicine has been dispensed and no stock has changed. Actual dispensing will be connected after the DDP-30 backend API is confirmed.",
-    );
+    if (hasPartialShortfall && !partialConfirmed) {
+      setNotice(
+        "Stock is insufficient. Review the shortfall and explicitly confirm partial dispensing before continuing.",
+      );
+      return;
+    }
+
+    setDispensing(true);
+    setNotice("");
+
+    try {
+      const result = await dispensePrescription(selectedId, {
+        confirmPartial: partialConfirmed,
+      });
+
+      setNotice(
+        result?.status === "PARTIALLY_DISPENSED"
+          ? "Partial dispensing completed. The remaining prescription is still in the queue."
+          : "Dispensing completed successfully.",
+      );
+
+      setVerified(false);
+      setDispenseConfirmed(false);
+      setPartialConfirmed(false);
+      setPreview(null);
+      setPreviewError("");
+      setPreviewLoading(true);
+
+      setQueueAttempt((current) => current + 1);
+      setPreviewAttempt((current) => current + 1);
+    } catch (requestError) {
+      if (isStockShortfall(requestError)) {
+        setPreview(requestError.data);
+        setPreviewError("");
+        setPartialConfirmed(false);
+        setDispenseConfirmed(false);
+        setNotice(
+          "Stock availability changed. Review the updated preview, then confirm partial dispensing if you want to continue.",
+        );
+      } else {
+        setNotice(
+          requestError?.userMessage ??
+            requestError?.message ??
+            "Dispensing failed. Refresh the preview and try again if appropriate.",
+        );
+      }
+    } finally {
+      setDispensing(false);
+    }
   };
 
   return (
@@ -147,7 +258,7 @@ useEffect(() => {
           Dispensing Queue
         </h1>
         <p className="mt-1 text-sm text-gray-600">
-          Review issued prescriptions before dispensing medicine.
+          Review prescription details and current stock before dispensing.
         </p>
       </header>
 
@@ -166,11 +277,15 @@ useEffect(() => {
         <section className="rounded-xl border border-gray-200 bg-white p-5">
           <ErrorMessage
             title="Unable to load prescriptions"
-            message="Please check your connection and try again."
+            message="Please check your connection and permissions, then try again."
           />
           <Button
             className="mt-3"
-            onClick={() => setAttempt((current) => current + 1)}
+            onClick={() => {
+              setLoading(true);
+              setError(false);
+              setQueueAttempt((current) => current + 1);
+            }}
           >
             Retry
           </Button>
@@ -180,7 +295,7 @@ useEffect(() => {
       {!loading && !error && prescriptions.length === 0 && (
         <EmptyState
           title="No prescriptions pending dispensing"
-          description="Issued prescriptions will appear here when available."
+          description="Issued and partially dispensed prescriptions will appear here."
         />
       )}
 
@@ -202,6 +317,10 @@ useEffect(() => {
                   <button
                     type="button"
                     onClick={() => handleSelect(prescription)}
+                    aria-pressed={
+                      String(selectedId) ===
+                      String(prescription.prescriptionId)
+                    }
                     className={`w-full rounded-lg p-4 text-left hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
                       String(selectedId) ===
                       String(prescription.prescriptionId)
@@ -213,13 +332,18 @@ useEffect(() => {
                       <span className="font-semibold text-gray-900">
                         Prescription #{prescription.prescriptionId}
                       </span>
-                      <StatusBadge status="pending dispense" />
+                      <StatusBadge status={prescription.status ?? "ISSUED"} />
                     </div>
+
                     <p className="mt-2 text-sm text-gray-600">
                       Patient ID: {prescription.patientId ?? "Unavailable"}
                     </p>
+
                     <p className="mt-1 text-sm text-gray-500">
-                      Date: {prescription.date ?? prescription.createdAt ?? "Unavailable"}
+                      Date:{" "}
+                      {prescription.date ??
+                        prescription.createdAt ??
+                        "Unavailable"}
                     </p>
                   </button>
                 </li>
@@ -243,77 +367,130 @@ useEffect(() => {
                     Prescription #{selectedPrescription.prescriptionId}
                   </p>
                   <p className="mt-1 text-sm text-gray-600">
-                    Patient ID: {selectedPrescription.patientId ?? "Unavailable"}
+                    Patient ID:{" "}
+                    {selectedPrescription.patientId ?? "Unavailable"}
                   </p>
                   <p className="mt-1 text-sm text-gray-600">
                     Status: {selectedPrescription.status ?? "ISSUED"}
                   </p>
                 </div>
 
-                <div>
-                  <h3 className="mb-3 font-semibold text-gray-900">
-                    Prescribed medicines
-                  </h3>
+                {previewLoading && (
+                  <LoadingSpinner label="Checking current stock..." />
+                )}
 
-                  {items.length === 0 ? (
-                    <p className="text-sm text-gray-600">
-                      No medicine items are available in this prescription response.
+                {previewError && (
+                  <div role="alert" className="space-y-3">
+                    <ErrorMessage
+                      title="Unable to load stock preview"
+                      message={previewError}
+                    />
+                    <Button
+                      onClick={() => {
+                        setPreview(null);
+                        setPreviewError("");
+                        setPreviewLoading(true);
+                        setPreviewAttempt((current) => current + 1);
+                      }}
+                    >
+                      Retry preview
+                    </Button>
+                  </div>
+                )}
+
+                {preview && !previewLoading && (
+                  <div>
+                    <h3 className="mb-3 font-semibold text-gray-900">
+                      Live stock preview
+                    </h3>
+
+                    <p className="mb-3 text-sm text-gray-600">
+                      This preview is read-only. Stock changes only after the
+                      dispensing request succeeds.
                     </p>
-                  ) : (
-                    <div className="space-y-4">
-                      {items.map((item, index) => {
-                        const prescribed = getQuantity(item);
-                        const quantity = quantities[String(index)] ?? prescribed;
 
-                        return (
-                          <div
-                            key={`${getMedicineName(item)}-${index}`}
-                            className="rounded-lg border border-gray-200 p-4"
-                          >
-                            <p className="font-medium text-gray-900">
-                              {getMedicineName(item)}
-                            </p>
-                            <p className="mt-1 text-sm text-gray-600">
-                              Dosage: {item.dosage ?? "Not provided"}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              Frequency: {item.frequency ?? "Not provided"}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              Duration: {item.durationDays ?? "Not provided"} days
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              Prescribed quantity: {prescribed}
-                            </p>
+                    {previewItems.length === 0 ? (
+                      <p className="text-sm text-gray-600">
+                        No medicine items are available in the preview.
+                      </p>
+                    ) : (
+                      <div className="space-y-4">
+                        {previewItems.map((item, index) => {
+                          const fallbackItem = prescriptionItems[index];
 
-                            <label
-                              htmlFor={`dispense-quantity-${index}`}
-                              className="mt-3 block text-sm font-medium text-gray-700"
+                          return (
+                            <div
+                              key={item.itemId ?? `${item.medicineId}-${index}`}
+                              className="rounded-lg border border-gray-200 p-4"
                             >
-                              Quantity to prepare (preview only)
-                            </label>
-                            <input
-                              id={`dispense-quantity-${index}`}
-                              type="number"
-                              min="0"
-                              max={prescribed}
-                              step="1"
-                              value={quantity}
-                              onChange={(event) =>
-                                handleQuantityChange(
-                                  index,
-                                  event.target.value,
-                                  prescribed,
-                                )
-                              }
-                              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+                              <p className="font-medium text-gray-900">
+                                {getMedicineName(item, fallbackItem)}
+                              </p>
+
+                              <p className="mt-1 text-sm text-gray-600">
+                                Prescribed: {item.prescribedQuantity}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                Already dispensed: {item.quantityDispensed}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                Remaining: {item.remainingQuantity}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                Available stock: {item.availableStock}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                Quantity shortfall: {item.shortfallQuantity}
+                              </p>
+
+                              {item.unitPrice != null && (
+                                <p className="text-sm text-gray-600">
+                                  Unit price: {item.unitPrice}
+                                </p>
+                              )}
+
+                              {item.reason && (
+                                <p
+                                  className={`mt-2 text-sm font-medium ${
+                                    item.reason === "Insufficient stock"
+                                      ? "text-amber-700"
+                                      : "text-red-700"
+                                  }`}
+                                >
+                                  {item.reason}
+                                </p>
+                              )}
+
+                              {!item.reason && item.dispensable && (
+                                <p className="mt-2 text-sm font-medium text-green-700">
+                                  Available for dispensing
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {hasPartialShortfall && (
+                      <label className="mt-4 flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+                        <input
+                          type="checkbox"
+                          checked={partialConfirmed}
+                         onChange={(event) => {
+  setPartialConfirmed(event.target.checked);
+  setNotice("");
+}}
+                          className="mt-1 h-4 w-4"
+                        />
+                        <span>
+                          I understand that stock is insufficient and confirm
+                          dispensing only the available quantities.
+                        </span>
+                      </label>
+                    )}
+                  </div>
+                )}
 
                 <label className="flex items-start gap-3 rounded-lg border border-gray-200 p-4 text-sm text-gray-700">
                   <input
@@ -321,6 +498,7 @@ useEffect(() => {
                     checked={verified}
                     onChange={(event) => {
                       setVerified(event.target.checked);
+                      setDispenseConfirmed(false);
                       setNotice("");
                     }}
                     className="mt-1 h-4 w-4"
@@ -330,31 +508,43 @@ useEffect(() => {
                   </span>
                 </label>
 
-                <div>
-                  <label
-                    htmlFor="pharmacy-note"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Pharmacy note (optional)
-                  </label>
-                  <textarea
-                    id="pharmacy-note"
-                    rows={3}
-                    maxLength={500}
-                    placeholder="Enter a pharmacy-related note..."
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
-                  />
-                  <p className="mt-1 text-xs text-gray-500">
-                    Do not enter diagnoses or clinical notes here.
-                  </p>
-                </div>
+                {preview && !previewLoading && (
+                  <>
+                    <label className="flex items-start gap-3 rounded-lg border border-gray-200 p-4 text-sm text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={dispenseConfirmed}
+                        onChange={(event) => {
+                          setDispenseConfirmed(event.target.checked);
+                          setNotice("");
+                        }}
+                        className="mt-1 h-4 w-4"
+                      />
+                      <span>
+                        I confirm the actual dispensing operation. The backend
+                        will update medicine stock.
+                      </span>
+                    </label>
 
-                <Button
-                  onClick={handlePreviewConfirmation}
-                  disabled={items.length === 0}
-                >
-                  Validate dispensing preview
-                </Button>
+                    <Button
+                      onClick={handleDispense}
+                      disabled={
+                        previewLoading ||
+                        dispensing ||
+                        !verified ||
+                        !dispenseConfirmed ||
+                        !hasDispensableItems ||
+                        (hasPartialShortfall && !partialConfirmed)
+                      }
+                    >
+                      {dispensing
+                        ? "Dispensing..."
+                        : hasPartialShortfall
+                          ? "Confirm partial dispensing"
+                          : "Dispense medicines"}
+                    </Button>
+                  </>
+                )}
               </div>
             )}
           </section>
