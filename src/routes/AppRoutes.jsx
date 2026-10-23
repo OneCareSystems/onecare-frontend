@@ -110,6 +110,8 @@ const AppRoutes = () => {
           <Route path="billing" element={<BillingPage />} />
 
           <Route path="clinic-reports" element={<ClinicReports />} />
+          <Route path="/admin/knowledge-base"  element={<KnowledgeBaseManagementPage />}
+      />
         </Route>
       </Route>
 
