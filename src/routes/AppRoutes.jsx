@@ -119,7 +119,10 @@ const AppRoutes = () => {
           <Route path="user-management" element={<UserManagementPage />} />
           <Route path="access-control" element={<AccessControlPage />} />
           <Route path="clinic-configuration" element={<ClinicConfigPage />} />
-          <Route path="knowledge-base" element={<KnowledgeBaseManagementPage />} />
+          <Route
+            path="knowledge-base"
+            element={<KnowledgeBaseManagementPage />}
+          />
           <Route
             path="system-maintenance"
             element={<SystemMaintenancePage />}

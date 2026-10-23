@@ -90,4 +90,8 @@ export const getPrescriptionsByStatus = async (
   );
 };
 
-export default { createPrescription, getPrescriptionById, getPrescriptionsByStatus };
+export default {
+  createPrescription,
+  getPrescriptionById,
+  getPrescriptionsByStatus,
+};
