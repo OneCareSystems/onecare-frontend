@@ -131,7 +131,7 @@ export const mswState = {
   prescriptionCreateHits: [],
   prescriptionCreateResponses: [],
   prescriptionCreateErrorMode: null,
-    issuedPrescriptionHits: [],
+  issuedPrescriptionHits: [],
   issuedPrescriptionResponses: [],
   issuedPrescriptionErrorMode: null,
 
@@ -227,7 +227,7 @@ export const resetMswState = () => {
   mswState.prescriptionCreateHits = [];
   mswState.prescriptionCreateResponses = [];
   mswState.prescriptionCreateErrorMode = null;
-    mswState.issuedPrescriptionHits = [];
+  mswState.issuedPrescriptionHits = [];
   mswState.issuedPrescriptionResponses = [];
   mswState.issuedPrescriptionErrorMode = null;
 
@@ -1252,7 +1252,11 @@ export const handlers = [
       return fail(500, "Internal server error");
     }
     return ok(
-      mswState.kbListResponses.shift() ?? { items: [], count: 0, totalPages: 1 },
+      mswState.kbListResponses.shift() ?? {
+        items: [],
+        count: 0,
+        totalPages: 1,
+      },
     );
   }),
   http.post("*/chatbot/knowledge-base", async ({ request }) => {

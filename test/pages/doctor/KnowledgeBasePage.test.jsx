@@ -60,7 +60,9 @@ describe("KnowledgeBasePage", () => {
     ];
     renderPage();
 
-    expect(await screen.findByText("Hypertension Guidelines")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Hypertension Guidelines"),
+    ).toBeInTheDocument();
     expect(screen.getByText("Diabetes Protocol")).toBeInTheDocument();
     expect(screen.getByText("hypertension.pdf")).toBeInTheDocument();
     expect(screen.getByText("diabetes.pdf")).toBeInTheDocument();
@@ -106,7 +108,9 @@ describe("KnowledgeBasePage", () => {
     renderPage();
 
     await user.click(
-      await screen.findByRole("button", { name: "Remove Hypertension Guidelines" }),
+      await screen.findByRole("button", {
+        name: "Remove Hypertension Guidelines",
+      }),
     );
     const dialog = screen.getByRole("dialog", { name: "Remove reference" });
     expect(
@@ -119,9 +123,7 @@ describe("KnowledgeBasePage", () => {
 
     await waitFor(() => expect(mswState.kbDeleteHits).toHaveLength(1));
     expect(mswState.kbDeleteHits[0].id).toBe("11");
-    expect(
-      await screen.findByText("No references yet"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("No references yet")).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
@@ -131,14 +133,15 @@ describe("KnowledgeBasePage", () => {
     renderPage();
 
     await user.click(
-      await screen.findByRole("button", { name: "Remove Hypertension Guidelines" }),
+      await screen.findByRole("button", {
+        name: "Remove Hypertension Guidelines",
+      }),
     );
     mswState.kbDeleteErrorMode = "not-found";
     await user.click(
-      within(screen.getByRole("dialog", { name: "Remove reference" })).getByRole(
-        "button",
-        { name: "Remove" },
-      ),
+      within(
+        screen.getByRole("dialog", { name: "Remove reference" }),
+      ).getByRole("button", { name: "Remove" }),
     );
 
     expect(await screen.findByText("No references yet")).toBeInTheDocument();
@@ -151,14 +154,15 @@ describe("KnowledgeBasePage", () => {
     renderPage();
 
     await user.click(
-      await screen.findByRole("button", { name: "Remove Hypertension Guidelines" }),
+      await screen.findByRole("button", {
+        name: "Remove Hypertension Guidelines",
+      }),
     );
     mswState.kbDeleteErrorMode = "forbidden";
     await user.click(
-      within(screen.getByRole("dialog", { name: "Remove reference" })).getByRole(
-        "button",
-        { name: "Remove" },
-      ),
+      within(
+        screen.getByRole("dialog", { name: "Remove reference" }),
+      ).getByRole("button", { name: "Remove" }),
     );
 
     expect(
@@ -167,10 +171,12 @@ describe("KnowledgeBasePage", () => {
       ),
     ).toBeInTheDocument();
     // The document stays in the grid and the dialog stays open for a retry.
-    expect(screen.getAllByText("Hypertension Guidelines").length).toBeGreaterThan(
-      0,
-    );
-    expect(screen.getByRole("dialog", { name: "Remove reference" })).toBeInTheDocument();
+    expect(
+      screen.getAllByText("Hypertension Guidelines").length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getByRole("dialog", { name: "Remove reference" }),
+    ).toBeInTheDocument();
   });
 
   it("falls back to a generic removal error for other failures", async () => {
@@ -179,14 +185,15 @@ describe("KnowledgeBasePage", () => {
     renderPage();
 
     await user.click(
-      await screen.findByRole("button", { name: "Remove Hypertension Guidelines" }),
+      await screen.findByRole("button", {
+        name: "Remove Hypertension Guidelines",
+      }),
     );
     mswState.kbDeleteErrorMode = "server-error";
     await user.click(
-      within(screen.getByRole("dialog", { name: "Remove reference" })).getByRole(
-        "button",
-        { name: "Remove" },
-      ),
+      within(
+        screen.getByRole("dialog", { name: "Remove reference" }),
+      ).getByRole("button", { name: "Remove" }),
     );
 
     expect(
@@ -214,27 +221,32 @@ describe("KnowledgeBasePage", () => {
       },
     ];
     renderPage();
-    expect(await screen.findByText("Hypertension Guidelines")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Hypertension Guidelines"),
+    ).toBeInTheDocument();
 
     await user.type(screen.getByRole("searchbox"), "diabetes");
     await waitFor(() =>
       expect(screen.getByText("1 of 2 references")).toBeInTheDocument(),
     );
     expect(screen.getByText("Diabetes Protocol")).toBeInTheDocument();
-    expect(screen.queryByText("Hypertension Guidelines")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Hypertension Guidelines"),
+    ).not.toBeInTheDocument();
 
     await user.clear(screen.getByRole("searchbox"));
     await user.type(screen.getByRole("searchbox"), "oncology");
     await waitFor(() =>
-      expect(screen.getByText("No matching references found")).toBeInTheDocument(),
+      expect(
+        screen.getByText("No matching references found"),
+      ).toBeInTheDocument(),
     );
     expect(screen.getByText("0 of 2 references")).toBeInTheDocument();
 
     await user.click(
-      within(screen.getByRole("searchbox").parentElement).getByRole(
-        "button",
-        { name: "Clear search" },
-      ),
+      within(screen.getByRole("searchbox").parentElement).getByRole("button", {
+        name: "Clear search",
+      }),
     );
     await waitFor(() =>
       expect(screen.getByText("2 references")).toBeInTheDocument(),
@@ -249,9 +261,7 @@ describe("KnowledgeBasePage", () => {
 
     expect(await screen.findByText("No references yet")).toBeInTheDocument();
     expect(
-      screen.getByText(
-        /upload your first pdf reference/i,
-      ),
+      screen.getByText(/upload your first pdf reference/i),
     ).toBeInTheDocument();
     expect(screen.getByText("0 references")).toBeInTheDocument();
   });
@@ -269,7 +279,9 @@ describe("KnowledgeBasePage", () => {
     mswState.kbListResponses = [{ items: [kbDoc()], count: 1, totalPages: 1 }];
     await user.click(screen.getByRole("button", { name: "Retry" }));
 
-    expect(await screen.findByText("Hypertension Guidelines")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Hypertension Guidelines"),
+    ).toBeInTheDocument();
     expect(mswState.kbListHits).toHaveLength(2);
   });
 
@@ -277,11 +289,15 @@ describe("KnowledgeBasePage", () => {
     const user = userEvent.setup();
     mswState.kbListResponses = [{ items: [kbDoc()], count: 1, totalPages: 1 }];
     renderPage();
-    expect(await screen.findByText("Hypertension Guidelines")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Hypertension Guidelines"),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /upload reference/i }));
 
-    const dialog = screen.getByRole("dialog", { name: "Add to Knowledge Base" });
+    const dialog = screen.getByRole("dialog", {
+      name: "Add to Knowledge Base",
+    });
     expect(
       within(dialog).getByRole("heading", { name: "Chatbot Knowledge Base" }),
     ).toBeInTheDocument();

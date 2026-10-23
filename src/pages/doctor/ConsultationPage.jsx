@@ -262,7 +262,7 @@ const ConsultationPage = () => {
         setNotesError(
           status === 400
             ? (error?.userMessage ??
-              "Clinical notes cannot be added to this appointment.")
+                "Clinical notes cannot be added to this appointment.")
             : "Unable to save the clinical notes. Please try again.",
         );
       })
@@ -291,7 +291,9 @@ const ConsultationPage = () => {
           setCreatedPrescriptions((current) => [...current, prescription]);
 
           setRelatedPrescriptions((current) =>
-            Array.isArray(current) ? [...current, prescription] : [prescription],
+            Array.isArray(current)
+              ? [...current, prescription]
+              : [prescription],
           );
 
           onClearItems();
@@ -434,7 +436,8 @@ const ConsultationPage = () => {
             >
               <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <DetailTile label="Patient name">
-                  {patientName ?? `Patient ${appointment.patientId ?? "\u2014"}`}
+                  {patientName ??
+                    `Patient ${appointment.patientId ?? "\u2014"}`}
                 </DetailTile>
 
                 <DetailTile label="Date and time">
@@ -462,10 +465,7 @@ const ConsultationPage = () => {
             <Panel icon="history" title="Previous Clinical Notes">
               {previousNotes.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-neutral-200 bg-neutral-50/50 py-8 text-center">
-                  <Icon
-                    name="history"
-                    className="h-6 w-6 text-neutral-300"
-                  />
+                  <Icon name="history" className="h-6 w-6 text-neutral-300" />
                   <p className="text-sm text-neutral-500">
                     No previous clinical notes for this patient.
                   </p>

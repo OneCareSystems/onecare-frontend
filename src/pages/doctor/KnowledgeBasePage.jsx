@@ -185,7 +185,6 @@ const KnowledgeBasePage = () => {
 
   useEffect(() => {
     const controller = new AbortController();
-    setStatus("loading");
 
     listDocuments({ signal: controller.signal })
       .then((docs) => {
@@ -205,7 +204,10 @@ const KnowledgeBasePage = () => {
     return () => controller.abort();
   }, [reloadKey]);
 
-  const retry = useCallback(() => setReloadKey((k) => k + 1), []);
+  const retry = useCallback(() => {
+    setStatus("loading");
+    setReloadKey((key) => key + 1);
+  }, []);
 
   const filtered = useMemo(() => {
     const query = deferredQuery.trim().toLowerCase();
@@ -221,10 +223,10 @@ const KnowledgeBasePage = () => {
 
   const openManager = useCallback(() => setShowManager(true), []);
   const closeManager = useCallback(() => setShowManager(false), []);
-  const handleManagerUpload = useCallback(
-    () => setReloadKey((k) => k + 1),
-    [],
-  );
+  const handleManagerUpload = useCallback(() => {
+    setStatus("loading");
+    setReloadKey((key) => key + 1);
+  }, []);
 
   const openRemove = useCallback((doc) => {
     setRemoveError(null);
@@ -353,7 +355,9 @@ const KnowledgeBasePage = () => {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={isSearching ? () => setSearchQuery("") : openManager}
+                    onClick={
+                      isSearching ? () => setSearchQuery("") : openManager
+                    }
                   >
                     {isSearching ? "Clear search" : "Upload reference"}
                   </Button>
@@ -383,10 +387,7 @@ const KnowledgeBasePage = () => {
           widthClass="max-w-5xl"
           bodyClassName="max-h-[80vh] overflow-y-auto"
         >
-          <KnowledgeBaseManager
-            embedded
-            onUploaded={handleManagerUpload}
-          />
+          <KnowledgeBaseManager embedded onUploaded={handleManagerUpload} />
         </Modal>
       )}
 

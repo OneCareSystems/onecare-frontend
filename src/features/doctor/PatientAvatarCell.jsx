@@ -11,10 +11,7 @@ const PatientAvatarCell = memo(function PatientAvatarCell({
   subtitle,
   avatarSize = "md",
 }) {
-  const sizeClass =
-    avatarSize === "sm"
-      ? "h-8 w-8 text-xs"
-      : "h-9 w-9 text-xs";
+  const sizeClass = avatarSize === "sm" ? "h-8 w-8 text-xs" : "h-9 w-9 text-xs";
 
   return (
     <div className="flex items-center gap-3">

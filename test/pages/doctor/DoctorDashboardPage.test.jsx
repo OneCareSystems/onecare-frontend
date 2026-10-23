@@ -293,9 +293,7 @@ describe("DoctorDashboardPage", () => {
     expect(
       await screen.findAllByText("09:00\u201312:00", { selector: "p" }),
     ).toHaveLength(5);
-    expect(
-      screen.queryByText(/could not load your schedule/i),
-    ).toBeNull();
+    expect(screen.queryByText(/could not load your schedule/i)).toBeNull();
     expect(mswState.doctorScheduleHits).toHaveLength(2);
     // Retrying the schedule never re-requests the queue.
     expect(mswState.queueHits).toHaveLength(1);

@@ -8,7 +8,11 @@ afterEach(cleanup);
 
 it("opens the real widget from the home button and tracks closing and reopening", async () => {
   const user = userEvent.setup();
-  const { container } = render(<MemoryRouter><HomePage /></MemoryRouter>);
+  const { container } = render(
+    <MemoryRouter>
+      <HomePage />
+    </MemoryRouter>,
+  );
   const trigger = screen.getByRole("button", { name: "Chat with OneCare" });
   const widget = container.querySelector("onecare-chat-widget");
   const panel = widget.shadowRoot.querySelector('[role="dialog"]');
@@ -41,11 +45,19 @@ it("uses React Router for booking only after the response button is clicked", as
   );
   const widget = container.querySelector("onecare-chat-widget");
   widget.fetchImpl = async () => ({
-    ok: true, status: 200,
-    json: async () => ({ type: "CLINIC_FACT", language: "EN", message: "Booking information", action: "BOOK_APPOINTMENT" }),
+    ok: true,
+    status: 200,
+    json: async () => ({
+      type: "CLINIC_FACT",
+      language: "EN",
+      message: "Booking information",
+      action: "BOOK_APPOINTMENT",
+    }),
   });
   await widget.ask("How can I book an appointment?");
   expect(screen.queryByText("Booking placeholder")).not.toBeInTheDocument();
   await user.click(widget.shadowRoot.querySelector(".booking-link"));
-  expect(screen.getByRole("heading", { name: "Booking placeholder" })).toBeInTheDocument();
+  expect(
+    screen.getByRole("heading", { name: "Booking placeholder" }),
+  ).toBeInTheDocument();
 });

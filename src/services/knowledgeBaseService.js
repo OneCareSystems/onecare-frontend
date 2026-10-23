@@ -23,7 +23,11 @@ export const normalizeDocument = (raw) => {
     category: raw.category ?? null,
     description: raw.description ?? raw.desc ?? null,
     uploadedAt:
-      raw.uploadedAt ?? raw.createdAt ?? raw.uploaded_at ?? raw.created_at ?? null,
+      raw.uploadedAt ??
+      raw.createdAt ??
+      raw.uploaded_at ??
+      raw.created_at ??
+      null,
     sizeBytes: raw.sizeBytes ?? raw.fileSize ?? raw.size ?? null,
     raw,
   };
@@ -43,9 +47,8 @@ export const listDocuments = async ({ signal } = {}) => {
   const pageSize = 100;
   const documents = [];
   let page = 1;
-  let totalPages = 1;
 
-  do {
+  while (true) {
     const result = await listKnowledgeResources(
       { page, pageSize, sourceType: "PDF" },
       { signal },
@@ -57,9 +60,10 @@ export const listDocuments = async ({ signal } = {}) => {
         .map(normalizeDocument)
         .filter(Boolean),
     );
-    totalPages = Number(result?.totalPages) || 1;
+    const totalPages = Number(result?.totalPages) || 1;
+    if (page >= totalPages || signal?.aborted) break;
     page += 1;
-  } while (page <= totalPages && !signal?.aborted);
+  }
 
   return documents;
 };

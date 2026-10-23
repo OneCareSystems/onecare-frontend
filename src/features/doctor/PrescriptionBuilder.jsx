@@ -289,9 +289,7 @@ const PrescriptionBuilder = ({
                       <ul className="mt-2 space-y-1 text-sm text-neutral-700">
                         {prescription.items.map((item, index) => (
                           <li
-                            key={
-                              item.itemId ?? `${item.medicineName}-${index}`
-                            }
+                            key={item.itemId ?? `${item.medicineName}-${index}`}
                           >
                             <span className="font-medium">
                               {item.medicineName}

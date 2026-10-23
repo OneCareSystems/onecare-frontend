@@ -153,7 +153,10 @@ it("gates submit on a file or URL and Clear resets the form", async () => {
   expect(submit).toBeDisabled();
   const file = new File(["%PDF-1.4"], "guide.pdf", { type: "application/pdf" });
   await user.upload(screen.getByLabelText("PDF file"), file);
-  await user.type(screen.getByLabelText("PDF title (optional)"), "Clinic guide");
+  await user.type(
+    screen.getByLabelText("PDF title (optional)"),
+    "Clinic guide",
+  );
   expect(submit).toBeEnabled();
 
   // Clear empties the picked file and the title.

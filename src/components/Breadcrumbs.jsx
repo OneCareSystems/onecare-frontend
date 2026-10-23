@@ -31,10 +31,7 @@ const Breadcrumbs = () => {
     segments[0] === "doctor" && segments[1] === "consultation";
 
   return (
-    <nav
-      aria-label="Breadcrumb"
-      className="overflow-x-auto px-4 py-4 sm:px-6"
-    >
+    <nav aria-label="Breadcrumb" className="overflow-x-auto px-4 py-4 sm:px-6">
       <ol className="flex min-w-max items-center gap-2 text-sm text-neutral-600">
         {segments.map((segment, index) => {
           const isLast = index === segments.length - 1;

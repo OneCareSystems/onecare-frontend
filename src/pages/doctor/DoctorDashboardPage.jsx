@@ -9,7 +9,6 @@ import ErrorMessage from "../../components/ErrorMessage";
 import StatusBadge from "../../components/StatusBadge";
 import { PageHeader, PageShell } from "../../components/doctor/PageLayout";
 import {
-  ErrorPanel,
   Panel,
   SectionTitle,
   SkeletonBlock,
@@ -19,7 +18,6 @@ import {
   selectQueueRecords,
   selectQueueStatus,
 } from "../../features/queue/queueSlice";
-import { calculateQueueStatusCounts } from "../../utils/queueStatusCounts";
 import { formatTimeSlot } from "../../utils/timeUtils";
 import { getDoctorSchedule } from "../../services/doctorScheduleService";
 import { getCurrentUser } from "../../services/authService";
@@ -169,7 +167,8 @@ const DoctorDashboardPage = () => {
           days: normalizeWeek(res.days),
         });
       } catch {
-        if (!cancelled) setSchedule({ status: "failed", days: normalizeWeek([]) });
+        if (!cancelled)
+          setSchedule({ status: "failed", days: normalizeWeek([]) });
       }
     })();
     return () => {
@@ -178,16 +177,10 @@ const DoctorDashboardPage = () => {
   }, [currentUser?.userId, scheduleReload]);
 
   /* ---- derived queue stats ---- */
-  const statusCounts = useMemo(
-    () => calculateQueueStatusCounts(queue),
-    [queue],
-  );
-
   const activeCount = useMemo(
     () =>
-      queue.filter(
-        (r) => r.status !== "COMPLETED" && r.status !== "CANCELLED",
-      ).length,
+      queue.filter((r) => r.status !== "COMPLETED" && r.status !== "CANCELLED")
+        .length,
     [queue],
   );
 

@@ -60,10 +60,7 @@ const SourceToggle = ({ value, onChange, disabled }) => (
   </div>
 );
 
-export default function KnowledgeBaseManager({
-  embedded = false,
-  onUploaded,
-}) {
+export default function KnowledgeBaseManager({ embedded = false, onUploaded }) {
   const [result, setResult] = useState({ items: [], count: 0, totalPages: 0 });
   const [page, setPage] = useState(1);
   const [sourceType, setSourceType] = useState("");
@@ -314,11 +311,7 @@ export default function KnowledgeBaseManager({
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="font-semibold text-neutral-900">Add resource</h3>
-          <SourceToggle
-            value={mode}
-            onChange={switchMode}
-            disabled={busy}
-          />
+          <SourceToggle value={mode} onChange={switchMode} disabled={busy} />
         </div>
 
         {mode === "PDF" ? (
@@ -382,11 +375,7 @@ export default function KnowledgeBaseManager({
               name={mode === "PDF" ? "upload" : "link"}
               className="h-4 w-4"
             />
-            {busy
-              ? "Submitting…"
-              : mode === "PDF"
-                ? "Upload PDF"
-                : "Add link"}
+            {busy ? "Submitting…" : mode === "PDF" ? "Upload PDF" : "Add link"}
           </Button>
         </div>
       </form>

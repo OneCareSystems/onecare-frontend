@@ -54,10 +54,7 @@ const VisitEntry = memo(function VisitEntry({ visit }) {
       />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="flex items-center gap-1.5 text-sm font-semibold text-neutral-900">
-          <Icon
-            name="calendar"
-            className="h-3.5 w-3.5 text-neutral-400"
-          />
+          <Icon name="calendar" className="h-3.5 w-3.5 text-neutral-400" />
           {formatDisplayDate(toDateOnly(visit.appointmentDate))}
           <span className="text-neutral-400">·</span>
           {formatTimeSlot(visit.timeSlot)}
@@ -369,8 +366,7 @@ export const PatientDetails = () => {
             aside={
               visits.length > 0 ? (
                 <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium tabular-nums text-neutral-600">
-                  {visits.length}{" "}
-                  {visits.length === 1 ? "visit" : "visits"}
+                  {visits.length} {visits.length === 1 ? "visit" : "visits"}
                 </span>
               ) : null
             }
@@ -386,16 +382,13 @@ export const PatientDetails = () => {
                   className="mt-0.5 h-4 w-4 shrink-0 text-amber-600"
                 />
                 <p className="text-sm text-amber-800">
-                  Visit history is unavailable right now. Reload the page to
-                  try again.
+                  Visit history is unavailable right now. Reload the page to try
+                  again.
                 </p>
               </div>
             ) : visits.length === 0 ? (
               <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-neutral-200 bg-neutral-50/50 py-8 text-center">
-                <Icon
-                  name="calendar"
-                  className="h-6 w-6 text-neutral-300"
-                />
+                <Icon name="calendar" className="h-6 w-6 text-neutral-300" />
                 <p className="text-sm text-neutral-500">
                   No visits are on record for this patient yet.
                 </p>
