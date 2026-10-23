@@ -108,13 +108,6 @@ const SuperAdminDashboardPage = () => {
       color: "bg-blue-50 text-blue-700",
     },
     {
-      title: "Knowledge Base",
-      desc: "Curate clinical articles and care guidelines for medical staff.",
-      icon: "brain",
-      to: "/super-admin/knowledge-base",
-      color: "bg-pink-50 text-pink-700",
-    },
-    {
       title: "Reports",
       desc: "Clinic and pharmacy reports with date filters and export options.",
       icon: "clipboard",

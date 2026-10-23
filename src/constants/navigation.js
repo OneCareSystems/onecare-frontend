@@ -47,12 +47,6 @@ export const NAV_ITEMS = Object.freeze({
       icon: "clipboard",
     }),
     Object.freeze({
-      id: "knowledge-base",
-      to: "/super-admin/knowledge-base",
-      label: "Knowledge Base",
-      icon: "brain",
-    }),
-    Object.freeze({
       id: "reports",
       to: "/super-admin/reports",
       label: "Reports",

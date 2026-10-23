@@ -24,7 +24,6 @@ import { CHANGE_PASSWORD_PATH, ROUTE_ACCESS } from "../constants/routeAccess";
 import PatientRecordsPage from "../pages/doctor/PatientRecordsPage";
 import PatientDetails from "../pages/doctor/PatientDetails";
 import KnowledgeBasePage from "../pages/doctor/KnowledgeBasePage";
-import KnowledgeBaseManagementPage from "../pages/superAdmin/KnowledgeBaseManagementPage";
 import RegisterPatientPage from "../pages/admin/RegisterPatientPage";
 import PatientSearchEditPage from "../pages/admin/PatientSearchEditPage";
 import UserManagementPage from "../pages/superAdmin/UserManagementPage";
@@ -120,10 +119,6 @@ const AppRoutes = () => {
           <Route path="user-management" element={<UserManagementPage />} />
           <Route path="access-control" element={<AccessControlPage />} />
           <Route path="clinic-configuration" element={<ClinicConfigPage />} />
-          <Route
-            path="knowledge-base"
-            element={<KnowledgeBaseManagementPage />}
-          />
           <Route
             path="system-maintenance"
             element={<SystemMaintenancePage />}

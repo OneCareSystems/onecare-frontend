@@ -100,7 +100,6 @@ describe("super-admin dashboard — REST cases", () => {
       ["Clinic Configuration", "/super-admin/clinic-configuration"],
       ["System Maintenance", "/super-admin/system-maintenance"],
       ["Audits", "/super-admin/audits"],
-      ["Knowledge Base", "/super-admin/knowledge-base"],
       ["Reports", "/super-admin/reports"],
     ]) {
       const link = within(modules).getByRole("link", {
