@@ -87,7 +87,9 @@ describe("Sidebar — CFG-04 role-driven navigation", () => {
       ["Access Control", "/super-admin/access-control"],
       ["Clinic Configuration", "/super-admin/clinic-configuration"],
       ["System Maintenance", "/super-admin/system-maintenance"],
-      ["Audits & Reports", "/super-admin/audits-reports"],
+      ["Audit Logs", "/super-admin/audits"],
+      ["Knowledge Base", "/super-admin/knowledge-base"],
+      ["Reports", "/super-admin/reports"],
     ];
 
     for (const [label, destination] of expectedItems) {

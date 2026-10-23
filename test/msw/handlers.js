@@ -178,6 +178,10 @@ export const mswState = {
   backupScheduleHits: [],
   backupScheduleUpdateHits: [],
   backupScheduleErrorMode: null,
+  clinicReportHits: [],
+  clinicReportErrorMode: null,
+  pharmacyReportHits: [],
+  pharmacyReportErrorMode: null,
 };
 
 export const resetMswState = () => {
@@ -267,6 +271,10 @@ export const resetMswState = () => {
   mswState.backupScheduleHits = [];
   mswState.backupScheduleUpdateHits = [];
   mswState.backupScheduleErrorMode = null;
+  mswState.clinicReportHits = [];
+  mswState.clinicReportErrorMode = null;
+  mswState.pharmacyReportHits = [];
+  mswState.pharmacyReportErrorMode = null;
 };
 
 const ok = (data, message = "ok") =>
@@ -1209,6 +1217,170 @@ export const handlers = [
         })),
       },
       "Schedule saved successfully",
+    );
+  }),
+  // Clinic and pharmacy reports (FR039/FR040) — the exact backend envelope.
+  // `format=csv|pdf` streams a file; otherwise JSON. Range rules mirror
+  // ReportServiceImpl: 400 missing/reversed dates, 422 over one year.
+  http.get("*/reports/clinic", ({ request }) => {
+    const url = new URL(request.url);
+    mswState.clinicReportHits.push({
+      authorization: request.headers.get("Authorization"),
+      from: url.searchParams.get("from"),
+      to: url.searchParams.get("to"),
+      doctorId: url.searchParams.get("doctorId"),
+      format: url.searchParams.get("format"),
+    });
+    if (mswState.clinicReportErrorMode === "network-error")
+      return HttpResponse.error();
+    if (mswState.clinicReportErrorMode === "server-error")
+      return fail(500, "Internal server error");
+    if (mswState.clinicReportErrorMode === "forbidden")
+      return fail(403, "Access denied");
+    const from = url.searchParams.get("from");
+    const to = url.searchParams.get("to");
+    if (!from || !to)
+      return fail(400, "Both 'from' and 'to' dates are required");
+    if (from > to)
+      return fail(400, "'from' date must not be after the 'to' date");
+    if ((Date.parse(to) - Date.parse(from)) / 86_400_000 > 365)
+      return fail(422, "Date range too large, narrow your range");
+    const format = url.searchParams.get("format");
+    if (format && !["csv", "pdf"].includes(format.toLowerCase()))
+      return fail(
+        400,
+        `Unknown export format '${format}'. Allowed values: csv, pdf`,
+      );
+    if (format) {
+      const base = `clinic-report_${from}_to_${to}`;
+      const isPdf = format.toLowerCase() === "pdf";
+      const bytes = new TextEncoder().encode(
+        isPdf ? "%PDF-1.4 (mock)" : "From,To\r\n",
+      );
+      return HttpResponse.arrayBuffer(bytes.buffer, {
+        headers: {
+          "Content-Type": isPdf ? "application/pdf" : "text/csv",
+          "Content-Disposition": `attachment; filename="${base}.${format.toLowerCase()}"`,
+        },
+      });
+    }
+    return ok(
+      {
+        from,
+        to,
+        doctorId: url.searchParams.get("doctorId")
+          ? Number(url.searchParams.get("doctorId"))
+          : null,
+        totalAppointments: 42,
+        consultationCount: 30,
+        scheduled: 5,
+        arrived: 3,
+        completed: 30,
+        cancelled: 4,
+        noShow: 6,
+        uniquePatients: 25,
+        generatedAt: "2026-10-23T09:15:00",
+      },
+      "Clinic report generated successfully",
+    );
+  }),
+  http.get("*/reports/pharmacy", ({ request }) => {
+    const url = new URL(request.url);
+    mswState.pharmacyReportHits.push({
+      authorization: request.headers.get("Authorization"),
+      type: url.searchParams.get("type"),
+      from: url.searchParams.get("from"),
+      to: url.searchParams.get("to"),
+      format: url.searchParams.get("format"),
+    });
+    if (mswState.pharmacyReportErrorMode === "network-error")
+      return HttpResponse.error();
+    if (mswState.pharmacyReportErrorMode === "server-error")
+      return fail(500, "Internal server error");
+    if (mswState.pharmacyReportErrorMode === "forbidden")
+      return fail(403, "Access denied");
+    const type = (url.searchParams.get("type") || "")
+      .trim()
+      .toLowerCase()
+      .replaceAll("_", "-");
+    const from = url.searchParams.get("from");
+    const to = url.searchParams.get("to");
+    if (!from || !to)
+      return fail(400, "Both 'from' and 'to' dates are required");
+    if (from > to)
+      return fail(400, "'from' date must not be after the 'to' date");
+    if ((Date.parse(to) - Date.parse(from)) / 86_400_000 > 365)
+      return fail(422, "Date range too large, narrow your range");
+    if (!["stock-usage", "expiry", "dispensing-history"].includes(type))
+      return fail(400, `Unknown report type '${type}'`);
+    const format = url.searchParams.get("format");
+    if (format && !["csv", "pdf"].includes(format.toLowerCase()))
+      return fail(
+        400,
+        `Unknown export format '${format}'. Allowed values: csv, pdf`,
+      );
+    if (format) {
+      const base = `pharmacy-report_${type}_${from}_to_${to}`;
+      const isPdf = format.toLowerCase() === "pdf";
+      const bytes = new TextEncoder().encode(
+        isPdf ? "%PDF-1.4 (mock)" : "Medicine,Units\r\n",
+      );
+      return HttpResponse.arrayBuffer(bytes.buffer, {
+        headers: {
+          "Content-Type": isPdf ? "application/pdf" : "text/csv",
+          "Content-Disposition": `attachment; filename="${base}.${format.toLowerCase()}"`,
+        },
+      });
+    }
+    const sections = {
+      "stock-usage": {
+        stockUsage: [
+          { medicineId: 11, medicineName: "Amoxicillin 500mg", unitsDispensed: 120 },
+          { medicineId: 12, medicineName: "Ibuprofen 200mg", unitsDispensed: 85 },
+        ],
+        expiry: [],
+        dispensingHistory: [],
+      },
+      expiry: {
+        stockUsage: [],
+        expiry: [
+          {
+            medicineId: 13,
+            medicineName: "Insulin 100IU",
+            expiryDate: "2026-12-01",
+            stockQuantity: 14,
+            quarantined: false,
+          },
+        ],
+        dispensingHistory: [],
+      },
+      "dispensing-history": {
+        stockUsage: [],
+        expiry: [],
+        dispensingHistory: [
+          {
+            referenceId: 901,
+            source: "EXTERNAL",
+            dispenseDate: "2026-10-10T10:00:00",
+            patientId: 401,
+            patientName: "Example Patient",
+            patientContactNo: "077***4567",
+            medicineName: "Amoxicillin 500mg",
+            quantity: 20,
+          },
+        ],
+      },
+    };
+    // The backend enum ReportType serialises with underscores (STOCK_USAGE).
+    const enumType = type.toUpperCase().replaceAll("-", "_");
+    return ok(
+      {
+        type: enumType,
+        from,
+        to,
+        ...sections[type],
+      },
+      "Pharmacy report generated successfully",
     );
   }),
   http.get("*/reports/:id", protectedReply),

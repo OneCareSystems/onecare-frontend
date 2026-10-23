@@ -101,11 +101,25 @@ const SuperAdminDashboardPage = () => {
       color: "bg-violet-50 text-violet-700",
     },
     {
-      title: "Audits & Reports",
+      title: "Audits",
       desc: "Full immutable compliance audit trail with security filters.",
       icon: "clipboard",
-      to: "/super-admin/audits-reports",
+      to: "/super-admin/audits",
       color: "bg-blue-50 text-blue-700",
+    },
+    {
+      title: "Knowledge Base",
+      desc: "Curate clinical articles and care guidelines for medical staff.",
+      icon: "brain",
+      to: "/super-admin/knowledge-base",
+      color: "bg-pink-50 text-pink-700",
+    },
+    {
+      title: "Reports",
+      desc: "Clinic and pharmacy reports with date filters and export options.",
+      icon: "clipboard",
+      to: "/super-admin/reports",
+      color: "bg-cyan-50 text-cyan-700",
     },
   ];
 
@@ -240,7 +254,7 @@ const SuperAdminDashboardPage = () => {
             Recent Audit Activity
           </h2>
           <Link
-            to="/super-admin/audits-reports"
+            to="/super-admin/audits"
             className="text-xs font-semibold text-primary-600 hover:underline"
           >
             View all logs &rarr;
