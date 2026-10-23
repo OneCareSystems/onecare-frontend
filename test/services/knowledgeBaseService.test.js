@@ -55,6 +55,10 @@ it("normalizes every backend field alias and drops id-less records", () => {
     desc: "Short description",
     uploaded_at: "2026-10-01T08:00:00",
     fileSize: 2048,
+    fileUrl: "https://example.com/file.pdf",
+    downloadUrl: "https://example.com/download.pdf",
+    url: "https://example.com/document",
+    sourceUrl: "https://example.com/source",
   };
   expect(normalizeDocument(raw)).toEqual({
     id: 9,
@@ -64,6 +68,10 @@ it("normalizes every backend field alias and drops id-less records", () => {
     description: "Short description",
     uploadedAt: "2026-10-01T08:00:00",
     sizeBytes: 2048,
+    fileUrl: "https://example.com/file.pdf",
+    downloadUrl: "https://example.com/download.pdf",
+    url: "https://example.com/document",
+    sourceUrl: "https://example.com/source",
     raw,
   });
 
