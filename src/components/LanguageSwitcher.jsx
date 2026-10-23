@@ -18,8 +18,8 @@ export default function LanguageSwitcher() {
         value={i18n.resolvedLanguage?.startsWith("ta") ? "ta" : "en"}
         onChange={(event) => changeLanguage(event.target.value)}
       >
-        <option value="en">English</option>
-        <option value="ta">தமிழ்</option>
+        <option value="en">{i18n.t("publicCommon.english")}</option>
+        <option value="ta">{i18n.t("publicCommon.tamil")}</option>
       </select>
     </div>
   );

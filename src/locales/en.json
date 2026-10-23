@@ -12,24 +12,23 @@
     "close": "Close",
     "tabs": "Content tabs"
   },
-
   "pharmacistDashboard": {
-  "title": "Pharmacist Dashboard",
-  "subtitle": "Monitor issued prescriptions and medicine inventory alerts.",
-  "issuedPrescriptions": "Issued Prescriptions",
-  "lowStock": "Low Stock Medicines",
-  "nearExpiry": "Near-Expiry Medicines",
-  "noPrescriptions": "No Issued Prescriptions",
-  "noPrescriptionsMessage": "There are no issued prescriptions to display.",
-  "noLowStock": "Stock Levels Look Good",
-  "noLowStockMessage": "No low-stock medicines were found.",
-  "noNearExpiry": "No Near-Expiry Medicines",
-  "noNearExpiryMessage": "No near-expiry medicines were found.",
-  "prescriptionNumber": "Prescription #{{id}}",
-  "patientId": "Patient ID",
-  "date": "Date",
-  "stock": "Stock"
-},
+    "title": "Pharmacist Dashboard",
+    "subtitle": "Monitor issued prescriptions and medicine inventory alerts.",
+    "issuedPrescriptions": "Issued Prescriptions",
+    "lowStock": "Low Stock Medicines",
+    "nearExpiry": "Near-Expiry Medicines",
+    "noPrescriptions": "No Issued Prescriptions",
+    "noPrescriptionsMessage": "There are no issued prescriptions to display.",
+    "noLowStock": "Stock Levels Look Good",
+    "noLowStockMessage": "No low-stock medicines were found.",
+    "noNearExpiry": "No Near-Expiry Medicines",
+    "noNearExpiryMessage": "No near-expiry medicines were found.",
+    "prescriptionNumber": "Prescription #{{id}}",
+    "patientId": "Patient ID",
+    "date": "Date",
+    "stock": "Stock"
+  },
   "patient": {
     "welcome": "Welcome",
     "dashboard": "Patient Dashboard",
@@ -38,7 +37,6 @@
     "profile": "My Profile",
     "logout": "Logout"
   },
-
   "emptyState": {
     "title": "No results found",
     "description": "There is no data to display yet."
@@ -52,7 +50,7 @@
     "page": "Page",
     "of": "of"
   },
-"publicLanding": {
+  "publicLanding": {
     "eyebrow": "Welcome to OneCare",
     "title": "Care that starts with you",
     "intro": "Explore our clinic and book an appointment online.",
@@ -74,7 +72,8 @@
     "doctorError": "Doctor information could not be loaded. Other clinic information is still available.",
     "retry": "Retry doctor details",
     "chatTitle": "Need help?",
-    "chatOpen": "Chat with OneCare"
+    "chatOpen": "Chat with OneCare",
+    "welcome": "Welcome to OneCare"
   },
   "booking": {
     "title": "Book an appointment",
@@ -90,7 +89,7 @@
     "chooseSlot": "Choose a time",
     "required": "This field is required.",
     "invalidName": "Enter a valid name.",
-    "invalidPhone": "Enter a valid Sri Lankan mobile number.",
+    "invalidPhone": "Enter a valid Sri Lankan phone number.",
     "invalidDob": "Enter a valid date of birth that is not in the future.",
     "invalidDate": "Choose today or a future date.",
     "noSlots": "No slots available. Please choose another date.",
@@ -111,8 +110,77 @@
     "time": "Time",
     "status": "Status",
     "scheduled": "Scheduled",
-    "sms": "A confirmation message will be sent by the clinic if SMS notifications are enabled.",
+    "sms": "A confirmation SMS will be sent to you by the clinic.",
     "contact": "To change or cancel your appointment, please contact the clinic directly.",
     "another": "Book another appointment"
+  },
+  "chatbot": {
+    "open": "Open chat",
+    "close": "Close chat",
+    "title": "Clinic assistant",
+    "placeholder": "Type your question…",
+    "send": "Send",
+    "you": "You",
+    "assistant": "Assistant",
+    "disclaimer": "I share general clinic information. I cannot give medical advice, diagnoses or prescriptions.",
+    "greeting": "Hello! Ask me about clinic hours, doctors or appointments.",
+    "typing": "The assistant is typing",
+    "slow": "This is taking longer than usual. Please wait…",
+    "retry": "Try again",
+    "source": "Source",
+    "chipsLabel": "Suggested questions",
+    "cooldown": "You can send another message in {seconds} s.",
+    "tooLong": "Your message is too long (maximum {max} characters).",
+    "errors": {
+      "network": "Could not connect. Please check your internet connection and try again.",
+      "server": "The assistant is temporarily unavailable. Please try again shortly, or contact the clinic.",
+      "timeout": "The reply is taking too long. Please try again.",
+      "rateLimit": "Too many requests. Please wait {seconds} seconds and try again.",
+      "badRequest": "Your message could not be sent. Please change it and try again."
+    },
+    "booking": "Book Appointment",
+    "chips": [
+      {
+        "id": "hours",
+        "label": "Clinic hours",
+        "query": "What are the clinic hours?"
+      },
+      {
+        "id": "doctors",
+        "label": "Doctors available today",
+        "query": "Is a doctor available today?"
+      },
+      {
+        "id": "booking",
+        "label": "How to book an appointment",
+        "query": "How do I book an appointment?"
+      },
+      {
+        "id": "services",
+        "label": "Services offered",
+        "query": "What services does the clinic offer?"
+      }
+    ]
+  },
+  "publicCommon": {
+    "footer": "OneCare — accessible healthcare platform",
+    "tagline": "Healthcare platform",
+    "logo": "OneCare logo",
+    "english": "English",
+    "tamil": "Tamil",
+    "contactTitle": "Contact the clinic",
+    "phone": "Phone",
+    "email": "Email",
+    "address": "Address",
+    "addressValue": "123 Main Street, Colombo",
+    "contactExample": "Example contact details — please confirm these with the clinic before use."
+  },
+  "publicError": {
+    "title": "Something went wrong",
+    "description": "Please try again or return to the home page.",
+    "retry": "Try again",
+    "home": "Go to home",
+    "notFoundTitle": "Page not found",
+    "notFoundDescription": "The page you are looking for does not exist or may have moved."
   }
 }
