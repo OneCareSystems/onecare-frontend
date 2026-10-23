@@ -134,6 +134,7 @@ export default function PharmacyReportsPage() {
           <Select
             name="report-type"
             label="Report type"
+            selectClassName="rounded-xl border-slate-200 bg-slate-50/70 py-3.5 focus:border-teal-600 focus:ring-4 focus:ring-teal-600/10"
             value={type}
             onChange={(event) => setType(event.target.value)}
             options={PHARMACY_REPORT_TYPES}

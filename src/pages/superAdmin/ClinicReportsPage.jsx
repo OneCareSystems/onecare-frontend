@@ -171,6 +171,7 @@ export default function ClinicReportsPage() {
             name="report-doctor"
             label="Report doctor"
             placeholder="All doctors"
+            selectClassName="rounded-xl border-slate-200 bg-slate-50/70 py-3.5 focus:border-teal-600 focus:ring-4 focus:ring-teal-600/10"
             value={doctor}
             onChange={(event) => setDoctor(event.target.value)}
             options={(doctors.data ?? []).map((row) => ({
