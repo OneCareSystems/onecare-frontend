@@ -79,6 +79,54 @@ export const createMedicine = async (medicine) => {
   }
 
   return payload.data;
+
+};
+/** Get a single medicine by ID. */
+export const getMedicineById = async (medicineId) => {
+  const response = await apiClient.get(
+    `/medicines/${encodeURIComponent(medicineId)}`,
+  );
+
+  const payload = response.data;
+
+  if (payload?.success !== true || !payload.data) {
+    throw new Error("Unexpected medicine response format");
+  }
+
+  return payload.data;
+};
+
+/** Update non-stock medicine details only. */
+export const updateMedicine = async (medicineId, medicine) => {
+  const response = await apiClient.put(
+    `/medicines/${encodeURIComponent(medicineId)}`,
+    {
+      name: medicine.name.trim(),
+      genericName: medicine.genericName.trim() || null,
+      category: medicine.category.trim(),
+      unit: medicine.unit.trim(),
+      price: Number(medicine.price),
+      expiryDate: medicine.expiryDate,
+      reorderLevel: Number(medicine.reorderLevel),
+    },
+  );
+
+  const payload = response.data;
+
+  if (payload?.success !== true || !payload.data) {
+    throw new Error("Unexpected medicine update response format");
+  }
+
+  return payload.data;
+};
+
+/** Soft-deactivate a medicine through the API. */
+export const deactivateMedicine = async (medicineId) => {
+  const response = await apiClient.delete(
+    `/medicines/${encodeURIComponent(medicineId)}`,
+  );
+
+  return response.data;
 };
 
 export default {
@@ -87,4 +135,8 @@ export default {
   getNearExpiryMedicines,
   adjustMedicineStock,
   createMedicine,
+  getMedicineById,
+  updateMedicine,
+  deactivateMedicine,
+    
 };

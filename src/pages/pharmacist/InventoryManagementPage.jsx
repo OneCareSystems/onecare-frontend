@@ -1,4 +1,5 @@
 
+import { Link } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
 import EmptyState from "../../components/EmptyState";
 import ErrorMessage from "../../components/ErrorMessage";
@@ -343,16 +344,29 @@ useEffect(() => {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-4">
-                        <button
-                          type="button"
-                          disabled={expired || quarantined}
-                          onClick={() => openAdjustment(medicine)}
-                          className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          Adjust stock
-                        </button>
-                      </td>
+                    
+<td className="px-4 py-4">
+  <div className="flex flex-wrap gap-2">
+    <Link
+      to={`/pharmacist/medicines/${encodeURIComponent(
+        getMedicineId(medicine),
+      )}/edit`}
+      className="inline-flex items-center rounded-md border border-primary-300 px-3 py-2 text-sm font-medium text-primary-700 hover:bg-primary-50"
+    >
+      Edit
+    </Link>
+
+    <button
+      type="button"
+      disabled={expired || quarantined}
+      onClick={() => openAdjustment(medicine)}
+      className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      Adjust stock
+    </button>
+  </div>
+</td>
+
                     </tr>
                   );
                 })}

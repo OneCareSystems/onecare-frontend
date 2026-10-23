@@ -1,4 +1,4 @@
-
+import { Link } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -136,6 +136,21 @@ const PharmacistDashboardPage = () => {
           {t("pharmacistDashboard.subtitle")}
         </p>
       </header>
+      <div className="flex flex-wrap gap-3">
+  <Link
+    to="/pharmacist/add-medicine"
+    className="inline-flex items-center rounded-lg bg-blue-700 px-4 py-2 font-medium text-white hover:bg-blue-800"
+  >
+    Add Medicine
+  </Link>
+
+  <Link
+    to="/pharmacist/inventory"
+    className="inline-flex items-center rounded-lg border border-gray-300 px-4 py-2 font-medium text-gray-700 hover:bg-gray-50"
+  >
+    View Inventory
+  </Link>
+</div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <StatCard

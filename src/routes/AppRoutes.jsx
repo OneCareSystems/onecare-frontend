@@ -33,6 +33,8 @@ import SystemMaintenancePage from "../pages/superAdmin/SystemMaintenancePage";
 import AuditLogsPage from "../pages/superAdmin/AuditLogsPage";
 import DispensingQueuePage from "../pages/pharmacist/DispensingQueuePage";
 import InventoryManagementPage from "../pages/pharmacist/InventoryManagementPage";
+import AddMedicinePage from "../pages/pharmacist/AddMedicinePage";
+import UpdateMedicinePage from "../pages/pharmacist/UpdateMedicinePage";
 
 const AppRoutes = () => {
   return (
@@ -115,6 +117,9 @@ const AppRoutes = () => {
           <Route path="dashboard" element={<PharmacistDashboardPage />} />
           <Route path="dispensing-queue" element={<DispensingQueuePage />} />
           <Route path="inventory" element={<InventoryManagementPage />} />
+        <Route path="add-medicine" element={<AddMedicinePage />} />
+         <Route path="medicines/:medicineId/edit" element={<UpdateMedicinePage />}
+    />
         </Route>
       </Route>
 

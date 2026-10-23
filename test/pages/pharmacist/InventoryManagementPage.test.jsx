@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
+import { MemoryRouter } from "react-router-dom";
 import InventoryManagementPage from "../../../src/pages/pharmacist/InventoryManagementPage";
 import {
   adjustMedicineStock,
@@ -37,7 +37,12 @@ const medicines = [
   },
 ];
 
-const renderPage = () => render(<InventoryManagementPage />);
+const renderPage = () =>
+  render(
+    <MemoryRouter>
+      <InventoryManagementPage />
+    </MemoryRouter>,
+  );
 
 describe("InventoryManagementPage", () => {
   beforeEach(() => {

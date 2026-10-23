@@ -146,6 +146,17 @@ export const mswState = {
   medicineCreateResponses: [],
   medicineCreateErrorMode: null,
 
+    // PHARM-05 — Update Medicine
+  medicineByIdHits: [],
+  medicineByIdResponses: [],
+  medicineByIdErrorMode: null,
+
+  medicineUpdateHits: [],
+  medicineUpdateResponses: [],
+  medicineUpdateErrorMode: null,
+
+  medicineDeactivateHits: [],
+  medicineDeactivateErrorMode: null,
   stockAdjustmentHits: [],
   stockAdjustmentResponses: [],
   stockAdjustmentErrorMode: null,
@@ -246,6 +257,17 @@ export const resetMswState = () => {
     mswState.medicineCreateHits = [];
   mswState.medicineCreateResponses = [];
   mswState.medicineCreateErrorMode = null;
+    // PHARM-05 — Update Medicine
+  mswState.medicineByIdHits = [];
+  mswState.medicineByIdResponses = [];
+  mswState.medicineByIdErrorMode = null;
+
+  mswState.medicineUpdateHits = [];
+  mswState.medicineUpdateResponses = [];
+  mswState.medicineUpdateErrorMode = null;
+
+  mswState.medicineDeactivateHits = [];
+  mswState.medicineDeactivateErrorMode = null;
 
   mswState.stockAdjustmentHits = [];
   mswState.stockAdjustmentResponses = [];
@@ -771,6 +793,126 @@ export const handlers = [
 
     return ok(mswState.nearExpiryMedicineResponses.shift() ?? []);
   }),
+
+  
+  // PHARM-05 — Get one medicine by ID
+  http.get("*/medicines/:id", ({ request, params }) => {
+    mswState.medicineByIdHits.push({
+      id: params.id,
+      authorization: request.headers.get("Authorization"),
+    });
+
+    if (mswState.medicineByIdErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+
+    if (mswState.medicineByIdErrorMode === "not-found") {
+      return fail(404, "Medicine not found");
+    }
+
+    if (mswState.medicineByIdErrorMode === "forbidden") {
+      return fail(403, "Access denied");
+    }
+
+    if (mswState.medicineByIdErrorMode === "server-error") {
+      return fail(500, "Unable to load medicine");
+    }
+
+    const medicine =
+      mswState.medicineByIdResponses.shift() ?? {
+        medicineId: Number(params.id),
+        name: "Paracetamol",
+        genericName: "Acetaminophen",
+        category: "Analgesic",
+        unit: "tablet",
+        price: 125.5,
+        stockQuantity: 50,
+        expiryDate: "2027-12-31",
+        reorderLevel: 10,
+        isQuarantined: false,
+      };
+
+    return ok(medicine);
+  }),
+
+  // PHARM-05 — Update non-stock medicine details
+  http.put("*/medicines/:id", async ({ request, params }) => {
+    const body = await request.json().catch(() => ({}));
+
+    mswState.medicineUpdateHits.push({
+      id: params.id,
+      body,
+      authorization: request.headers.get("Authorization"),
+    });
+
+    if (mswState.medicineUpdateErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+
+    if (mswState.medicineUpdateErrorMode === "conflict") {
+      return fail(409, "Medicine update conflicts with existing records");
+    }
+
+    if (mswState.medicineUpdateErrorMode === "validation") {
+      return fail(400, "Invalid medicine details");
+    }
+
+    if (mswState.medicineUpdateErrorMode === "forbidden") {
+      return fail(403, "Access denied");
+    }
+
+    if (mswState.medicineUpdateErrorMode === "not-found") {
+      return fail(404, "Medicine not found");
+    }
+
+    if (mswState.medicineUpdateErrorMode === "server-error") {
+      return fail(500, "Unable to update medicine");
+    }
+
+    const updatedMedicine =
+      mswState.medicineUpdateResponses.shift() ?? {
+        medicineId: Number(params.id),
+        ...body,
+        stockQuantity: 50,
+        isQuarantined: false,
+      };
+
+    return ok(updatedMedicine);
+  }),
+
+  // PHARM-05 — Soft-deactivate medicine
+  http.delete("*/medicines/:id", ({ request, params }) => {
+    mswState.medicineDeactivateHits.push({
+      id: params.id,
+      authorization: request.headers.get("Authorization"),
+    });
+
+    if (mswState.medicineDeactivateErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+
+    if (mswState.medicineDeactivateErrorMode === "pending-prescriptions") {
+      return fail(409, "Medicine has pending prescriptions");
+    }
+
+    if (mswState.medicineDeactivateErrorMode === "forbidden") {
+      return fail(403, "Access denied");
+    }
+
+    if (mswState.medicineDeactivateErrorMode === "not-found") {
+      return fail(404, "Medicine not found");
+    }
+
+    if (mswState.medicineDeactivateErrorMode === "server-error") {
+      return fail(500, "Unable to deactivate medicine");
+    }
+
+    return ok({
+      medicineId: Number(params.id),
+      isActive: false,
+    });
+  }),
+
 
   // Super-admin user management (access governance): list, provision,
   // update email/role, unlock the failed-login lockout, admin reset and
