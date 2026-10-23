@@ -1,51 +1,23 @@
-import {
-  readFileSync,
-  mkdtempSync,
-  writeFileSync,
-  unlinkSync,
-  rmdirSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import { render } from "@testing-library/react";
 import postcss from "postcss";
 import path from "node:path";
-import tailwindcssPostcss from "@tailwindcss/postcss";
+import tailwindcssPostcss from "tailwindcss";
 import { describe, expect, it } from "vitest";
 import config from "../../../tailwind.config.js";
 import { colors, contrastPairs, fontSize } from "../../../src/theme/tokens.js";
-import { evaluateContrastPairs } from "../../../src/utils/contrast.js";
+import { evaluateContrastPairs, hexToRgbTriplet } from "../../../src/utils/contrast.js";
 import ThemeReferencePage from "../../../src/pages/styleguide/ThemeReferencePage.jsx";
 
 const INDEX_CSS = path.resolve(process.cwd(), "src/index.css");
 const SOURCE_CSS = readFileSync(INDEX_CSS, "utf8");
 
 const buildCss = async (overrides = {}) => {
-  if (!Object.keys(overrides).length) {
-    const result = await postcss([tailwindcssPostcss()]).process(SOURCE_CSS, {
-      from: INDEX_CSS,
-    });
-    return result.css;
-  }
-
-  const directory = mkdtempSync(path.join(tmpdir(), "onecare-theme-"));
-  const configPath = path.join(directory, "tailwind.config.mjs");
-  try {
-    writeFileSync(
-      configPath,
-      `export default ${JSON.stringify({ ...config, ...overrides })};`,
-    );
-    const source = SOURCE_CSS.replace(
-      '@config "../tailwind.config.js";',
-      `@config "${configPath.replaceAll("\\", "/")}";`,
-    );
-    const result = await postcss([tailwindcssPostcss()]).process(source, {
-      from: INDEX_CSS,
-    });
-    return result.css;
-  } finally {
-    unlinkSync(configPath);
-    rmdirSync(directory);
-  }
+  const source = SOURCE_CSS.replace('@config "../tailwind.config.js";', "");
+  const result = await postcss([tailwindcssPostcss({ ...config, ...overrides })]).process(source, {
+    from: INDEX_CSS,
+  });
+  return result.css;
 };
 
 const collectUsedClasses = (container) => {
@@ -98,8 +70,8 @@ describe("AC3 — integration: theme token change rebuilds everywhere", () => {
     const css = await buildCss();
 
     expect(collectUsedClasses(container).length).toBeGreaterThan(10);
-    expect(ruleFor(css, ".bg-primary-600")).toContain(colors.primary[600]);
-    expect(ruleFor(css, ".bg-primary-700")).toContain(colors.primary[700]);
+    expect(ruleFor(css, ".bg-primary-600")).toContain(`rgb(${hexToRgbTriplet(colors.primary[600])} /`);
+    expect(ruleFor(css, ".bg-secondary-700")).toContain(`rgb(${hexToRgbTriplet(colors.secondary[700])} /`);
     expect(css).toContain(`font-size: ${fontSize.base[0]}`); // 18px base type
     expect(css).toContain(".rounded-2xl");
   });
@@ -110,7 +82,7 @@ describe("AC3 — integration: theme token change rebuilds everywhere", () => {
     const originalColor = colors.primary[600];
 
     const before = await buildCss();
-    expect(ruleFor(before, ".bg-primary-600")).toContain(originalColor);
+    expect(ruleFor(before, ".bg-primary-600")).toContain(`rgb(${hexToRgbTriplet(originalColor)} /`);
 
     const changedColors = structuredClone(colors);
     changedColors.primary[600] = colors.secondary[600];
@@ -126,8 +98,8 @@ describe("AC3 — integration: theme token change rebuilds everywhere", () => {
     // Scoped to the token's own rule: other selectors (e.g. Tailwind's
     // default blue-600) may coincidentally share the same RGB value.
     const changedRule = ruleFor(after, ".bg-primary-600");
-    expect(changedRule).toContain(replacementColor);
-    expect(changedRule).not.toContain(originalColor);
+    expect(changedRule).toContain(`rgb(${hexToRgbTriplet(replacementColor)} /`);
+    expect(changedRule).not.toContain(`rgb(${hexToRgbTriplet(originalColor)} /`);
 
     // The component markup is untouched — the same token classes are still emitted.
     expect(usedClasses).toContain("bg-primary-600");

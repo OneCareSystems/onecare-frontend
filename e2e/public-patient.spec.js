@@ -64,7 +64,11 @@ for (const language of ["en", "ta"]) {
       await page
         .getByRole("button", { name: copy.publicLanding.chatOpen, exact: true })
         .click();
-      await expect(page.locator("onecare-chat-widget .chip")).toHaveCount(4);
+      for (const lang of ["en", "ta"]) {
+        await expect(
+          page.locator(`onecare-chat-widget .chip[lang="${lang}"]`),
+        ).toHaveText(dictionaries[lang].chatbot.chips.map((chip) => chip.label));
+      }
       await expect(
         page.locator("onecare-chat-widget .chip").first(),
       ).toHaveText(copy.chatbot.chips[0].label);

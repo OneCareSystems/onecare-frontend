@@ -125,10 +125,15 @@ describe("PUB-01 landing", () => {
     const widget = document.querySelector("onecare-chat-widget");
     expect(widget.getAttribute("lang")).toBe("ta");
     expect(
-      [...widget.shadowRoot.querySelectorAll(".chip")].map(
+      [...widget.shadowRoot.querySelectorAll('.chip[lang="ta"]')].map(
         (x) => x.textContent,
       ),
     ).toEqual(ta.chatbot.chips.map((x) => x.label));
+    expect(
+      [...widget.shadowRoot.querySelectorAll('.chip[lang="en"]')].map(
+        (x) => x.textContent,
+      ),
+    ).toEqual(en.chatbot.chips.map((x) => x.label));
   });
 });
 

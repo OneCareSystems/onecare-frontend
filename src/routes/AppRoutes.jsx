@@ -174,7 +174,6 @@ const AppRoutes = () => {
 
           <Route path="audits-reports" element={<AuditLogsPage />} />
 
-          <Route path="clinic-reports" element={<ClinicReports />} />
 
           <Route path="audits" element={<AuditLogsPage />} />
           <Route path="reports" element={<ReportsPage />} />
