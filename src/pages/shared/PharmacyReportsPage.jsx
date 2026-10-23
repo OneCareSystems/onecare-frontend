@@ -92,7 +92,7 @@ export default function PharmacyReportsPage() {
               variant="outline"
               size="sm"
               className="inline-flex items-center gap-1.5 bg-white"
-              disabled={!report || exporting !== null}
+              disabled={loading || !report || exporting !== null}
               loading={exporting === "csv"}
               title={
                 report
@@ -107,7 +107,7 @@ export default function PharmacyReportsPage() {
               variant="outline"
               size="sm"
               className="inline-flex items-center gap-1.5 bg-white"
-              disabled={!report || exporting !== null}
+              disabled={loading || !report || exporting !== null}
               loading={exporting === "pdf"}
               title={
                 report
@@ -138,6 +138,7 @@ export default function PharmacyReportsPage() {
             value={type}
             onChange={(event) => setType(event.target.value)}
             options={PHARMACY_REPORT_TYPES}
+            showPlaceholder={false}
           />
           <Input
             name="report-from"
@@ -265,7 +266,9 @@ function summaryFor(section, report) {
   if (section.key === "DISPENSING_HISTORY") {
     const units = rows.reduce((sum, r) => sum + (Number(r.quantity) || 0), 0);
     const uniquePatients = new Set(
-      rows.map((r) => r.patientName).filter(Boolean),
+      rows
+        .filter((r) => r.patientId != null)
+        .map((r) => String(r.patientId)),
     ).size;
     return [
       ["Dispense events", total, "clipboard-list"],

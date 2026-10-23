@@ -114,7 +114,7 @@ export default function ClinicReportsPage() {
               variant="outline"
               size="sm"
               className="inline-flex items-center gap-1.5 bg-white"
-              disabled={!report || exporting !== null}
+              disabled={loading || !report || exporting !== null}
               loading={exporting === "csv"}
               title={
                 report
@@ -129,7 +129,7 @@ export default function ClinicReportsPage() {
               variant="outline"
               size="sm"
               className="inline-flex items-center gap-1.5 bg-white"
-              disabled={!report || exporting !== null}
+              disabled={loading || !report || exporting !== null}
               loading={exporting === "pdf"}
               title={
                 report
