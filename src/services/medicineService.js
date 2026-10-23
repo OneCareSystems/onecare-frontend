@@ -61,9 +61,30 @@ export const adjustMedicineStock = async (medicineId, delta) => {
   return payload.data;
 };
 
+export const createMedicine = async (medicine) => {
+  const response = await apiClient.post("/medicines", {
+    name: medicine.name.trim(),
+    genericName: medicine.genericName.trim() || null,
+    category: medicine.category.trim(),
+    unit: medicine.unit.trim(),
+    price: medicine.price.trim(),
+    expiryDate: medicine.expiryDate,
+    reorderLevel: Number(medicine.reorderLevel),
+  });
+
+  const payload = response.data;
+
+  if (payload?.success !== true || !payload.data) {
+    throw new Error("Unexpected medicine creation response format");
+  }
+
+  return payload.data;
+};
+
 export default {
   searchMedicines,
   getLowStockMedicines,
   getNearExpiryMedicines,
   adjustMedicineStock,
+  createMedicine,
 };

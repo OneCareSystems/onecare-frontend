@@ -5,6 +5,7 @@ import {
   getLowStockMedicines,
   getNearExpiryMedicines,
   adjustMedicineStock,
+  createMedicine,
 } from "../../src/services/medicineService";
 import { mswState, resetMswState } from "../msw/handlers";
 
@@ -30,6 +31,115 @@ afterEach(() => {
 });
 
 describe("medicineService", () => {
+  it("creates a medicine without sending initial stock", async () => {
+  const medicine = {
+    name: "Paracetamol",
+    genericName: "Acetaminophen",
+    category: "Analgesic",
+    unit: "tablet",
+    price: "125.50",
+    expiryDate: "2027-12-31",
+    reorderLevel: "10",
+  };
+
+  mswState.medicineCreateResponses.push({
+    medicineId: 101,
+    ...medicine,
+    price: 125.5,
+    stockQuantity: 0,
+  });
+
+  const result = await createMedicine(medicine);
+
+  expect(result).toMatchObject({
+    medicineId: 101,
+    name: "Paracetamol",
+    stockQuantity: 0,
+  });
+
+  expect(mswState.medicineCreateHits).toHaveLength(1);
+
+  const requestBody = mswState.medicineCreateHits[0].body;
+
+  expect(requestBody).toMatchObject({
+    name: "Paracetamol",
+    genericName: "Acetaminophen",
+    category: "Analgesic",
+    unit: "tablet",
+    price: "125.50",
+    expiryDate: "2027-12-31",
+    reorderLevel: 10,
+  });
+
+  expect(requestBody).not.toHaveProperty("stockQuantity");
+});
+
+
+  it("creates a medicine and starts with zero stock", async () => {
+    const medicine = {
+      name: "Paracetamol",
+      genericName: "Acetaminophen",
+      category: "Analgesic",
+      unit: "tablet",
+      price: "125.50",
+      expiryDate: "2027-12-31",
+      reorderLevel: "10",
+    };
+
+    mswState.medicineCreateResponses.push({
+      medicineId: 101,
+      name: medicine.name,
+      genericName: medicine.genericName,
+      category: medicine.category,
+      unit: medicine.unit,
+      price: 125.5,
+      expiryDate: medicine.expiryDate,
+      reorderLevel: 10,
+      stockQuantity: 0,
+      isQuarantined: false,
+    });
+
+    const result = await createMedicine(medicine);
+
+    expect(result).toMatchObject({
+      medicineId: 101,
+      name: "Paracetamol",
+      stockQuantity: 0,
+    });
+
+    expect(mswState.medicineCreateHits).toHaveLength(1);
+
+    const body = mswState.medicineCreateHits[0].body;
+
+    expect(body).toMatchObject({
+      name: "Paracetamol",
+      genericName: "Acetaminophen",
+      category: "Analgesic",
+      unit: "tablet",
+      price: "125.50",
+      expiryDate: "2027-12-31",
+      reorderLevel: 10,
+    });
+
+    // Backend creates the medicine with zero stock.
+    expect(body).not.toHaveProperty("stockQuantity");
+  });
+
+  it("sends null for an empty optional generic name", async () => {
+    await createMedicine({
+      name: "Cetirizine",
+      genericName: " ",
+      category: "Antihistamine",
+      unit: "tablet",
+      price: "50.00",
+      expiryDate: "2027-12-31",
+      reorderLevel: "5",
+    });
+
+    expect(mswState.medicineCreateHits[0].body.genericName).toBeNull();
+  });
+
+
   it("searches medicines using the search query", async () => {
     mswState.medicineListResponses.push(medicines);
 
