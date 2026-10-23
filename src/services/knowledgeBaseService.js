@@ -29,6 +29,10 @@ export const normalizeDocument = (raw) => {
       raw.created_at ??
       null,
     sizeBytes: raw.sizeBytes ?? raw.fileSize ?? raw.size ?? null,
+    fileUrl: raw.fileUrl ?? null,
+    downloadUrl: raw.downloadUrl ?? null,
+    url: raw.url ?? null,
+    sourceUrl: raw.sourceUrl ?? null,
     raw,
   };
 };
