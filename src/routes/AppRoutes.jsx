@@ -50,13 +50,13 @@ import DispensingQueuePage from "../pages/pharmacist/DispensingQueuePage";
 import InventoryManagementPage from "../pages/pharmacist/InventoryManagementPage";
 import AddMedicinePage from "../pages/pharmacist/AddMedicinePage";
 import UpdateMedicinePage from "../pages/pharmacist/UpdateMedicinePage";
-import ExternalDispensingPage from "../pages/pharmacist/ExternalDispensingPage";
 
 import BookAppointmentPage from "../pages/admin/BookAppointmentPage";
 import AppointmentHubPage from "../pages/admin/AppointmentHubPage";
 import BillingPage from "../pages/admin/BillingPage";
 import ClinicReports from "../components/admin/ClinicReports";
 import ReportsPage from "../pages/superAdmin/ReportsPage";
+import ExternalDispensingPage from "../pages/pharmacist/ExternalDispensingPage";
 
 const AppRoutes = () => {
   return (
@@ -158,10 +158,9 @@ const AppRoutes = () => {
           <Route path="dashboard" element={<PharmacistDashboardPage />} />
           <Route path="dispensing-queue" element={<DispensingQueuePage />} />
           <Route path="inventory" element={<InventoryManagementPage />} />
-          <Route path="external-dispensing" element={<ExternalDispensingPage />} />
-          <Route path="add-medicine" element={<AddMedicinePage />} />
-          <Route path="medicines/:medicineId/edit" element={<UpdateMedicinePage />}
-    />
+        <Route path="add-medicine" element={<AddMedicinePage />} />
+         <Route path="medicines/:medicineId/edit" element={<UpdateMedicinePage />}/>
+         <Route path="external-dispensing" element={<ExternalDispensingPage />} />
         </Route>
       </Route>
 
