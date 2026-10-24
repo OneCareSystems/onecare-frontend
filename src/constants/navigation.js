@@ -129,18 +129,36 @@ export const NAV_ITEMS = Object.freeze({
     //   icon: "list-checks",
     // }),
   ]),
-  [ROLES.PHARMACIST]: Object.freeze([
+    [ROLES.PHARMACIST]: Object.freeze([
     Object.freeze({
       id: "dashboard",
       to: "/pharmacist/dashboard",
       label: "Dashboard",
       icon: "dashboard",
     }),
-//     Object.freeze({
-//   id: "dispensing-queue",
-//   to: "/pharmacist/dispensing-queue",
-//   label: "Dispensing Queue",
-//   icon: "prescription",
-// }),
-]),
+    Object.freeze({
+      id: "dispensing-queue",
+      to: "/pharmacist/dispensing-queue",
+      label: "Dispensing Queue",
+      icon: "prescription",
+    }),
+    Object.freeze({
+      id: "inventory",
+      to: "/pharmacist/inventory",
+      label: "Inventory",
+      icon: "package",
+    }),
+    Object.freeze({
+      id: "external-dispensing",
+      to: "/pharmacist/external-dispensing",
+      label: "External Dispensing",
+      icon: "clipboard",
+    }),
+    Object.freeze({
+  id: "reports",
+  to: "/pharmacist/reports",
+  label: "Reports",
+  icon: "chart-column",
+}),
+  ]),
 });
