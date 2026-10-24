@@ -2,6 +2,8 @@ import apiClient from "./apiClient";
 import { parseContentDisposition } from "./systemBackupService";
 import { validDate } from "../utils/adminWorkflows";
 
+export const CLINIC_REPORT_TIMEOUT_MS = 10500;
+
 /** Export/report types accepted by GET /reports/pharmacy (dash form). */
 export const PHARMACY_REPORT_TYPES = Object.freeze([
   Object.freeze({ value: "stock-usage", label: "Stock usage" }),
@@ -9,7 +11,7 @@ export const PHARMACY_REPORT_TYPES = Object.freeze([
   Object.freeze({ value: "dispensing-history", label: "Dispensing history" }),
 ]);
 
-/** The backend rejects ranges wider than one year with 422. */
+/** Maximum elapsed-day difference; allows 366 inclusive calendar dates. */
 export const MAX_REPORT_RANGE_DAYS = 365;
 
 /** Client-side mirror of the backend date rules; "" when the range is valid. */
@@ -19,7 +21,7 @@ export function reportRangeError(from, to) {
   if (from > to) return "From date must not be after To date.";
   const days = (Date.parse(to) - Date.parse(from)) / 86_400_000;
   if (days > MAX_REPORT_RANGE_DAYS)
-    return "Date range too large, narrow your range to at most one year.";
+    return "Date range too large. Choose dates at most 365 days apart.";
   return "";
 }
 
@@ -29,11 +31,6 @@ const asCount = (value) => {
   return Number.isFinite(count) && count >= 0 ? count : 0;
 };
 const asString = (value) => (typeof value === "string" ? value : "");
-const asNullableId = (value) => {
-  if (value === null || value === undefined || value === "") return null;
-  const id = Number(value);
-  return Number.isInteger(id) && id > 0 ? id : null;
-};
 
 const assertEnvelope = (payload, label) => {
   if (
@@ -48,10 +45,31 @@ const assertEnvelope = (payload, label) => {
 export function adaptClinicReport(payload) {
   assertEnvelope(payload, "clinic report");
   const data = payload.data;
+  const fields = [
+    "totalAppointments",
+    "consultationCount",
+    "scheduled",
+    "arrived",
+    "completed",
+    "cancelled",
+    "noShow",
+    "uniquePatients",
+  ];
+  if (
+    !validDate(data.from) ||
+    !validDate(data.to) ||
+    data.from > data.to ||
+    fields.some(
+      (field) => !Number.isSafeInteger(data[field]) || data[field] < 0,
+    )
+  )
+    throw new Error("Unexpected clinic report response format");
+  if (data.doctorId != null && !Number.isSafeInteger(data.doctorId))
+    throw new Error("Unexpected clinic report doctor ID");
   return {
     from: asString(data.from),
     to: asString(data.to),
-    doctorId: asNullableId(data.doctorId),
+    doctorId: data.doctorId ?? null,
     totalAppointments: asCount(data.totalAppointments),
     consultationCount: asCount(data.consultationCount),
     scheduled: asCount(data.scheduled),
@@ -108,7 +126,7 @@ export function adaptPharmacyReport(payload) {
 const clinicParams = ({ from, to, doctorId } = {}) => ({
   from,
   to,
-  ...(doctorId ? { doctorId } : {}),
+  ...(doctorId !== null && doctorId !== undefined && doctorId !== "" ? { doctorId } : {}),
 });
 
 const pharmacyParams = ({ type, from, to } = {}) => ({ type, from, to });
@@ -117,8 +135,18 @@ export async function getClinicReport({ from, to, doctorId, signal } = {}) {
   const response = await apiClient.get("/reports/clinic", {
     params: clinicParams({ from, to, doctorId }),
     signal,
+    timeout: CLINIC_REPORT_TIMEOUT_MS,
   });
-  return adaptClinicReport(response.data);
+  const report = adaptClinicReport(response.data);
+  if (
+    report.from !== from ||
+    report.to !== to ||
+    String(report.doctorId ?? "") !== String(doctorId ?? "")
+  )
+    throw new Error(
+      "The clinic report scope does not match the requested filters",
+    );
+  return report;
 }
 
 export async function getPharmacyReport({ type, from, to, signal } = {}) {

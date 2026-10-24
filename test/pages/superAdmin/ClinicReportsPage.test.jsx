@@ -115,7 +115,7 @@ describe("super-admin clinic reports page — REST cases", () => {
     openPage(PATH, { role: "ADMIN" });
 
     expect(
-      await screen.findByRole("heading", { name: "AdminDashboardPage" }),
+      await screen.findByRole("heading", { name: "Admin Dashboard" }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("heading", { name: "Reports" }),
