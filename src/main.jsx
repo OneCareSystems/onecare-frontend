@@ -8,6 +8,7 @@ import App from "./App.jsx";
 import i18n from "./i18n";
 import { loadRuntimeConfig, resolveApiBaseUrl } from "./services/config";
 import apiClient from "./services/apiClient";
+import { configurePublicBookingClient } from "./services/publicBookingService";
 
 // DKR-03: read the runtime configuration (/config.json) before the first
 // render so one image works in staging and production without a rebuild.
@@ -17,6 +18,7 @@ const start = async () => {
   // The Axios client was created at module load with build-time values;
   // refresh its base URL now that the runtime file (if any) is known.
   apiClient.defaults.baseURL = resolveApiBaseUrl();
+  configurePublicBookingClient();
 
   createRoot(document.getElementById("root")).render(
     <StrictMode>

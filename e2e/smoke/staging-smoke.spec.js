@@ -66,7 +66,24 @@ test.describe("staging smoke", () => {
     await page.goto("/login");
     await page.getByLabel(/username/i).fill(staffUser);
     await page.getByLabel(/password/i).fill(staffPass);
+    const loginResponsePromise = page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return (
+        url.pathname.endsWith("/api/auth/login") &&
+        response.request().method() === "POST"
+      );
+    });
     await page.getByRole("button", { name: /sign in|login/i }).click();
+    const loginResponse = await loginResponsePromise;
+    expect(loginResponse.ok()).toBeTruthy();
+    const loginPayload = await loginResponse.json();
+    const accessToken =
+      loginPayload?.data?.accessToken ??
+      loginPayload?.data?.access_token ??
+      loginPayload?.accessToken ??
+      loginPayload?.access_token;
+    expect(typeof accessToken).toBe("string");
+    expect(accessToken.length).toBeGreaterThan(0);
 
     // Staff landing page is a role dashboard (DDP-#43).
     await expect(page).toHaveURL(/\/(admin|doctor|pharmacist|super-admin)\//, {
@@ -77,17 +94,19 @@ test.describe("staging smoke", () => {
     const apiContext = await playwrightRequest.newContext({
       baseURL: process.env.SMOKE_BASE_URL || "http://localhost:18080",
     });
-    // Re-use the browser session cookie for the API call.
-    const cookies = await page.context().cookies();
-    await apiContext.addCookies(cookies);
-    const me = await apiContext.get("/api/auth/me");
-    expect(me.status()).toBe(200);
-    await apiContext.dispose();
+    try {
+      const me = await apiContext.get("/api/auth/me", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      expect(me.status()).toBe(200);
+    } finally {
+      await apiContext.dispose();
+    }
   });
 
   test("public booking page loads in English and Tamil", async ({ page }) => {
     // DDP-#48 delivers the public booking route; skip cleanly until then.
-    const first = await page.goto("/booking");
+    const first = await page.goto("/appointments");
     test.skip(
       first.status() !== 200 ||
         (await page.getByText(/404|not found/i).count()) > 0,
@@ -95,12 +114,10 @@ test.describe("staging smoke", () => {
     );
     await expect(page.getByRole("heading").first()).toBeVisible();
 
-    // Tamil: the public layout exposes a language switch; switch and confirm
-    // the page still renders with lang="ta".
-    const tamilToggle = page.getByRole("button", { name: /தமிழ்|tamil/i });
-    if (await tamilToggle.count()) {
-      await tamilToggle.first().click();
-      await expect(page.locator("html")).toHaveAttribute("lang", /^ta/);
-    }
+    await page.locator("#language-select").selectOption("ta");
+    await expect(page.locator('html[lang="ta"]')).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "சந்திப்பை முன்பதிவு செய்க" }),
+    ).toBeVisible();
   });
 });

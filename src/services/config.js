@@ -50,12 +50,19 @@ export const API_BASE_URL = resolveApiBaseUrl();
  * defaults in place — the app still starts (AC3).
  */
 export const loadRuntimeConfig = async (url = "/config.json") => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
   try {
-    const response = await fetch(url, { cache: "no-store" });
+    const response = await fetch(url, {
+      cache: "no-store",
+      signal: controller.signal,
+    });
     if (!response.ok) return runtimeConfig;
     applyRuntimeConfig(await response.json());
   } catch {
-    // Missing or unreachable config file: fall back to build-time defaults.
+    // Use build-time defaults when runtime configuration is unavailable.
+  } finally {
+    clearTimeout(timeout);
   }
   return runtimeConfig;
 };

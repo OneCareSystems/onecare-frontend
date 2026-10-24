@@ -1,8 +1,16 @@
 import axios from "axios";
-import { API_BASE_URL } from "./config.js";
+import { API_BASE_URL, resolveApiBaseUrl } from "./config.js";
 
 // Public requests deliberately bypass the authenticated staff API client.
 const publicClient = axios.create({ baseURL: API_BASE_URL, timeout: 15000 });
+
+// The client is created during module evaluation, before /config.json loads.
+// Refresh its base URL during app startup so public requests use the same
+// runtime API location as authenticated staff requests.
+export function configurePublicBookingClient() {
+  publicClient.defaults.baseURL = resolveApiBaseUrl();
+}
+
 const doctorsPath = import.meta.env.VITE_PUBLIC_DOCTORS_PATH || "/doctors";
 const bookingPath =
   import.meta.env.VITE_PUBLIC_BOOKINGS_PATH || "/appointments/public";
