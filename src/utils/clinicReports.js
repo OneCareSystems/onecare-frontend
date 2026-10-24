@@ -25,7 +25,7 @@ export function clinicReportError(error) {
 export function csvCell(value) {
   const text = String(value);
   const safe =
-    /^[\s\u0000-\u001f]*[=+\-@\t\r\n]/.test(text) || /^[\t\r\n]/.test(text)
+    /^[\s\p{Cc}]*[=+\-@\t\r\n]/u.test(text) || /^[\t\r\n]/.test(text)
       ? `'${text}`
       : text;
   return `"${safe.replaceAll('"', '""')}"`;

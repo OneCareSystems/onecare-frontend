@@ -52,6 +52,8 @@ describe("clinic report mapping and protected snapshot CSV", () => {
       "\rtext",
       "\ntext",
       "\u0000=1",
+      " \u001f\t+1",
+      "\u007f@SUM(A1)",
     ])
       expect(csvCell(value)).toBe(`"'${value}"`);
     expect(csvCell(7)).toBe('"7"');
