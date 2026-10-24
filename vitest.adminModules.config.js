@@ -5,7 +5,7 @@ export default mergeConfig(baseConfig, {
   test: {
     include: [
       "test/utils/adminWorkflows.test.js",
-      "test/utils/demoClinicReports.test.js",
+      "test/utils/clinicReports.test.js",
       "test/services/adminWorkflowService.test.js",
       "test/hooks/useAdminQueue.test.jsx",
       "test/hooks/usePatientOptions.test.jsx",
@@ -17,7 +17,8 @@ export default mergeConfig(baseConfig, {
       enabled: true,
       include: [
         "src/utils/adminWorkflows.js",
-        "src/utils/demoClinicReports.js",
+        "src/utils/clinicReports.js",
+        "src/hooks/useClinicReport.js",
         "src/utils/clinicTime.js",
         "src/components/AutocompleteCombobox.jsx",
         "src/services/adminWorkflowService.js",
