@@ -1,0 +1,177 @@
+.onecare-footer {
+  background: #f0f8fa;
+  color: #243746;
+  border-top: 1px solid #d7e6eb;
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+  line-height: 1.75;
+}
+.onecare-footer-inner {
+  max-width: 1600px;
+  margin: 0 auto;
+  /* Keep the right edge clear of the existing fixed chatbot launcher. */
+  padding: 3.5rem 5.25rem 6.5rem 1.5rem;
+}
+.onecare-footer-grid {
+  display: grid;
+  gap: 2.5rem;
+}
+.onecare-footer-grid > * {
+  min-width: 0;
+}
+.onecare-footer h2 {
+  color: #123b5d;
+  font-size: 1rem;
+  line-height: 1.5;
+  margin-bottom: 1.25rem;
+  font-weight: 700;
+}
+.onecare-footer h3 {
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+.onecare-footer ul {
+  display: grid;
+  gap: 0.75rem;
+}
+.onecare-footer a {
+  color: #086a60;
+  text-decoration: none;
+  border-radius: 0.25rem;
+}
+.onecare-footer a:hover {
+  color: #123b5d;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.onecare-footer a:focus-visible {
+  outline: 2px solid #087f8c;
+  outline-offset: 5px;
+}
+.onecare-footer-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 800;
+  font-size: 1.75rem;
+}
+.onecare-footer-tagline {
+  font-weight: 700;
+  margin: 1rem 0 0.75rem;
+  color: #086a60;
+}
+.onecare-footer-caption {
+  font-size: 0.75rem;
+  margin-top: 0.75rem;
+  color: #475569;
+}
+.onecare-footer address {
+  font-style: normal;
+  display: grid;
+  gap: 0.75rem;
+}
+.onecare-footer-guidance {
+  margin-top: 0.75rem;
+}
+.onecare-footer-emergency {
+  background: #ddf5ed;
+  border-left: 3px solid #087f8c;
+  border-radius: 0.5rem;
+  padding: 0.875rem;
+  margin-top: 1.25rem;
+}
+.onecare-footer-emergency p {
+  margin-top: 0.4rem;
+  font-size: 0.8125rem;
+}
+.onecare-footer-newsletter {
+  margin-top: 1.25rem;
+}
+.onecare-footer-newsletter label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+.onecare-footer-email-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.onecare-footer-email-row input {
+  min-width: 0;
+  flex: 1 1 150px;
+  width: 100%;
+  background: #fff;
+  border: 1px solid #94aeb8;
+  border-radius: 0.625rem;
+  padding: 0.75rem;
+  color: #475569;
+}
+.onecare-footer-email-row input::placeholder {
+  color: #475569;
+  opacity: 1;
+}
+.onecare-footer-email-row button {
+  background: #123b5d;
+  color: #fff;
+  border-radius: 0.625rem;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  cursor: not-allowed;
+}
+.onecare-footer-socials {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+.onecare-footer-socials a,
+.onecare-footer-socials span {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d7e6eb;
+  border-radius: 50%;
+  background: #fff;
+}
+.onecare-footer-social-unavailable {
+  color: #64748b;
+}
+.onecare-footer-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #d7e6eb;
+  font-size: 0.8125rem;
+}
+@media (min-width: 640px) {
+  .onecare-footer-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .onecare-footer-brand {
+    grid-column: 1 / -1;
+    max-width: 36rem;
+  }
+}
+@media (min-width: 1000px) {
+  .onecare-footer-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .onecare-footer-brand {
+    grid-column: auto;
+  }
+}
+@media (min-width: 1400px) {
+  .onecare-footer-inner {
+    padding-left: 2.5rem;
+  }
+  .onecare-footer-grid {
+    grid-template-columns: 1.25fr 0.8fr 0.9fr 1fr 1.4fr;
+    gap: 2rem;
+  }
+}

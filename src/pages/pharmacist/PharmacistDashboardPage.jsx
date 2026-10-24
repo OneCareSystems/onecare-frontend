@@ -82,21 +82,21 @@ const DashboardSection = ({
     {loading && <LoadingSpinner label={`Loading ${title.toLowerCase()}...`} />}
 
     {error && (
-  <div>
-    <ErrorMessage
-      title="Unable to load data"
-      message="Please check your connection and try again."
-    />
-    <button
-      type="button"
-      onClick={retry}
-      className="mt-3 rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800"
-    >
-      Retry
-    </button>
-  </div>
-)}
-     {!loading && !error && data.length === 0 && (
+      <div>
+        <ErrorMessage
+          title="Unable to load data"
+          message="Please check your connection and try again."
+        />
+        <button
+          type="button"
+          onClick={retry}
+          className="mt-3 rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800"
+        >
+          Retry
+        </button>
+      </div>
+    )}
+    {!loading && !error && data.length === 0 && (
       <EmptyState title={emptyTitle} description={emptyMessage} />
     )}
 
@@ -164,9 +164,7 @@ const PharmacistDashboardPage = () => {
         <StatCard
           label={t("pharmacistDashboard.lowStock")}
           value={
-            lowStock.loading || lowStock.error
-              ? "—"
-              : lowStock.data.length
+            lowStock.loading || lowStock.error ? "—" : lowStock.data.length
           }
         />
         <StatCard

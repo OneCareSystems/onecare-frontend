@@ -93,6 +93,7 @@ const defaultRolePermissions = () =>
 
 export const mswState = {
   tokenValid: true,
+  authMeHits: [],
   refreshValid: true,
   refreshCount: 0,
   protectedHits: [],
@@ -130,7 +131,7 @@ export const mswState = {
   prescriptionCreateHits: [],
   prescriptionCreateResponses: [],
   prescriptionCreateErrorMode: null,
-    issuedPrescriptionHits: [],
+  issuedPrescriptionHits: [],
   issuedPrescriptionResponses: [],
   issuedPrescriptionErrorMode: null,
 
@@ -186,6 +187,13 @@ export const mswState = {
   doctorScheduleHits: [],
   doctorScheduleWriteHits: [],
   doctorScheduleErrorMode: null,
+  kbListHits: [],
+  kbListResponses: [],
+  kbListErrorMode: null,
+  kbDeleteHits: [],
+  kbDeleteErrorMode: null,
+  kbUploadHits: [],
+  kbUploadErrorMode: null,
   systemBackups: defaultSystemBackups(),
   systemBackupHits: [],
   systemBackupCreateHits: [],
@@ -201,6 +209,10 @@ export const mswState = {
   backupScheduleHits: [],
   backupScheduleUpdateHits: [],
   backupScheduleErrorMode: null,
+  clinicReportHits: [],
+  clinicReportErrorMode: null,
+  pharmacyReportHits: [],
+  pharmacyReportErrorMode: null,
 };
 
 export const resetMswState = () => {
@@ -242,7 +254,7 @@ export const resetMswState = () => {
   mswState.prescriptionCreateHits = [];
   mswState.prescriptionCreateResponses = [];
   mswState.prescriptionCreateErrorMode = null;
-    mswState.issuedPrescriptionHits = [];
+  mswState.issuedPrescriptionHits = [];
   mswState.issuedPrescriptionResponses = [];
   mswState.issuedPrescriptionErrorMode = null;
 
@@ -298,6 +310,14 @@ export const resetMswState = () => {
   mswState.doctorScheduleHits = [];
   mswState.doctorScheduleWriteHits = [];
   mswState.doctorScheduleErrorMode = null;
+  mswState.kbListHits = [];
+  mswState.kbListResponses = [];
+  mswState.kbListErrorMode = null;
+  mswState.kbDeleteHits = [];
+  mswState.kbDeleteErrorMode = null;
+  mswState.kbUploadHits = [];
+  mswState.kbUploadErrorMode = null;
+  mswState.authMeHits = [];
   mswState.systemBackups = defaultSystemBackups();
   mswState.systemBackupHits = [];
   mswState.systemBackupCreateHits = [];
@@ -313,6 +333,10 @@ export const resetMswState = () => {
   mswState.backupScheduleHits = [];
   mswState.backupScheduleUpdateHits = [];
   mswState.backupScheduleErrorMode = null;
+  mswState.clinicReportHits = [];
+  mswState.clinicReportErrorMode = null;
+  mswState.pharmacyReportHits = [];
+  mswState.pharmacyReportErrorMode = null;
 };
 
 const ok = (data, message = "ok") =>
@@ -361,6 +385,13 @@ export const handlers = [
         email: body?.username ?? "test@onecare.test",
       },
     });
+  }),
+  http.get("*/auth/me", ({ request }) => {
+    mswState.authMeHits.push({
+      authorization: request.headers.get("Authorization"),
+    });
+    if (!mswState.tokenValid) return fail(401, "Access token expired");
+    return ok({ userId: 4, id: 4, username: "doctor", role: "DOCTOR" });
   }),
   http.post("*/auth/forgot-password", async ({ request }) => {
     const body = await request.json().catch(() => ({}));
@@ -1485,7 +1516,236 @@ export const handlers = [
       "Schedule saved successfully",
     );
   }),
+  // Clinic and pharmacy reports (FR039/FR040) — the exact backend envelope.
+  // `format=csv|pdf` streams a file; otherwise JSON. Range rules mirror
+  // ReportServiceImpl: 400 missing/reversed dates, 422 over one year.
+  http.get("*/reports/clinic", ({ request }) => {
+    const url = new URL(request.url);
+    mswState.clinicReportHits.push({
+      authorization: request.headers.get("Authorization"),
+      from: url.searchParams.get("from"),
+      to: url.searchParams.get("to"),
+      doctorId: url.searchParams.get("doctorId"),
+      format: url.searchParams.get("format"),
+    });
+    if (mswState.clinicReportErrorMode === "network-error")
+      return HttpResponse.error();
+    if (mswState.clinicReportErrorMode === "server-error")
+      return fail(500, "Internal server error");
+    if (mswState.clinicReportErrorMode === "forbidden")
+      return fail(403, "Access denied");
+    const from = url.searchParams.get("from");
+    const to = url.searchParams.get("to");
+    if (!from || !to)
+      return fail(400, "Both 'from' and 'to' dates are required");
+    if (from > to)
+      return fail(400, "'from' date must not be after the 'to' date");
+    if ((Date.parse(to) - Date.parse(from)) / 86_400_000 > 365)
+      return fail(422, "Date range too large, narrow your range");
+    const format = url.searchParams.get("format");
+    if (format && !["csv", "pdf"].includes(format.toLowerCase()))
+      return fail(
+        400,
+        `Unknown export format '${format}'. Allowed values: csv, pdf`,
+      );
+    if (format) {
+      const base = `clinic-report_${from}_to_${to}`;
+      const isPdf = format.toLowerCase() === "pdf";
+      const bytes = new TextEncoder().encode(
+        isPdf ? "%PDF-1.4 (mock)" : "From,To\r\n",
+      );
+      return HttpResponse.arrayBuffer(bytes.buffer, {
+        headers: {
+          "Content-Type": isPdf ? "application/pdf" : "text/csv",
+          "Content-Disposition": `attachment; filename="${base}.${format.toLowerCase()}"`,
+        },
+      });
+    }
+    return ok(
+      {
+        from,
+        to,
+        doctorId: url.searchParams.get("doctorId")
+          ? Number(url.searchParams.get("doctorId"))
+          : null,
+        totalAppointments: 42,
+        consultationCount: 30,
+        scheduled: 5,
+        arrived: 3,
+        completed: 30,
+        cancelled: 4,
+        noShow: 6,
+        uniquePatients: 25,
+        generatedAt: "2026-10-23T09:15:00",
+      },
+      "Clinic report generated successfully",
+    );
+  }),
+  http.get("*/reports/pharmacy", ({ request }) => {
+    const url = new URL(request.url);
+    mswState.pharmacyReportHits.push({
+      authorization: request.headers.get("Authorization"),
+      type: url.searchParams.get("type"),
+      from: url.searchParams.get("from"),
+      to: url.searchParams.get("to"),
+      format: url.searchParams.get("format"),
+    });
+    if (mswState.pharmacyReportErrorMode === "network-error")
+      return HttpResponse.error();
+    if (mswState.pharmacyReportErrorMode === "server-error")
+      return fail(500, "Internal server error");
+    if (mswState.pharmacyReportErrorMode === "forbidden")
+      return fail(403, "Access denied");
+    const type = (url.searchParams.get("type") || "")
+      .trim()
+      .toLowerCase()
+      .replaceAll("_", "-");
+    const from = url.searchParams.get("from");
+    const to = url.searchParams.get("to");
+    if (!from || !to)
+      return fail(400, "Both 'from' and 'to' dates are required");
+    if (from > to)
+      return fail(400, "'from' date must not be after the 'to' date");
+    if ((Date.parse(to) - Date.parse(from)) / 86_400_000 > 365)
+      return fail(422, "Date range too large, narrow your range");
+    if (!["stock-usage", "expiry", "dispensing-history"].includes(type))
+      return fail(400, `Unknown report type '${type}'`);
+    const format = url.searchParams.get("format");
+    if (format && !["csv", "pdf"].includes(format.toLowerCase()))
+      return fail(
+        400,
+        `Unknown export format '${format}'. Allowed values: csv, pdf`,
+      );
+    if (format) {
+      const base = `pharmacy-report_${type}_${from}_to_${to}`;
+      const isPdf = format.toLowerCase() === "pdf";
+      const bytes = new TextEncoder().encode(
+        isPdf ? "%PDF-1.4 (mock)" : "Medicine,Units\r\n",
+      );
+      return HttpResponse.arrayBuffer(bytes.buffer, {
+        headers: {
+          "Content-Type": isPdf ? "application/pdf" : "text/csv",
+          "Content-Disposition": `attachment; filename="${base}.${format.toLowerCase()}"`,
+        },
+      });
+    }
+    const sections = {
+      "stock-usage": {
+        stockUsage: [
+          { medicineId: 11, medicineName: "Amoxicillin 500mg", unitsDispensed: 120 },
+          { medicineId: 12, medicineName: "Ibuprofen 200mg", unitsDispensed: 85 },
+        ],
+        expiry: [],
+        dispensingHistory: [],
+      },
+      expiry: {
+        stockUsage: [],
+        expiry: [
+          {
+            medicineId: 13,
+            medicineName: "Insulin 100IU",
+            expiryDate: "2026-12-01",
+            stockQuantity: 14,
+            quarantined: false,
+          },
+        ],
+        dispensingHistory: [],
+      },
+      "dispensing-history": {
+        stockUsage: [],
+        expiry: [],
+        dispensingHistory: [
+          {
+            referenceId: 901,
+            source: "EXTERNAL",
+            dispenseDate: "2026-10-10T10:00:00",
+            patientId: 401,
+            patientName: "Example Patient",
+            patientContactNo: "077***4567",
+            medicineName: "Amoxicillin 500mg",
+            quantity: 20,
+          },
+        ],
+      },
+    };
+    // The backend enum ReportType serialises with underscores (STOCK_USAGE).
+    const enumType = type.toUpperCase().replaceAll("-", "_");
+    return ok(
+      {
+        type: enumType,
+        from,
+        to,
+        ...sections[type],
+      },
+      "Pharmacy report generated successfully",
+    );
+  }),
   http.get("*/reports/:id", protectedReply),
+  // Chatbot knowledge base. The page-level helpers (`listDocuments`,
+  // `uploadDocument`, `deleteDocument`) read the same `{ success, data }`
+  // envelope as the legacy resource functions, and the list is paginated.
+  http.get("*/chatbot/knowledge-base", ({ request }) => {
+    const url = new URL(request.url);
+    mswState.kbListHits.push({
+      url: request.url,
+      authorization: request.headers.get("Authorization"),
+      params: url.searchParams,
+    });
+    if (mswState.kbListErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    if (mswState.kbListErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    return ok(
+      mswState.kbListResponses.shift() ?? {
+        items: [],
+        count: 0,
+        totalPages: 1,
+      },
+    );
+  }),
+  http.post("*/chatbot/knowledge-base", async ({ request }) => {
+    const form = await request.formData().catch(() => null);
+    const uploaded = form?.get("file");
+    mswState.kbUploadHits.push({
+      fileName: uploaded && typeof uploaded === "object" ? uploaded.name : null,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.kbUploadErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    if (mswState.kbUploadErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    return ok({
+      id: 501,
+      title: form?.get("title") || "Uploaded reference",
+      originalFilename:
+        uploaded && typeof uploaded === "object" ? uploaded.name : null,
+      sourceType: "PDF",
+      status: "PENDING",
+    });
+  }),
+  http.delete("*/chatbot/knowledge-base/:id", ({ request, params }) => {
+    mswState.kbDeleteHits.push({
+      id: params.id,
+      authorization: request.headers.get("Authorization"),
+    });
+    if (mswState.kbDeleteErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+    if (mswState.kbDeleteErrorMode === "forbidden") {
+      return fail(403, "Access denied");
+    }
+    if (mswState.kbDeleteErrorMode === "not-found") {
+      return fail(404, "Document not found");
+    }
+    if (mswState.kbDeleteErrorMode === "server-error") {
+      return fail(500, "Internal server error");
+    }
+    return ok(null);
+  }),
   http.get("*", ({ request }) => {
     const path = new URL(request.url).pathname;
     if (path.endsWith("/forbidden")) {

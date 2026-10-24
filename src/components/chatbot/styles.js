@@ -45,7 +45,7 @@ header h2 { margin: 0; font-size: 1rem; font-weight: 600; }
 .chips { border-top: 1px solid var(--border); padding: 6px 12px; font-size: .85rem; }
 .chips summary { cursor: pointer; color: var(--muted); padding: 2px 0; }
 .chip-group { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
-.chip { border: 1px solid var(--brand); color: var(--brand); background: transparent; border-radius: 999px; padding: 4px 12px; font-size: .84rem; }
+.chip { max-width:100%; overflow-wrap:anywhere; white-space:normal; border: 1px solid var(--brand); color: var(--brand); background: transparent; border-radius: 999px; padding: 4px 12px; font-size: .84rem; }
 .chip:hover:not(:disabled) { background: var(--brand); color: #fff; }
 .chip:disabled { opacity: .5; cursor: not-allowed; }
 .chip[lang="ta"] { font-size: .9rem; }
@@ -53,7 +53,7 @@ header h2 { margin: 0; font-size: 1rem; font-weight: 600; }
 .status p { margin: 4px 0; }
 .status .input-error { color: var(--err-fg); }
 form { display: flex; align-items: flex-end; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); position: relative; }
-textarea { flex: 1; resize: none; max-height: 120px; min-height: 40px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px;
+textarea { min-width:0; flex: 1; resize: none; max-height: 120px; min-height: 40px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px;
   font: inherit; background: var(--bg); color: var(--fg); }
 .send { padding: 9px 14px; border: 0; border-radius: 10px; background: var(--brand); color: #fff; font-weight: 600; }
 .send:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }

@@ -78,12 +78,20 @@ describe("super-admin dashboard — REST cases", () => {
     });
     // The region is present during the initial render; wait for the async
     // audit request to populate it before making synchronous row assertions.
-    await within(activity).findByText(/LOGIN outcome=SUCCESS/);
+    await within(activity).findByText(
+      "LOGIN outcome=SUCCESS target=AuthServiceImpl.login",
+    );
     expect(within(activity).getAllByText("superadmin")).toHaveLength(2);
     expect(
-      within(activity).getByText(/LOGIN outcome=SUCCESS/),
+      within(activity).getByText(
+        "LOGIN outcome=SUCCESS target=AuthServiceImpl.login",
+      ),
     ).toBeInTheDocument();
-    expect(within(activity).getByText("TOKEN_REFRESH")).toBeInTheDocument();
+    expect(
+      within(activity).getByText(
+        "TOKEN_REFRESH outcome=SUCCESS target=AuthServiceImpl.refresh",
+      ),
+    ).toBeInTheDocument();
 
     const modules = screen.getByRole("region", { name: "Governance Modules" });
     for (const [title, href] of [
@@ -91,7 +99,8 @@ describe("super-admin dashboard — REST cases", () => {
       ["Access Control", "/super-admin/access-control"],
       ["Clinic Configuration", "/super-admin/clinic-configuration"],
       ["System Maintenance", "/super-admin/system-maintenance"],
-      ["Audits & Reports", "/super-admin/audits-reports"],
+      ["Audits", "/super-admin/audits"],
+      ["Reports", "/super-admin/reports"],
     ]) {
       const link = within(modules).getByRole("link", {
         name: new RegExp(title),
