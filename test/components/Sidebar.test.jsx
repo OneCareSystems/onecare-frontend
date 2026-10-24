@@ -63,18 +63,29 @@ describe("Sidebar — CFG-04 role-driven navigation", () => {
     );
   });
 
-  it("hides screens the role may not use", () => {
-    store.dispatch(setSession({ accessToken: "a", role: ROLES.PHARMACIST }));
+  
+it("renders all Pharmacy Management navigation links", () => {
+  store.dispatch(setSession({ accessToken: "a", role: ROLES.PHARMACIST }));
 
-    renderSidebar();
+  renderSidebar();
 
-    expect(
-      screen.queryByRole("link", { name: /queue/i }),
-    ).not.toBeInTheDocument();
-    expect(screen.getAllByRole("link")).toHaveLength(
-      NAV_ITEMS[ROLES.PHARMACIST].length,
+  const expectedItems = [
+    ["Dashboard", "/pharmacist/dashboard"],
+    ["Dispensing Queue", "/pharmacist/dispensing-queue"],
+    ["Inventory", "/pharmacist/inventory"],
+    ["External Dispensing", "/pharmacist/external-dispensing"],
+  ];
+
+  for (const [label, destination] of expectedItems) {
+    expect(screen.getByRole("link", { name: label })).toHaveAttribute(
+      "href",
+      destination,
     );
-  });
+  }
+
+  expect(screen.getAllByRole("link")).toHaveLength(expectedItems.length);
+});
+
 
   it("renders SuperAdmin sections and shared clinic reports with their route destinations", () => {
     store.dispatch(setSession({ accessToken: "a", role: ROLES.SUPER_ADMIN }));
