@@ -16,8 +16,10 @@
     "test:admin-modules": "vitest run --config vitest.adminModules.config.js --maxWorkers=1",
     "test:e2e": "playwright test",
     "test:adm03": "vitest run --config vitest.adm03.config.js --maxWorkers=1",
-    "test:chatbot": "vitest run tests/chatbot",
-    "export-chips": "node scripts/export-chips.mjs"
+    "test:chatbot": "vitest run test/chatbot",
+    "export-chips": "node scripts/export-chips.mjs",
+    "check:i18n": "node scripts/check-public-i18n.mjs",
+    "test:public": "vitest run --config vitest.public.config.js"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.13.0",
@@ -54,9 +56,9 @@
     "jsdom": "^29.1.1",
     "lint-staged": "^16.4.0",
     "msw": "^2.15.0",
-    "postcss": "^8.5.29",
+    "postcss": "^8.5.31",
     "prettier": "^3.8.3",
-    "tailwindcss": "^3.4.17",
+    "tailwindcss": "^3.4.19",
     "vite": "^8.0.12",
     "vitest": "^4.1.8"
   }
