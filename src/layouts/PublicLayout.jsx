@@ -2,11 +2,13 @@ import PublicErrorBoundary from "../components/PublicErrorBoundary";
 import "../styles/patient-public.css";
 import { useLayoutEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import Footer from "../components/Footer";
 import SiteHeader from "../components/SiteHeader";
 
 const PublicLayout = () => {
   const { pathname, hash, key } = useLocation();
+  const { t } = useTranslation();
 
   useLayoutEffect(() => {
     if (hash) {
@@ -20,13 +22,23 @@ const PublicLayout = () => {
   }, [pathname, hash, key]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-neutral-0">
+    <div className="flex min-h-screen flex-col bg-slate-50 font-sans text-slate-800">
+      {/* Lets keyboard users jump past the header */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-blue-800 focus:shadow-lg"
+      >
+        {t("publicLanding.skipToContent", "Skip to content")}
+      </a>
+
       <SiteHeader />
-      <main className="flex-1">
+
+      <main id="main-content" tabIndex={-1} className="flex-1 focus:outline-none">
         <PublicErrorBoundary>
           <Outlet />
         </PublicErrorBoundary>
       </main>
+
       <Footer />
     </div>
   );

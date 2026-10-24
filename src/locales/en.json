@@ -51,6 +51,29 @@
     "of": "of"
   },
   "publicLanding": {
+    "assistantHint": "Try asking: What are the clinic hours? When is the doctor available? What services do you offer?",
+    "assistantLimit": "It shares general clinic information only. It can't diagnose or prescribe, so please see the doctor for medical advice.",
+    "stepsTitle": "How a visit works",
+    "steps": {
+      "book": {
+        "title": "Book online",
+        "text": "Choose a doctor, date and time. You don't need an account, and you'll get a confirmation."
+      },
+      "consult": {
+        "title": "See the doctor",
+        "text": "Your doctor keeps notes of your visit and writes your prescription digitally."
+      },
+      "collect": {
+        "title": "Collect your medicines",
+        "text": "The prescription goes straight to our pharmacy. Payment is in cash at the clinic."
+      }
+    },
+    "trust": {
+      "noAccount": "No account needed to book",
+      "bilingual": "English and Tamil",
+      "underOneRoof": "Clinic and pharmacy in one place",
+      "private": "Your records stay private"
+    },
     "eyebrow": "Welcome to OneCare",
     "title": "Care that starts with you",
     "intro": "Explore our clinic and book an appointment online.",
@@ -81,6 +104,11 @@
     "lastName": "Last name",
     "phone": "Phone number",
     "dateOfBirth": "Date of birth",
+    "gender": "Gender",
+    "chooseGender": "Choose gender",
+    "genderMale": "Male",
+    "genderFemale": "Female",
+    "genderOther": "Other",
     "doctorId": "Doctor",
     "appointmentDate": "Appointment date",
     "slot": "Available time",
