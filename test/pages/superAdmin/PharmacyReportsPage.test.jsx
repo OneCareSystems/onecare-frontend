@@ -106,7 +106,7 @@ describe("pharmacy reports page — REST cases", () => {
     openPage(PATH, { role: "ADMIN" });
 
     expect(
-      await screen.findByRole("heading", { name: "AdminDashboardPage" }),
+      await screen.findByRole("heading", { name: "Admin Dashboard" }),
     ).toBeInTheDocument();
     expect(screen.queryByText("Pharmacy Reports")).not.toBeInTheDocument();
     expect(mswState.pharmacyReportHits).toHaveLength(0);
