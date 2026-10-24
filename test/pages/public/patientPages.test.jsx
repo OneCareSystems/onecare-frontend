@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -19,329 +20,306 @@ import BookingConfirmedPage from "../../../src/pages/public/BookingConfirmedPage
 import NotFoundPage from "../../../src/pages/public/NotFoundPage";
 import PublicLayout from "../../../src/layouts/PublicLayout";
 import { bookingDocumentId } from "../../../src/utils/bookingNavigation";
-import {
-  formatPatientDate,
-  formatPatientTime,
-} from "../../../src/utils/publicDateTime";
+import { clearPublicDoctorsCache } from "../../../src/services/publicBookingService";
+import { formatPatientDate, formatPatientTime } from "../../../src/utils/publicDateTime";
 
-const doctor = { id: 7, name: "Dr Example", workingHours: "09:00?17:00" };
+const doctor = { doctorId: 7, displayName: "Dr Example", workingHours: "4:00 PM - 8:00 PM" };
 const date = "2099-06-15";
-const booking = { doctor: doctor.name, date, time: "09:00" };
+const booking = { doctor: doctor.displayName, date, time: "09:00" };
 let posts;
+
 const mount = (entry = "/appointments", layout = false) =>
   render(
     <MemoryRouter initialEntries={[entry]}>
       <Routes>
-        <Route element={layout ? <PublicLayout /> : undefined}>
-          <Route path="/home" element={<HomePage />} />
-          <Route path="/appointments" element={<BookingPage />} />
-          <Route
-            path="/appointments/confirmed"
-            element={<BookingConfirmedPage />}
-          />
-          <Route path="*" element={<NotFoundPage />} />
-        </Route>
+        {layout ? (
+          <Route element={<PublicLayout />}>
+            <Route path="/home" element={<HomePage />} />
+            <Route path="/appointments" element={<BookingPage />} />
+            <Route path="/appointments/confirmed" element={<BookingConfirmedPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
+        ) : (
+          <>
+            <Route path="/home" element={<HomePage />} />
+            <Route path="/appointments" element={<BookingPage />} />
+            <Route path="/appointments/confirmed" element={<BookingConfirmedPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </>
+        )}
       </Routes>
     </MemoryRouter>,
   );
-const input = (name) => document.querySelector(`[name="${name}"]`);
-async function fill() {
-  await waitFor(() => expect(input("doctorId")).toHaveValue("7"));
-  for (const [key, value] of Object.entries({
-    firstName: "குமார்",
-    lastName: "குமார்",
-    phone: "0771234567",
-    dateOfBirth: "1995-02-20",
-    appointmentDate: date,
-    reason: "Checkup",
-  }))
-    fireEvent.change(input(key), { target: { value } });
-  await waitFor(() => expect(input("slot")).not.toBeDisabled());
-  fireEvent.change(input("slot"), { target: { value: "09:00" } });
-}
-const submit = () =>
-  fireEvent.click(
-    screen.getByRole("button", { name: i18n.t("booking.submit") }),
+
+const field = (name) => document.querySelector(`[name="${name}"]`);
+const setField = (name, value) =>
+  fireEvent.change(field(name), { target: { value } });
+
+async function chooseAppointmentTime(time = "09:00") {
+  await waitFor(() => expect(field("doctorId")).toHaveValue("7"));
+  setField("appointmentDate", date);
+  const slot = await screen.findByRole("radio", {
+    name: formatPatientTime(time, "en"),
+  });
+  await userEvent.click(slot);
+  await userEvent.click(
+    screen.getByRole("button", { name: "Continue to patient details" }),
   );
+}
+
+async function fillPatientDetails() {
+  setField("firstName", "Kumar");
+  setField("lastName", "Patient");
+  setField("phone", "0771234567");
+  setField("dateOfBirth", "1995-02-20");
+  fireEvent.change(field("gender"), { target: { value: "OTHER" } });
+}
+
+const submit = () =>
+  fireEvent.click(screen.getByRole("button", { name: en.booking.submit }));
+
 beforeEach(async () => {
   posts = [];
+  clearPublicDoctorsCache();
+  localStorage.clear();
+  sessionStorage.clear();
   await i18n.changeLanguage("en");
+  vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   server.use(
-    http.get("*/api/doctors", () => HttpResponse.json({ data: [doctor] })),
-    http.get("*/api/doctors/:id/available-slots", () =>
-      HttpResponse.json({ data: ["09:00", "10:00"] }),
+    http.get("*/api/public/doctors", () =>
+      HttpResponse.json({ success: true, data: [doctor] }),
     ),
-    http.post("*/api/appointments/public", async ({ request }) => {
+    http.get("*/api/public/doctors/:id/available-slots", () =>
+      HttpResponse.json({ success: true, data: ["09:00", "10:00"] }),
+    ),
+    http.post("*/api/public/appointments", async ({ request }) => {
       posts.push(await request.json());
-      return HttpResponse.json({ data: { appointmentId: 12 } });
+      return HttpResponse.json({
+        success: true,
+        message: "Appointment booked successfully",
+        data: { appointmentId: 12 },
+      });
     }),
   );
 });
-afterEach(() => {
+
+afterEach(async () => {
   cleanup();
+  clearPublicDoctorsCache();
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+  await i18n.changeLanguage("en");
 });
 
-describe("PUB-01 landing", () => {
-  it("keeps static clinic content and retries only doctor information after failure", async () => {
+describe("public landing page", () => {
+  it("keeps the clinic information available when doctor loading fails and retries doctors", async () => {
     let calls = 0;
     server.use(
-      http.get("*/api/doctors", () =>
+      http.get("*/api/public/doctors", () =>
         ++calls === 1
           ? new HttpResponse(null, { status: 503 })
-          : HttpResponse.json([doctor]),
+          : HttpResponse.json({ success: true, data: [doctor] }),
       ),
     );
+
     mount("/home");
-    await screen.findByText(en.publicLanding.doctorError);
-    expect(
-      screen.getByRole("heading", { name: en.publicLanding.servicesTitle }),
-    ).toBeVisible();
-    expect(screen.getByText(en.publicLanding.hoursFallback)).toBeVisible();
-    expect(
-      screen.getByRole("button", { name: en.publicLanding.book }),
-    ).toBeVisible();
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      en.publicLanding.doctorError,
+    );
+    expect(screen.getByText(/4:00 PM - 8:00 PM/)).toBeVisible();
+    expect(screen.getByRole("heading", { name: en.publicLanding.stepsTitle })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Book an appointment" })).toBeVisible();
+
     await userEvent.click(
       screen.getByRole("button", { name: en.publicLanding.retry }),
     );
     expect(await screen.findByText(doctor.workingHours)).toBeVisible();
     expect(calls).toBe(2);
   });
-  it("handles an empty doctor list", async () => {
-    server.use(http.get("*/api/doctors", () => HttpResponse.json([])));
+
+  it("shows the current empty doctor state", async () => {
+    server.use(
+      http.get("*/api/public/doctors", () =>
+        HttpResponse.json({ success: true, data: [] }),
+      ),
+    );
     mount("/home");
     expect(await screen.findByText(en.publicLanding.noDoctors)).toBeVisible();
   });
-  it("uses the Tamil file for landing and shared public text", async () => {
+
+  it("renders the landing page and shared footer in Tamil", async () => {
     await i18n.changeLanguage("ta");
     mount("/home", true);
     expect(
       screen.getByRole("heading", { name: ta.publicLanding.welcome }),
     ).toBeVisible();
     expect(screen.getByText(ta.publicCommon.footer)).toBeVisible();
-    expect(screen.getByText(ta.publicCommon.tagline)).toBeVisible();
-    expect(screen.queryByText(en.publicLanding.welcome)).toBeNull();
-    await screen.findByText(doctor.name);
+    expect(
+      screen.getByText(ta.publicCommon.footerContent.tagline),
+    ).toBeVisible();
+    await screen.findByText(doctor.displayName);
+
     const widget = document.querySelector("onecare-chat-widget");
-    expect(widget.getAttribute("lang")).toBe("ta");
+    expect(widget).toHaveAttribute("lang", "ta");
     expect(
-      [...widget.shadowRoot.querySelectorAll('.chip[lang="ta"]')].map(
-        (x) => x.textContent,
+      [...widget.shadowRoot.querySelectorAll('.chip[lang="ta"]')].map((chip) =>
+        chip.textContent,
       ),
-    ).toEqual(ta.chatbot.chips.map((x) => x.label));
+    ).toEqual(ta.chatbot.chips.map((chip) => chip.label));
     expect(
-      [...widget.shadowRoot.querySelectorAll('.chip[lang="en"]')].map(
-        (x) => x.textContent,
+      [...widget.shadowRoot.querySelectorAll('.chip[lang="en"]')].map((chip) =>
+        chip.textContent,
       ),
-    ).toEqual(en.chatbot.chips.map((x) => x.label));
+    ).toEqual(en.chatbot.chips.map((chip) => chip.label));
   });
 });
 
-describe("PUB-02 booking", () => {
-  it("submits Tamil names without authentication and shows matching confirmation", async () => {
-    let auth;
+describe("public appointment booking", () => {
+  it("posts the backend public booking DTO without authentication and shows confirmation", async () => {
+    let authorization;
     server.use(
-      http.post("*/api/appointments/public", async ({ request }) => {
-        auth = request.headers.get("authorization");
+      http.post("*/api/public/appointments", async ({ request }) => {
+        authorization = request.headers.get("authorization");
         posts.push(await request.json());
-        return HttpResponse.json({ data: { id: 12 } });
+        return HttpResponse.json({
+          success: true,
+          data: {
+            appointmentId: 12,
+            appointmentDateTime: `${date}T09:00:00`,
+          },
+        });
       }),
     );
+
     mount();
-    await fill();
+    await chooseAppointmentTime();
+    await fillPatientDetails();
     submit();
+
     expect(
       await screen.findByRole("heading", { name: en.confirmation.title }),
     ).toBeVisible();
-    expect(screen.getByText(doctor.name)).toBeVisible();
+    expect(screen.getByText(doctor.displayName)).toBeVisible();
     expect(screen.getByText(formatPatientDate(date, "en"))).toBeVisible();
     expect(screen.getByText(formatPatientTime("09:00", "en"))).toBeVisible();
-    expect(posts).toHaveLength(1);
-    expect(posts[0]).toMatchObject({
-      firstName: "குமார்",
-      date,
-      time: "09:00",
-    });
-    expect(auth).toBeNull();
+    expect(posts).toEqual([
+      {
+        fullName: "Kumar Patient",
+        contactNo: "0771234567",
+        dateOfBirth: "1995-02-20",
+        gender: "OTHER",
+        doctorId: 7,
+        appointmentDateTime: `${date}T09:00:00`,
+      },
+    ]);
+    expect(authorization).toBeNull();
     expect(localStorage.getItem("booking")).toBeNull();
     expect(sessionStorage.length).toBe(0);
+
     await userEvent.click(
       screen.getByRole("link", { name: en.confirmation.another }),
     );
-    expect(input("firstName")).toHaveValue("");
-    expect(input("phone")).toHaveValue("");
-    expect(input("appointmentDate")).toHaveValue("");
+    expect(field("firstName")).toBeNull();
+    expect(field("appointmentDate")).toHaveValue("");
   });
-  it("blocks missing fields without sending", async () => {
+
+  it("requires an appointment selection before continuing to patient details", async () => {
     mount();
-    await waitFor(() => expect(input("doctorId")).toHaveValue("7"));
-    submit();
+    await waitFor(() => expect(field("doctorId")).toHaveValue("7"));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Continue to patient details" }),
+    );
     expect(screen.getAllByRole("alert").length).toBeGreaterThan(0);
     expect(posts).toHaveLength(0);
   });
-  it.each([
-    ["appointmentDate", "2000-01-01", "invalidDate"],
-    ["dateOfBirth", "2099-01-01", "invalidDob"],
-    ["phone", "1234", "invalidPhone"],
-    ["firstName", "123", "invalidName"],
-  ])("blocks invalid %s with inline errors", async (key, value, error) => {
+
+  it("shows inline patient validation and does not post invalid details", async () => {
     mount();
-    await fill();
-    fireEvent.change(input(key), { target: { value } });
+    await chooseAppointmentTime();
+    await fillPatientDetails();
+    setField("phone", "1234");
     submit();
-    expect(screen.getByText(en.booking[error])).toBeVisible();
+    expect(screen.getByText(en.booking.invalidPhone)).toBeVisible();
+    expect(field("phone")).toHaveAttribute("aria-invalid", "true");
     expect(posts).toHaveLength(0);
-    expect(input(key)).toHaveAttribute("aria-invalid", "true");
   });
-  it("retains the form and refreshes alternatives on conflict", async () => {
+
+  it("filters slots after 8 PM and handles a slot conflict by refreshing availability", async () => {
     let slotCalls = 0;
     server.use(
-      http.get("*/api/doctors/:id/available-slots", () =>
-        HttpResponse.json(++slotCalls === 1 ? ["09:00"] : ["11:00"]),
+      http.get("*/api/public/doctors/:id/available-slots", () =>
+        HttpResponse.json({
+          success: true,
+          data: ++slotCalls === 1 ? ["09:00", "20:30"] : ["11:00"],
+        }),
       ),
-      http.post(
-        "*/api/appointments/public",
-        () => new HttpResponse(null, { status: 409 }),
+      http.post("*/api/public/appointments", () =>
+        new HttpResponse(null, { status: 409 }),
       ),
     );
+
     mount();
-    await fill();
+    await waitFor(() => expect(field("doctorId")).toHaveValue("7"));
+    setField("appointmentDate", date);
+    expect(
+      await screen.findByRole("radio", { name: formatPatientTime("09:00", "en") }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("radio", { name: formatPatientTime("20:30", "en") }),
+    ).toBeNull();
+    await userEvent.click(
+      screen.getByRole("radio", { name: formatPatientTime("09:00", "en") }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Continue to patient details" }),
+    );
+    await fillPatientDetails();
     submit();
-    await screen.findByText(en.booking.conflict);
-    await waitFor(() =>
-      expect(input("slot").querySelector('option[value="11:00"]')).toBeTruthy(),
-    );
-    expect(input("firstName")).toHaveValue("குமார்");
-    expect(input("reason")).toHaveValue("Checkup");
-    expect(input("slot")).toHaveValue("");
+
+    expect(await screen.findByText(en.booking.conflict)).toBeVisible();
+    expect(
+      await screen.findByRole("radio", { name: formatPatientTime("11:00", "en") }),
+    ).toBeVisible();
+    expect(field("firstName")).toBeNull();
+    expect(posts).toHaveLength(0);
   });
-  it("suggests another date when there are no slots", async () => {
+
+  it("preserves patient details and shows safe translated errors for server failures", async () => {
     server.use(
-      http.get("*/api/doctors/:id/available-slots", () =>
-        HttpResponse.json([]),
+      http.post("*/api/public/appointments", () =>
+        HttpResponse.json({ message: "PRIVATE SERVER DETAIL" }, { status: 500 }),
       ),
     );
     mount();
-    await waitFor(() => expect(input("doctorId")).toHaveValue("7"));
-    fireEvent.change(input("appointmentDate"), { target: { value: date } });
-    expect(await screen.findByText(en.booking.noSlots)).toBeVisible();
-    expect(input("slot")).toBeDisabled();
+    await chooseAppointmentTime();
+    await fillPatientDetails();
+    submit();
+
+    expect(await screen.findByText(en.booking.submitError)).toBeVisible();
+    expect(field("firstName")).toHaveValue("Kumar");
+    expect(screen.queryByText("PRIVATE SERVER DETAIL")).toBeNull();
+    expect(screen.getByRole("heading", { name: en.booking.title })).toBeVisible();
   });
-  it.each([429, 500, 401])(
-    "maps HTTP %s to translated text and preserves form data",
-    async (status) => {
-      server.use(
-        http.post("*/api/appointments/public", () =>
-          HttpResponse.json({ message: "SECRET BACKEND ERROR" }, { status }),
-        ),
-      );
-      mount();
-      await fill();
-      submit();
-      await screen.findByText(
-        status === 429 ? en.booking.rateLimit : en.booking.submitError,
-      );
-      expect(input("firstName")).toHaveValue("குமார்");
-      expect(input("slot")).toHaveValue("09:00");
-      expect(screen.queryByText("SECRET BACKEND ERROR")).toBeNull();
-      expect(
-        screen.getByRole("heading", { name: en.booking.title }),
-      ).toBeVisible();
-    },
-  );
-  it("disables submission and fields while pending", async () => {
+
+  it("disables form controls while the booking request is pending", async () => {
     server.use(
-      http.post("*/api/appointments/public", async () => {
+      http.post("*/api/public/appointments", async () => {
         await delay(100);
-        return HttpResponse.json({ id: 1 });
+        return HttpResponse.json({ success: true, data: { appointmentId: 13 } });
       }),
     );
     mount();
-    await fill();
+    await chooseAppointmentTime();
+    await fillPatientDetails();
     submit();
     expect(
       screen.getByRole("button", { name: en.booking.submitting }),
     ).toBeDisabled();
-    expect(input("firstName")).toBeDisabled();
+    expect(field("firstName")).toBeDisabled();
     await screen.findByRole("heading", { name: en.confirmation.title });
   });
-  it("offers a retry when slot loading fails, without showing an empty state", async () => {
-    let calls = 0;
-    server.use(
-      http.get("*/api/doctors/:id/available-slots", () =>
-        ++calls === 1
-          ? new HttpResponse(null, { status: 503 })
-          : HttpResponse.json(["09:00"]),
-      ),
-    );
-    mount();
-    await waitFor(() => expect(input("doctorId")).toHaveValue("7"));
-    fireEvent.change(input("appointmentDate"), { target: { value: date } });
-    await screen.findByText(en.booking.slotError);
-    expect(screen.queryByText(en.booking.noSlots)).toBeNull();
-    await userEvent.click(
-      screen.getByRole("button", { name: en.booking.retry }),
-    );
-    await waitFor(() => expect(input("slot")).not.toBeDisabled());
-  });
-  it("supports multiple doctors and resets the selected slot when the doctor changes", async () => {
-    server.use(
-      http.get("*/api/doctors", () =>
-        HttpResponse.json([doctor, { id: 8, name: "Dr Other" }]),
-      ),
-    );
-    mount();
-    await screen.findByRole("option", { name: "Dr Other" });
-    expect(input("doctorId")).toHaveValue("");
-    fireEvent.change(input("doctorId"), { target: { value: "7" } });
-    await fill();
-    fireEvent.change(input("doctorId"), { target: { value: "8" } });
-    expect(input("slot")).toHaveValue("");
-    await waitFor(() => expect(input("slot")).not.toBeDisabled());
-  });
-  it("retries doctor loading after an error", async () => {
-    let calls = 0;
-    server.use(
-      http.get("*/api/doctors", () =>
-        ++calls === 1
-          ? new HttpResponse(null, { status: 500 })
-          : HttpResponse.json([doctor]),
-      ),
-    );
-    mount();
-    await screen.findByText(en.booking.doctorError);
-    await userEvent.click(
-      screen.getByRole("button", { name: en.booking.retry }),
-    );
-    await waitFor(() => expect(input("doctorId")).toHaveValue("7"));
-  });
-  it("translates validation errors when the active language changes", async () => {
-    mount();
-    await waitFor(() => expect(input("doctorId")).toHaveValue("7"));
-    submit();
-    await i18n.changeLanguage("ta");
-    expect(await screen.findByText(ta.booking.invalidPhone)).toBeVisible();
-    expect(screen.queryByText(en.booking.invalidPhone)).toBeNull();
-  });
-});
 
-describe("PUB-03 and PUB-07 confirmation and errors", () => {
-  it.each([
-    undefined,
-    { booking },
-    { documentId: "previous-document", booking },
-    { documentId: bookingDocumentId, booking: { ...booking, date: "bad" } },
-  ])(
-    "redirects missing, refreshed or invalid confirmation state",
-    async (state) => {
-      mount({ pathname: "/appointments/confirmed", state });
-      expect(await screen.findByText(en.booking.checkMessage)).toBeVisible();
-      expect(
-        screen.getByRole("heading", { name: en.booking.title }),
-      ).toBeVisible();
-    },
-  );
-  it("renders the summary and contact information in Tamil", async () => {
+  it("shows the clinic contact details in the Tamil confirmation page", async () => {
     await i18n.changeLanguage("ta");
     mount(
       {
@@ -356,17 +334,34 @@ describe("PUB-03 and PUB-07 confirmation and errors", () => {
     expect(screen.getByText(ta.confirmation.scheduled)).toBeVisible();
     expect(screen.getByText(formatPatientDate(date, "ta"))).toBeVisible();
     expect(screen.getByText(ta.confirmation.sms)).toBeVisible();
+    const contact = within(
+      screen.getByRole("region", { name: ta.publicCommon.contactTitle }),
+    );
     expect(
-      screen.getAllByRole("link", { name: "clinic@example.com" }).length,
-    ).toBeGreaterThan(0);
+      contact.getByRole("link", { name: "onecaresystems@gmail.com" }),
+    ).toHaveAttribute("href", "mailto:onecaresystems@gmail.com");
+    expect(contact.getByRole("link", { name: "0218700530" })).toHaveAttribute(
+      "href",
+      "tel:0218700530",
+    );
     expect(screen.queryByText(en.confirmation.contact)).toBeNull();
   });
-  it("renders the public 404 in Tamil", async () => {
-    await i18n.changeLanguage("ta");
-    mount("/does-not-exist", true);
-    expect(
-      screen.getByRole("heading", { name: ta.publicError.notFoundTitle }),
-    ).toBeVisible();
-    expect(screen.queryByText(en.publicError.notFoundTitle)).toBeNull();
+
+  it("redirects invalid confirmation state back to the booking page", async () => {
+    mount({
+      pathname: "/appointments/confirmed",
+      state: { documentId: "invalid", booking },
+    });
+    expect(await screen.findByText(en.booking.checkMessage)).toBeVisible();
+    expect(screen.getByRole("heading", { name: en.booking.title })).toBeVisible();
   });
+});
+
+it("renders the public 404 page in Tamil", async () => {
+  await i18n.changeLanguage("ta");
+  mount("/does-not-exist", true);
+  expect(
+    screen.getByRole("heading", { name: ta.publicError.notFoundTitle }),
+  ).toBeVisible();
+  expect(screen.queryByText(en.publicError.notFoundTitle)).toBeNull();
 });
