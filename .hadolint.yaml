@@ -1,0 +1,5 @@
+# hadolint configuration (DDP-#49 / DKR-01)
+# CI fails the build when a Dockerfile uses an unpinned or `latest` base image.
+ignored: []
+trustedRegistries:
+  - docker.io
