@@ -90,7 +90,7 @@ describe("Admin-only patient workflows and separate dashboards", () => {
   it("ADMIN cannot open the Super Admin dashboard", async () => {
     open("ADMIN", "/super-admin/dashboard");
     expect(
-      await screen.findByRole("heading", { name: "AdminDashboardPage" }),
+      await screen.findByRole("heading", { name: "Admin Dashboard" }),
     ).toBeInTheDocument();
     expect(screen.getByTestId("location")).toHaveTextContent(
       "/admin/dashboard",
