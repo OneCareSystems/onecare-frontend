@@ -103,7 +103,6 @@ export default function BookingPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    setDoctorsLoading(true);
     getPublicDoctors(controller.signal)
       .then((ds) => {
         if (controller.signal.aborted) return;
@@ -134,7 +133,6 @@ export default function BookingPage() {
     )
       return;
     const controller = new AbortController();
-    setSlotState("loading");
     getAvailableSlots(form.doctorId, form.appointmentDate, controller.signal)
       .then((available) => {
         if (!controller.signal.aborted) {
@@ -406,6 +404,7 @@ export default function BookingPage() {
                     type="button"
                     onClick={() => {
                       setMessage("");
+                      setDoctorsLoading(true);
                       setRetryDoctors((x) => x + 1);
                     }}
                     className="shrink-0 rounded-lg bg-red-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-red-700"
