@@ -136,5 +136,11 @@ export const NAV_ITEMS = Object.freeze({
       label: "Dashboard",
       icon: "dashboard",
     }),
-  ]),
+//     Object.freeze({
+//   id: "dispensing-queue",
+//   to: "/pharmacist/dispensing-queue",
+//   label: "Dispensing Queue",
+//   icon: "prescription",
+// }),
+]),
 });

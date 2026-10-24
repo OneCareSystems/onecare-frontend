@@ -46,6 +46,10 @@ import AccessControlPage from "../pages/superAdmin/AccessControlPage";
 import ClinicConfigPage from "../pages/superAdmin/ClinicConfigPage";
 import SystemMaintenancePage from "../pages/superAdmin/SystemMaintenancePage";
 import AuditLogsPage from "../pages/superAdmin/AuditLogsPage";
+import DispensingQueuePage from "../pages/pharmacist/DispensingQueuePage";
+import InventoryManagementPage from "../pages/pharmacist/InventoryManagementPage";
+import AddMedicinePage from "../pages/pharmacist/AddMedicinePage";
+import UpdateMedicinePage from "../pages/pharmacist/UpdateMedicinePage";
 
 import BookAppointmentPage from "../pages/admin/BookAppointmentPage";
 import AppointmentHubPage from "../pages/admin/AppointmentHubPage";
@@ -151,6 +155,11 @@ const AppRoutes = () => {
       <Route element={<RequireAuth allowedRoles={ROUTE_ACCESS.pharmacist} />}>
         <Route path="/pharmacist" element={<PharmacistLayout />}>
           <Route path="dashboard" element={<PharmacistDashboardPage />} />
+          <Route path="dispensing-queue" element={<DispensingQueuePage />} />
+          <Route path="inventory" element={<InventoryManagementPage />} />
+        <Route path="add-medicine" element={<AddMedicinePage />} />
+         <Route path="medicines/:medicineId/edit" element={<UpdateMedicinePage />}
+    />
         </Route>
       </Route>
 
