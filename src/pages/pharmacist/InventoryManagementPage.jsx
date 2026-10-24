@@ -477,3 +477,5 @@ useEffect(() => {
 };
 
 export default InventoryManagementPage;
+
+

@@ -160,11 +160,5 @@ export const NAV_ITEMS = Object.freeze({
   label: "Reports",
   icon: "chart-column",
 }),
- Object.freeze({
-      id: "reports",
-      to: "/pharmacist/reports",
-      label: "Reports",
-      icon: "chart-column",
-    }),
   ]),
 });
