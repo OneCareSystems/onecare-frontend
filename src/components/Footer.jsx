@@ -12,9 +12,11 @@ const iconButtonClass =
 export default function Footer() {
   const { t } = useTranslation();
   const copy = (key, values) => t(`publicCommon.footerContent.${key}`, values);
-  const phone = import.meta.env.VITE_CLINIC_PHONE?.trim();
-  const email = import.meta.env.VITE_CLINIC_EMAIL?.trim();
-  const address = import.meta.env.VITE_CLINIC_ADDRESS?.trim();
+  const phone = import.meta.env.VITE_CLINIC_PHONE?.trim() || "0218700530";
+  const email =
+    import.meta.env.VITE_CLINIC_EMAIL?.trim() || "onecaresystems@gmail.com";
+  const address =
+    import.meta.env.VITE_CLINIC_ADDRESS?.trim() || "QW2M+39, Moolai, Jaffna";
 
   return (
     <footer className="mt-12 border-t border-slate-200 bg-white text-sm text-slate-600 [overflow-wrap:anywhere]">

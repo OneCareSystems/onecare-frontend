@@ -5,13 +5,16 @@ import LanguageSwitcher from "./LanguageSwitcher";
 const focusRing =
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
 
-const SiteHeader = () => {
+const SiteHeader = ({ style }) => {
   const { t } = useTranslation();
 
   const homeLabel = t("publicLanding.home");
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
+    <header
+      style={style}
+      className="static border-b border-slate-200 bg-white/90 backdrop-blur"
+    >
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
         {/* Brand */}
         <Link

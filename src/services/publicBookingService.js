@@ -3,12 +3,12 @@ import { API_BASE_URL } from "./config.js";
 
 // Public requests deliberately bypass the authenticated staff API client.
 const publicClient = axios.create({ baseURL: API_BASE_URL, timeout: 15000 });
-const doctorsPath = import.meta.env.VITE_PUBLIC_DOCTORS_PATH || "/doctors";
-const bookingPath =
-  import.meta.env.VITE_PUBLIC_BOOKINGS_PATH || "/public/appointments";
+const doctorsPath = "/public/doctors";
+const bookingPath = "/public/appointments";
 
 const DOCTORS_TTL_MS = 60_000;
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/;
+const LATEST_PUBLIC_SLOT = "20:00";
 
 // Short-lived cache so returning to the landing page doesn't refetch instantly.
 // Only successful responses are cached, so the "Try again" button always retries.
@@ -30,6 +30,7 @@ function normalizeDoctor(d) {
   const rawId = d?.id ?? d?.doctorId;
   const name =
     text(d?.name) ||
+    text(d?.displayName) ||
     text(d?.fullName) ||
     [d?.firstName, d?.lastName].map(text).filter(Boolean).join(" ");
 
@@ -64,7 +65,7 @@ export async function getPublicDoctors(signal) {
 
 export async function getAvailableSlots(doctorId, date, signal) {
   const response = await publicClient.get(
-    `/doctors/${encodeURIComponent(doctorId)}/available-slots`,
+    `/public/doctors/${encodeURIComponent(doctorId)}/available-slots`,
     { params: { date }, signal },
   );
   const raw = unwrap(response.data);
@@ -74,7 +75,12 @@ export async function getAvailableSlots(doctorId, date, signal) {
     .map((s) =>
       typeof s === "string" ? s : (s?.time ?? s?.startTime ?? s?.slotTime),
     )
-    .filter((s) => typeof s === "string" && TIME_PATTERN.test(s));
+    .filter(
+      (s) =>
+        typeof s === "string" &&
+        TIME_PATTERN.test(s) &&
+        s.slice(0, 5) <= LATEST_PUBLIC_SLOT,
+    );
 
   // De-duplicate and keep chronological order for the slot picker.
   return [...new Set(slots)].sort();

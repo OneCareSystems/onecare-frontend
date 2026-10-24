@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import Icon from "../../components/Icon";
 import {
   getPublicDoctors,
   getAvailableSlots,
@@ -14,7 +15,6 @@ import {
 import { clinicToday } from "../../utils/clinicTime";
 import { formatPatientTime, isValidDate } from "../../utils/publicDateTime";
 import { bookingDocumentId } from "../../utils/bookingNavigation";
-import "../../styles/patient-public.css";
 
 const initial = {
   firstName: "",
@@ -71,6 +71,10 @@ const inputClass =
   "w-full rounded-lg border bg-white/90 px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 transition focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500";
 const inputOk = "border-slate-300 focus:border-blue-500 focus:ring-blue-500/30";
 const inputBad = "border-red-400 focus:border-red-500 focus:ring-red-500/30";
+const isBeforeOrAtClosing = (slot) => {
+  const match = /^(\d{2}):(\d{2})(?::\d{2})?$/.exec(slot);
+  return Boolean(match) && Number(match[1]) * 60 + Number(match[2]) <= 20 * 60;
+};
 
 export default function BookingPage() {
   const { t, i18n } = useTranslation();
@@ -95,6 +99,7 @@ export default function BookingPage() {
 
   const [step, setStep] = useState("appointment");
   const detailsHeadingRef = useRef(null);
+  const visibleSlots = slots.filter(isBeforeOrAtClosing);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -210,7 +215,7 @@ export default function BookingPage() {
     }
 
     const found = validateBooking(form);
-    if (form.slot && !slots.includes(form.slot))
+    if (form.slot && !visibleSlots.includes(form.slot))
       found.slot = "booking.required";
     setErrors(found);
     if (Object.keys(found).length) {
@@ -327,6 +332,25 @@ export default function BookingPage() {
         {/* Main Content Card */}
         <main className="mx-auto my-auto w-full max-w-2xl px-4 py-8 sm:px-6 sm:py-10">
           <div className="rounded-3xl border border-white/20 bg-white/95 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => navigate("/home")}
+                disabled={pending}
+                className="inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Icon name="arrow-left" className="h-4 w-4" />
+                {t("booking.returnHome", "Return home")}
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/home")}
+                disabled={pending}
+                className="rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-semibold text-slate-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {t("common.cancel", "Cancel")}
+              </button>
+            </div>
             <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
               {t("booking.title")}
             </h1>
@@ -458,13 +482,13 @@ export default function BookingPage() {
                         </div>
                       )}
 
-                      {slotState === "ready" && !slots.length && (
+                      {slotState === "ready" && !visibleSlots.length && (
                         <p role="status" className="rounded-lg bg-amber-50 px-3 py-3 text-sm text-amber-800">
                           {t("booking.noSlots")}
                         </p>
                       )}
 
-                      {slotState === "ready" && slots.length > 0 && (
+                      {slotState === "ready" && visibleSlots.length > 0 && (
                         <div
                           id="slot"
                           role="radiogroup"
@@ -473,7 +497,7 @@ export default function BookingPage() {
                           {...accessibility("slot")}
                           className="flex flex-wrap gap-2 focus:outline-none"
                         >
-                          {slots.map((s) => {
+                          {visibleSlots.map((s) => {
                             const selected = form.slot === s;
                             return (
                               <button

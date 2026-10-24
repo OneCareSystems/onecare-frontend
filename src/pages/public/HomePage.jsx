@@ -13,7 +13,6 @@ import { useNavigate } from "react-router-dom";
 import Icon from "../../components/Icon";
 import { getPublicDoctors } from "../../services/publicBookingService";
 import "../../components/chatbot/onecare-chat-widget.js";
-import "../../styles/patient-public.css";
 
 /* Put one image at /public/images/home/hero-clinic.webp (about 900x700).
    If it is missing, a soft gradient is shown instead. */

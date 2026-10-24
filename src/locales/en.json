@@ -99,6 +99,7 @@
     "welcome": "Welcome to OneCare"
   },
   "booking": {
+    "returnHome": "Return home",
     "title": "Book an appointment",
     "firstName": "First name",
     "lastName": "Last name",
@@ -200,8 +201,7 @@
     "phone": "Phone",
     "email": "Email",
     "address": "Address",
-    "addressValue": "123 Main Street, Colombo",
-    "contactExample": "Example contact details — please confirm these with the clinic before use.",
+    "addressValue": "QW2M+39, Moolai, Jaffna",
     "footerContent": {
       "description": "OneCare is your trusted healthcare companion, making it easier to access medical services, connect with healthcare professionals, and find reliable health information.",
       "tagline": "Your Health, Our Priority.",
