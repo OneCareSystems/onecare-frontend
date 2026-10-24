@@ -17,6 +17,7 @@ const Select = ({
   error,
   submitted = false,
   className = "",
+  selectClassName = "",
   ...rest
 }) => {
   const { t } = useTranslation();
@@ -71,7 +72,7 @@ const Select = ({
         aria-describedby={showError ? errorId : undefined}
         className={`w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary-500 disabled:cursor-not-allowed disabled:bg-neutral-100 ${
           showError ? "border-danger-600" : "border-neutral-300"
-        }`}
+        } ${selectClassName}`}
       >
         {showPlaceholder && <option value="">{placeholder ?? label}</option>}
 

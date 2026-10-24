@@ -1,4 +1,4 @@
-import { http, HttpResponse } from "msw";
+import { delay,http, HttpResponse } from "msw";
 
 import {
   PERMISSION_CODES,
@@ -138,6 +138,29 @@ export const mswState = {
   lowStockMedicineHits: [],
   lowStockMedicineResponses: [],
   lowStockMedicineErrorMode: null,
+    medicineListHits: [],
+  medicineListResponses: [],
+  medicineListErrorMode: null,
+
+  medicineCreateDelayMs: 0,
+    medicineCreateHits: [],
+  medicineCreateResponses: [],
+  medicineCreateErrorMode: null,
+
+    // PHARM-05 — Update Medicine
+  medicineByIdHits: [],
+  medicineByIdResponses: [],
+  medicineByIdErrorMode: null,
+
+  medicineUpdateHits: [],
+  medicineUpdateResponses: [],
+  medicineUpdateErrorMode: null,
+
+  medicineDeactivateHits: [],
+  medicineDeactivateErrorMode: null,
+  stockAdjustmentHits: [],
+  stockAdjustmentResponses: [],
+  stockAdjustmentErrorMode: null,
 
   nearExpiryMedicineHits: [],
   nearExpiryMedicineResponses: [],
@@ -186,6 +209,10 @@ export const mswState = {
   backupScheduleHits: [],
   backupScheduleUpdateHits: [],
   backupScheduleErrorMode: null,
+  clinicReportHits: [],
+  clinicReportErrorMode: null,
+  pharmacyReportHits: [],
+  pharmacyReportErrorMode: null,
 };
 
 export const resetMswState = () => {
@@ -234,6 +261,29 @@ export const resetMswState = () => {
   mswState.lowStockMedicineHits = [];
   mswState.lowStockMedicineResponses = [];
   mswState.lowStockMedicineErrorMode = null;
+    mswState.medicineListHits = [];
+  mswState.medicineListResponses = [];
+  mswState.medicineListErrorMode = null;
+
+  mswState.medicineCreateDelayMs = 0;
+    mswState.medicineCreateHits = [];
+  mswState.medicineCreateResponses = [];
+  mswState.medicineCreateErrorMode = null;
+    // PHARM-05 — Update Medicine
+  mswState.medicineByIdHits = [];
+  mswState.medicineByIdResponses = [];
+  mswState.medicineByIdErrorMode = null;
+
+  mswState.medicineUpdateHits = [];
+  mswState.medicineUpdateResponses = [];
+  mswState.medicineUpdateErrorMode = null;
+
+  mswState.medicineDeactivateHits = [];
+  mswState.medicineDeactivateErrorMode = null;
+
+  mswState.stockAdjustmentHits = [];
+  mswState.stockAdjustmentResponses = [];
+  mswState.stockAdjustmentErrorMode = null;
 
   mswState.nearExpiryMedicineHits = [];
   mswState.nearExpiryMedicineResponses = [];
@@ -283,6 +333,10 @@ export const resetMswState = () => {
   mswState.backupScheduleHits = [];
   mswState.backupScheduleUpdateHits = [];
   mswState.backupScheduleErrorMode = null;
+  mswState.clinicReportHits = [];
+  mswState.clinicReportErrorMode = null;
+  mswState.pharmacyReportHits = [];
+  mswState.pharmacyReportErrorMode = null;
 };
 
 const ok = (data, message = "ok") =>
@@ -629,6 +683,114 @@ export const handlers = [
     return ok(mswState.issuedPrescriptionResponses.shift() ?? []);
   }),
 
+    // PHARM-04 — Add New Medicine
+  http.post("*/medicines", async ({ request }) => {
+    const body = await request.json().catch(() => ({}));
+
+    mswState.medicineCreateHits.push({
+      body,
+      authorization: request.headers.get("Authorization"),
+    });
+
+    if (mswState.medicineCreateDelayMs > 0) {
+  await delay(mswState.medicineCreateDelayMs);
+}
+
+    if (mswState.medicineCreateErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+
+    if (mswState.medicineCreateErrorMode === "conflict") {
+      return fail(409, "A medicine with these details already exists");
+    }
+
+    if (mswState.medicineCreateErrorMode === "validation") {
+      return fail(400, "Invalid medicine details");
+    }
+
+    if (mswState.medicineCreateErrorMode === "forbidden") {
+      return fail(403, "Access denied");
+    }
+
+    if (mswState.medicineCreateErrorMode === "server-error") {
+      return fail(500, "Unable to create medicine");
+    }
+
+    const createdMedicine =
+      mswState.medicineCreateResponses.shift() ?? {
+        medicineId: 9001,
+        name: body.name,
+        genericName: body.genericName ?? null,
+        category: body.category,
+        unit: body.unit,
+        price: body.price,
+        stockQuantity: 0,
+        expiryDate: body.expiryDate,
+        reorderLevel: body.reorderLevel,
+        isQuarantined: false,
+        createdAt: "2026-10-23T09:00:00",
+        updatedAt: "2026-10-23T09:00:00",
+      };
+
+    return HttpResponse.json(
+      {
+        success: true,
+        message: "Medicine created successfully",
+        data: createdMedicine,
+      },
+      { status: 201 },
+    );
+  }),
+
+    http.get("*/medicines", ({ request }) => {
+    const url = new URL(request.url);
+
+    mswState.medicineListHits.push({
+      url: request.url,
+      search: url.searchParams.get("search"),
+      authorization: request.headers.get("Authorization"),
+    });
+
+    if (mswState.medicineListErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+
+    if (mswState.medicineListErrorMode === "server-error") {
+      return fail(500, "Unable to load medicines");
+    }
+
+    return ok(mswState.medicineListResponses.shift() ?? []);
+  }),
+
+  http.patch("*/medicines/:id/stock", async ({ request, params }) => {
+    const body = await request.json().catch(() => ({}));
+
+    mswState.stockAdjustmentHits.push({
+      id: params.id,
+      body,
+      authorization: request.headers.get("Authorization"),
+    });
+
+    if (mswState.stockAdjustmentErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+
+    if (mswState.stockAdjustmentErrorMode === "server-error") {
+      return fail(500, "Unable to update medicine stock");
+    }
+
+    if (mswState.stockAdjustmentErrorMode === "validation") {
+      return fail(400, "Invalid stock adjustment");
+    }
+
+    return ok(
+      mswState.stockAdjustmentResponses.shift() ?? {
+        medicineId: Number(params.id),
+        stockQuantity: 10,
+      },
+    );
+  }),
+
   http.get("*/medicines/low-stock", ({ request }) => {
     mswState.lowStockMedicineHits.push({
       url: request.url,
@@ -662,6 +824,126 @@ export const handlers = [
 
     return ok(mswState.nearExpiryMedicineResponses.shift() ?? []);
   }),
+
+  
+  // PHARM-05 — Get one medicine by ID
+  http.get("*/medicines/:id", ({ request, params }) => {
+    mswState.medicineByIdHits.push({
+      id: params.id,
+      authorization: request.headers.get("Authorization"),
+    });
+
+    if (mswState.medicineByIdErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+
+    if (mswState.medicineByIdErrorMode === "not-found") {
+      return fail(404, "Medicine not found");
+    }
+
+    if (mswState.medicineByIdErrorMode === "forbidden") {
+      return fail(403, "Access denied");
+    }
+
+    if (mswState.medicineByIdErrorMode === "server-error") {
+      return fail(500, "Unable to load medicine");
+    }
+
+    const medicine =
+      mswState.medicineByIdResponses.shift() ?? {
+        medicineId: Number(params.id),
+        name: "Paracetamol",
+        genericName: "Acetaminophen",
+        category: "Analgesic",
+        unit: "tablet",
+        price: 125.5,
+        stockQuantity: 50,
+        expiryDate: "2027-12-31",
+        reorderLevel: 10,
+        isQuarantined: false,
+      };
+
+    return ok(medicine);
+  }),
+
+  // PHARM-05 — Update non-stock medicine details
+  http.put("*/medicines/:id", async ({ request, params }) => {
+    const body = await request.json().catch(() => ({}));
+
+    mswState.medicineUpdateHits.push({
+      id: params.id,
+      body,
+      authorization: request.headers.get("Authorization"),
+    });
+
+    if (mswState.medicineUpdateErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+
+    if (mswState.medicineUpdateErrorMode === "conflict") {
+      return fail(409, "Medicine update conflicts with existing records");
+    }
+
+    if (mswState.medicineUpdateErrorMode === "validation") {
+      return fail(400, "Invalid medicine details");
+    }
+
+    if (mswState.medicineUpdateErrorMode === "forbidden") {
+      return fail(403, "Access denied");
+    }
+
+    if (mswState.medicineUpdateErrorMode === "not-found") {
+      return fail(404, "Medicine not found");
+    }
+
+    if (mswState.medicineUpdateErrorMode === "server-error") {
+      return fail(500, "Unable to update medicine");
+    }
+
+    const updatedMedicine =
+      mswState.medicineUpdateResponses.shift() ?? {
+        medicineId: Number(params.id),
+        ...body,
+        stockQuantity: 50,
+        isQuarantined: false,
+      };
+
+    return ok(updatedMedicine);
+  }),
+
+  // PHARM-05 — Soft-deactivate medicine
+  http.delete("*/medicines/:id", ({ request, params }) => {
+    mswState.medicineDeactivateHits.push({
+      id: params.id,
+      authorization: request.headers.get("Authorization"),
+    });
+
+    if (mswState.medicineDeactivateErrorMode === "network-error") {
+      return HttpResponse.error();
+    }
+
+    if (mswState.medicineDeactivateErrorMode === "pending-prescriptions") {
+      return fail(409, "Medicine has pending prescriptions");
+    }
+
+    if (mswState.medicineDeactivateErrorMode === "forbidden") {
+      return fail(403, "Access denied");
+    }
+
+    if (mswState.medicineDeactivateErrorMode === "not-found") {
+      return fail(404, "Medicine not found");
+    }
+
+    if (mswState.medicineDeactivateErrorMode === "server-error") {
+      return fail(500, "Unable to deactivate medicine");
+    }
+
+    return ok({
+      medicineId: Number(params.id),
+      isActive: false,
+    });
+  }),
+
 
   // Super-admin user management (access governance): list, provision,
   // update email/role, unlock the failed-login lockout, admin reset and
@@ -1232,6 +1514,170 @@ export const handlers = [
         })),
       },
       "Schedule saved successfully",
+    );
+  }),
+  // Clinic and pharmacy reports (FR039/FR040) — the exact backend envelope.
+  // `format=csv|pdf` streams a file; otherwise JSON. Range rules mirror
+  // ReportServiceImpl: 400 missing/reversed dates, 422 over one year.
+  http.get("*/reports/clinic", ({ request }) => {
+    const url = new URL(request.url);
+    mswState.clinicReportHits.push({
+      authorization: request.headers.get("Authorization"),
+      from: url.searchParams.get("from"),
+      to: url.searchParams.get("to"),
+      doctorId: url.searchParams.get("doctorId"),
+      format: url.searchParams.get("format"),
+    });
+    if (mswState.clinicReportErrorMode === "network-error")
+      return HttpResponse.error();
+    if (mswState.clinicReportErrorMode === "server-error")
+      return fail(500, "Internal server error");
+    if (mswState.clinicReportErrorMode === "forbidden")
+      return fail(403, "Access denied");
+    const from = url.searchParams.get("from");
+    const to = url.searchParams.get("to");
+    if (!from || !to)
+      return fail(400, "Both 'from' and 'to' dates are required");
+    if (from > to)
+      return fail(400, "'from' date must not be after the 'to' date");
+    if ((Date.parse(to) - Date.parse(from)) / 86_400_000 > 365)
+      return fail(422, "Date range too large, narrow your range");
+    const format = url.searchParams.get("format");
+    if (format && !["csv", "pdf"].includes(format.toLowerCase()))
+      return fail(
+        400,
+        `Unknown export format '${format}'. Allowed values: csv, pdf`,
+      );
+    if (format) {
+      const base = `clinic-report_${from}_to_${to}`;
+      const isPdf = format.toLowerCase() === "pdf";
+      const bytes = new TextEncoder().encode(
+        isPdf ? "%PDF-1.4 (mock)" : "From,To\r\n",
+      );
+      return HttpResponse.arrayBuffer(bytes.buffer, {
+        headers: {
+          "Content-Type": isPdf ? "application/pdf" : "text/csv",
+          "Content-Disposition": `attachment; filename="${base}.${format.toLowerCase()}"`,
+        },
+      });
+    }
+    return ok(
+      {
+        from,
+        to,
+        doctorId: url.searchParams.get("doctorId")
+          ? Number(url.searchParams.get("doctorId"))
+          : null,
+        totalAppointments: 42,
+        consultationCount: 30,
+        scheduled: 5,
+        arrived: 3,
+        completed: 30,
+        cancelled: 4,
+        noShow: 6,
+        uniquePatients: 25,
+        generatedAt: "2026-10-23T09:15:00",
+      },
+      "Clinic report generated successfully",
+    );
+  }),
+  http.get("*/reports/pharmacy", ({ request }) => {
+    const url = new URL(request.url);
+    mswState.pharmacyReportHits.push({
+      authorization: request.headers.get("Authorization"),
+      type: url.searchParams.get("type"),
+      from: url.searchParams.get("from"),
+      to: url.searchParams.get("to"),
+      format: url.searchParams.get("format"),
+    });
+    if (mswState.pharmacyReportErrorMode === "network-error")
+      return HttpResponse.error();
+    if (mswState.pharmacyReportErrorMode === "server-error")
+      return fail(500, "Internal server error");
+    if (mswState.pharmacyReportErrorMode === "forbidden")
+      return fail(403, "Access denied");
+    const type = (url.searchParams.get("type") || "")
+      .trim()
+      .toLowerCase()
+      .replaceAll("_", "-");
+    const from = url.searchParams.get("from");
+    const to = url.searchParams.get("to");
+    if (!from || !to)
+      return fail(400, "Both 'from' and 'to' dates are required");
+    if (from > to)
+      return fail(400, "'from' date must not be after the 'to' date");
+    if ((Date.parse(to) - Date.parse(from)) / 86_400_000 > 365)
+      return fail(422, "Date range too large, narrow your range");
+    if (!["stock-usage", "expiry", "dispensing-history"].includes(type))
+      return fail(400, `Unknown report type '${type}'`);
+    const format = url.searchParams.get("format");
+    if (format && !["csv", "pdf"].includes(format.toLowerCase()))
+      return fail(
+        400,
+        `Unknown export format '${format}'. Allowed values: csv, pdf`,
+      );
+    if (format) {
+      const base = `pharmacy-report_${type}_${from}_to_${to}`;
+      const isPdf = format.toLowerCase() === "pdf";
+      const bytes = new TextEncoder().encode(
+        isPdf ? "%PDF-1.4 (mock)" : "Medicine,Units\r\n",
+      );
+      return HttpResponse.arrayBuffer(bytes.buffer, {
+        headers: {
+          "Content-Type": isPdf ? "application/pdf" : "text/csv",
+          "Content-Disposition": `attachment; filename="${base}.${format.toLowerCase()}"`,
+        },
+      });
+    }
+    const sections = {
+      "stock-usage": {
+        stockUsage: [
+          { medicineId: 11, medicineName: "Amoxicillin 500mg", unitsDispensed: 120 },
+          { medicineId: 12, medicineName: "Ibuprofen 200mg", unitsDispensed: 85 },
+        ],
+        expiry: [],
+        dispensingHistory: [],
+      },
+      expiry: {
+        stockUsage: [],
+        expiry: [
+          {
+            medicineId: 13,
+            medicineName: "Insulin 100IU",
+            expiryDate: "2026-12-01",
+            stockQuantity: 14,
+            quarantined: false,
+          },
+        ],
+        dispensingHistory: [],
+      },
+      "dispensing-history": {
+        stockUsage: [],
+        expiry: [],
+        dispensingHistory: [
+          {
+            referenceId: 901,
+            source: "EXTERNAL",
+            dispenseDate: "2026-10-10T10:00:00",
+            patientId: 401,
+            patientName: "Example Patient",
+            patientContactNo: "077***4567",
+            medicineName: "Amoxicillin 500mg",
+            quantity: 20,
+          },
+        ],
+      },
+    };
+    // The backend enum ReportType serialises with underscores (STOCK_USAGE).
+    const enumType = type.toUpperCase().replaceAll("-", "_");
+    return ok(
+      {
+        type: enumType,
+        from,
+        to,
+        ...sections[type],
+      },
+      "Pharmacy report generated successfully",
     );
   }),
   http.get("*/reports/:id", protectedReply),

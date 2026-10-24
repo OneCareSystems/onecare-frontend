@@ -10,6 +10,16 @@ afterEach(() => {
 });
 
 describe("chips", () => {
+
+  it("keeps both languages visible when the portal language changes", () => {
+    const w = mount();
+    expect(w.$$('.chip-group[lang="en"] button')).toHaveLength(DEFAULT_CHIPS.en.length);
+    expect(w.$$('.chip-group[lang="ta"] button')).toHaveLength(DEFAULT_CHIPS.ta.length);
+    w.widget.setAttribute("lang", "ta");
+    expect(w.$(".chip").getAttribute("lang")).toBe("ta");
+    expect(w.$$('.chip-group[lang="en"] button')).toHaveLength(DEFAULT_CHIPS.en.length);
+  });
+
   it("shows every English and every Tamil chip as a real button, each group marked with its language", () => {
     const w = mount();
     const en = w.$$('.chip-group[lang="en"] button.chip');
@@ -24,6 +34,7 @@ describe("chips", () => {
     for (const b of [...en, ...ta])
       expect(b.getAttribute("type")).toBe("button");
     expect(ta.every((b) => b.getAttribute("lang") === "ta")).toBe(true);
+
   });
 
   it("the chips panel is open for a new conversation and folds after the first question", async () => {
@@ -63,7 +74,9 @@ describe("chips", () => {
         }),
       ),
     );
+
     const w = mount({ fetchImpl });
+
     w.$('.chip[data-chip="hours"][lang="ta"]').click();
     await flush();
     expect(JSON.parse(fetchImpl.mock.calls[0][1].body).query).toBe(
@@ -106,10 +119,12 @@ describe("chips", () => {
         { id: "a", label: "வாகன நிறுத்தம்", query: "வாகன நிறுத்தம் உள்ளதா?" },
       ],
     };
+
     expect(w.$$(".chip").map((b) => b.textContent)).toEqual([
       "Parking",
       "வாகன நிறுத்தம்",
     ]);
+
   });
 
   it("with no chips at all the chips area is hidden", () => {

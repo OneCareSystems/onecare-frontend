@@ -5,7 +5,7 @@ import { PersistGate } from "redux-persist/integration/react";
 import { store, persistor } from "./app/store";
 import "./index.css";
 import App from "./App.jsx";
-import "./i18n";
+import i18n from "./i18n";
 import { loadRuntimeConfig, resolveApiBaseUrl } from "./services/config";
 import apiClient from "./services/apiClient";
 
@@ -22,7 +22,7 @@ const start = async () => {
     <StrictMode>
       <Provider store={store}>
         <PersistGate
-          loading={<div>Loading Session...</div>}
+           loading={<div role="status">{i18n.t("common.loading")}</div>}
           persistor={persistor}
         >
           <App />
@@ -33,3 +33,4 @@ const start = async () => {
 };
 
 start();
+
