@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
@@ -10,6 +10,7 @@ import ta from "../../src/locales/ta.json";
 import i18n from "../../src/i18n";
 import PublicErrorBoundary from "../../src/components/PublicErrorBoundary";
 import {
+  clearPublicDoctorsCache,
   getPublicDoctors,
   getAvailableSlots,
   submitPublicBooking,
@@ -24,10 +25,12 @@ import {
   formatPatientTime,
 } from "../../src/utils/publicDateTime";
 
-afterEach(() => {
+afterEach(async () => {
   cleanup();
   vi.restoreAllMocks();
+  await i18n.changeLanguage("en");
 });
+beforeEach(() => clearPublicDoctorsCache());
 describe("public translation parity", () => {
   it("covers every public namespace including chatbot arrays and error pages", () =>
     expect(checkPublicTranslations(en, ta)).toEqual({
@@ -62,22 +65,44 @@ describe("public service contract", () => {
     [
       {
         data: {
-          content: [{ doctorId: 3, fullName: "Dr Name", hours: "10?12" }],
+          content: [
+            { doctorId: 3, displayName: "Dr Name", hours: "10?12" },
+          ],
         },
       },
-      [{ id: "3", name: "Dr Name", hours: "10?12" }],
+      [
+        {
+          id: "3",
+          name: "Dr Name",
+          hours: "10?12",
+          specialty: "",
+          photoUrl: "",
+        },
+      ],
     ],
     [
       [{ id: 4, firstName: "Dr", lastName: "Other" }, { name: "Missing ID" }],
-      [{ id: "4", name: "Dr Other", hours: "" }],
+      [
+        {
+          id: "4",
+          name: "Dr Other",
+          hours: "",
+          specialty: "",
+          photoUrl: "",
+        },
+      ],
     ],
   ])("normalizes doctor response shapes", async (payload, expected) => {
-    server.use(http.get("*/api/doctors", () => HttpResponse.json(payload)));
+    server.use(
+      http.get("*/api/public/doctors", () => HttpResponse.json(payload)),
+    );
     expect(await getPublicDoctors()).toEqual(expected);
   });
   it("rejects malformed doctors", async () => {
     server.use(
-      http.get("*/api/doctors", () => HttpResponse.json({ unexpected: true })),
+      http.get("*/api/public/doctors", () =>
+        HttpResponse.json({ unexpected: true }),
+      ),
     );
     await expect(getPublicDoctors()).rejects.toThrow(
       "Unexpected doctors response",
@@ -85,13 +110,15 @@ describe("public service contract", () => {
   });
   it("normalizes slots and filters invalid times", async () => {
     server.use(
-      http.get("*/api/doctors/:id/available-slots", () =>
+      http.get("*/api/public/doctors/:id/available-slots", () =>
         HttpResponse.json({
           data: [
             "09:00",
             { time: "10:00" },
             { startTime: "11:00" },
             { slotTime: "12:00" },
+            "20:00",
+            "20:30",
             "invalid",
             "25:00",
             {},
@@ -104,14 +131,40 @@ describe("public service contract", () => {
       "10:00",
       "11:00",
       "12:00",
+      "20:00",
     ]);
+  });
+  it("submits the public appointment request to the backend contract", async () => {
+    const requestBody = {
+      fullName: "Test Patient",
+      contactNo: "+94771234567",
+      dateOfBirth: "1990-05-12",
+      gender: "OTHER",
+      doctorId: 7,
+      appointmentDateTime: "2099-01-01T20:00:00",
+    };
+    let receivedBody;
+    server.use(
+      http.post("*/api/public/appointments", async ({ request }) => {
+        receivedBody = await request.json();
+        return HttpResponse.json({
+          success: true,
+          data: { appointmentId: 42 },
+        });
+      }),
+    );
+
+    await expect(submitPublicBooking(requestBody)).resolves.toEqual({
+      appointmentId: 42,
+    });
+    expect(receivedBody).toEqual(requestBody);
   });
   it("rejects malformed slots and booking responses", async () => {
     server.use(
-      http.get("*/api/doctors/:id/available-slots", () =>
+      http.get("*/api/public/doctors/:id/available-slots", () =>
         HttpResponse.json({}),
       ),
-      http.post("*/api/appointments/public", () =>
+      http.post("*/api/public/appointments", () =>
         HttpResponse.json("unexpected"),
       ),
     );
