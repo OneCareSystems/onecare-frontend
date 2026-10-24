@@ -1,5 +1,5 @@
 import axios from "axios";
-import { API_BASE_URL, resolveApiBaseUrl } from "./config.js";
+import { API_BASE_URL } from "./config.js";
 
 // Public requests deliberately bypass the authenticated staff API client.
 const publicClient = axios.create({ baseURL: API_BASE_URL, timeout: 15000 });
