@@ -74,6 +74,7 @@ it("renders all Pharmacy Management navigation links", () => {
     ["Dispensing Queue", "/pharmacist/dispensing-queue"],
     ["Inventory", "/pharmacist/inventory"],
     ["External Dispensing", "/pharmacist/external-dispensing"],
+    ["Reports", "/pharmacist/reports"],
   ];
 
   for (const [label, destination] of expectedItems) {

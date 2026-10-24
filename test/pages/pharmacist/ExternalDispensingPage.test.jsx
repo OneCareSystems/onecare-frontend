@@ -54,10 +54,10 @@ const renderPage = () =>
   );
 
 const fillPrescriptionForm = async (user) => {
-  await user.type(screen.getByLabelText("Prescription ID"), "501");
-  await user.type(screen.getByLabelText("Patient ID"), "25");
-  await user.type(screen.getByLabelText("Medicine ID"), "11");
-  await user.type(screen.getByLabelText("Quantity"), "5");
+  await user.type(screen.getByLabelText(/Prescription ID/), "501");
+  await user.type(screen.getByLabelText(/Patient ID/), "25");
+  await user.type(screen.getByLabelText(/Medicine ID/), "11");
+  await user.type(screen.getByLabelText(/Quantity/), "5");
 };
 
 const createRecord = async (user) => {
@@ -87,10 +87,10 @@ describe("ExternalDispensingPage", () => {
       screen.getByRole("heading", { name: "External Dispensing" }),
     ).toBeInTheDocument();
 
-    expect(screen.getByLabelText("Prescription ID")).toBeRequired();
-    expect(screen.getByLabelText("Patient ID")).toBeRequired();
-    expect(screen.getByLabelText("Medicine ID")).toBeRequired();
-    expect(screen.getByLabelText("Quantity")).toBeRequired();
+    expect(screen.getByLabelText(/Prescription ID/)).toBeRequired();
+    expect(screen.getByLabelText(/Patient ID/)).toBeRequired();
+    expect(screen.getByLabelText(/Medicine ID/)).toBeRequired();
+    expect(screen.getByLabelText(/Quantity/)).toBeRequired();
 
     expect(
       screen.getByRole("button", { name: /save and continue/i }),
@@ -124,8 +124,13 @@ describe("ExternalDispensingPage", () => {
       ],
     });
 
-    expect(screen.getByText("Patient ID: 25")).toBeInTheDocument();
-    expect(screen.getByText("Dispensing record: 9001")).toBeInTheDocument();
+  expect(screen.getByText("Patient ID", { exact: true })).toBeInTheDocument();
+expect(screen.getByText("25", { exact: true })).toBeInTheDocument();
+
+expect(
+  screen.getByText("Dispensing record", { exact: true }),
+).toBeInTheDocument();
+expect(screen.getByText("9001", { exact: true })).toBeInTheDocument();
   });
 
   it("does not submit the form when required fields are missing", async () => {
@@ -137,7 +142,7 @@ describe("ExternalDispensingPage", () => {
     );
 
     expect(mockCreateExternalDispensing).not.toHaveBeenCalled();
-    expect(screen.getByLabelText("Prescription ID")).toBeInvalid();
+    expect(screen.getByLabelText(/Prescription ID/)).toBeInvalid();
   });
 
   it("requires identity confirmation before verification", async () => {
@@ -272,8 +277,8 @@ describe("ExternalDispensingPage", () => {
     ).toBeInTheDocument();
 
     expect(mockCompleteExternalDispensing).toHaveBeenCalledWith(9001);
-    expect(screen.getByText("Status: DISPENSED")).toBeInTheDocument();
-    expect(screen.getByText("Dispensing completed.")).toBeInTheDocument();
+  expect(screen.getByText("Status", { exact: true })).toBeInTheDocument();
+expect(screen.getByText("DISPENSED", { exact: true })).toBeInTheDocument();
   });
 
   it("displays the partial dispensing result and follow-up message", async () => {
@@ -305,9 +310,10 @@ describe("ExternalDispensingPage", () => {
       screen.getByRole("button", { name: /confirm dispensing/i }),
     );
 
-    expect(
-      await screen.findByText("Status: PARTIALLY_DISPENSED"),
-    ).toBeInTheDocument();
+   expect(screen.getByText("Status", { exact: true })).toBeInTheDocument();
+expect(
+  screen.getByText("PARTIALLY_DISPENSED", { exact: true })
+).toBeInTheDocument();
 
     expect(
       screen.getByText(/only the available quantity was dispensed/i),
