@@ -1,9 +1,15 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import Logo from "../../src/components/Logo";
 import SiteHeader from "../../src/components/SiteHeader";
 import StatusBadge from "../../src/components/StatusBadge";
+import i18n from "../../src/i18n";
+import en from "../../src/locales/en.json";
+
+beforeEach(async () => {
+  await i18n.changeLanguage("en");
+});
 
 describe("Logo", () => {
   it("renders the logo asset inside the designated rounded region", () => {
@@ -58,15 +64,24 @@ describe("StatusBadge", () => {
 });
 
 describe("SiteHeader", () => {
-  it("places the logo in the header and links to the style guide", () => {
+  it("shows public navigation in a non-fixed header", () => {
     render(
       <MemoryRouter>
         <SiteHeader />
       </MemoryRouter>,
     );
 
+    const header = screen.getByRole("banner");
+    expect(header).toHaveClass("static");
+    expect(within(header).getByText("OneCare")).toBeVisible();
+    const navigation = within(header).getByRole("navigation", {
+      name: en.publicLanding.navigation,
+    });
     expect(
-      screen.getByRole("img", { name: "OneCare logo" }),
-    ).toBeInTheDocument();
+      within(navigation).getByRole("link", { name: en.publicLanding.book }),
+    ).toHaveAttribute("href", "/appointments");
+    expect(
+      within(navigation).getByRole("link", { name: en.publicLanding.home }),
+    ).toHaveAttribute("href", "/home");
   });
 });
