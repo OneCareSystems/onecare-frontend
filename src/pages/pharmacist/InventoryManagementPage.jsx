@@ -190,14 +190,26 @@ useEffect(() => {
 
   return (
     <main className="space-y-6 p-4 sm:p-6">
-      <header>
-        <h1 className="text-2xl font-bold text-gray-900">
-          Inventory Management
-        </h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Review medicine stock, expiry dates, and inventory alerts.
-        </p>
-      </header>
+      
+<header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+  <div>
+    <h1 className="text-2xl font-bold text-gray-900">
+      Inventory Management
+    </h1>
+    <p className="mt-1 text-sm text-gray-600">
+      Review medicine stock, expiry dates, and inventory alerts.
+    </p>
+  </div>
+
+  <Link
+    to="/pharmacist/add-medicine"
+    className="inline-flex items-center justify-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+  >
+    <span aria-hidden="true">+</span>
+    Add New Medicine
+  </Link>
+</header>
+
 
       {notice && (
         <div
