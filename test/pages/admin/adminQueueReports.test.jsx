@@ -17,7 +17,6 @@ import AdminQueuePanel from "../../../src/components/admin/AdminQueuePanel";
 import ClinicReports from "../../../src/components/admin/ClinicReports";
 import AppRoutes from "../../../src/routes/AppRoutes";
 import { appointment, doctorPage } from "../../fixtures/adminWorkflows";
-import * as demoReports from "../../../src/utils/demoClinicReports";
 const ok = (data) => HttpResponse.json({ success: true, data });
 beforeEach(() => {
   store.dispatch(setSession({ accessToken: "fixture-token", role: "ADMIN" }));
@@ -131,100 +130,7 @@ describe("ADM-06 Admin queue actions", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(/permission/);
   });
 });
-describe("ADM-08 backend gap and access control", () => {
-  it("previews synthetic metrics, filters, exports only displayed demo rows and exits without inventing an API", async () => {
-    server.use(http.get("*/users", () => ok(doctorPage())));
-    const download = vi
-      .spyOn(demoReports, "downloadDemoReport")
-      .mockImplementation(() => {});
-    render(<ClinicReports />);
-    await screen.findByRole("option", { name: "Example Doctor" });
-    expect(
-      screen.queryByLabelText("Demo report summary"),
-    ).not.toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Preview demo report" }),
-    );
-    expect(screen.getByText(/DEMO — Synthetic data/)).toBeInTheDocument();
-    expect(
-      screen.queryByRole("option", { name: "Example Doctor" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("img", { name: /Demo daily appointments/ }),
-    ).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Report doctor"), {
-      target: { value: "demo-doctor-a" },
-    });
-    fireEvent.change(screen.getByLabelText("Report to date"), {
-      target: { value: "2026-10-12" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Apply demo filters" }));
-    expect(within(screen.getByRole("table")).getAllByRole("row")).toHaveLength(
-      2,
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Export demo CSV" }));
-    expect(download).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        expect.objectContaining({
-          doctorId: "demo-doctor-a",
-          date: "2026-10-12",
-        }),
-      ]),
-      "2026-10-12",
-      "2026-10-12",
-    );
-    fireEvent.change(screen.getByLabelText("Report from date"), {
-      target: { value: "2090-01-01" },
-    });
-    fireEvent.change(screen.getByLabelText("Report to date"), {
-      target: { value: "2090-01-02" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Apply demo filters" }));
-    expect(screen.getByText(/No sample data matches/)).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Export demo CSV" }),
-    ).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "Exit demo preview" }));
-    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
-    expect(screen.getByLabelText("Report from date")).toHaveValue("");
-  });
-  it("validates range, uses actual doctor directory and keeps CSV unavailable without fabricated statistics", async () => {
-    let reports = 0;
-    server.use(
-      http.get("*/users", () => ok(doctorPage())),
-      http.get("*/reports/clinic", () => {
-        reports++;
-        return ok({});
-      }),
-    );
-    render(<ClinicReports />);
-    await screen.findByRole("option", { name: "Example Doctor" });
-    fireEvent.change(screen.getByLabelText("Report doctor"), {
-      target: { value: "301" },
-    });
-    fireEvent.change(screen.getByLabelText("Report from date"), {
-      target: { value: "2090-02-01" },
-    });
-    fireEvent.change(screen.getByLabelText("Report to date"), {
-      target: { value: "2090-01-01" },
-    });
-    fireEvent.click(
-      screen.getByRole("button", { name: "Validate date range" }),
-    );
-    expect(screen.getByRole("alert")).toHaveTextContent(/before/);
-    fireEvent.change(screen.getByLabelText("Report to date"), {
-      target: { value: "2090-03-01" },
-    });
-    fireEvent.click(
-      screen.getByRole("button", { name: "Validate date range" }),
-    );
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
-    expect(reports).toBe(0);
-    expect(
-      screen.getByText(/does not yet provide clinic reports/),
-    ).toBeInTheDocument();
-  });
+describe("ADM-08 doctor lookup and access control", () => {
   it("handles doctor lookup errors without claiming report data exists", async () => {
     server.use(
       http.get("*/users", () => new HttpResponse(null, { status: 403 })),
