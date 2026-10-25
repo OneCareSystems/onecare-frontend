@@ -17,13 +17,13 @@ This repository is part of the **OneCareSystems** GitHub Organisation (SENG 3421
 
 | Part | Location |
 | ---- | -------- |
-| GitHub Organization | https://github.com/OneCareSystems |
+| GitHub Organization | [Github]https://github.com/OneCareSystems |
 | Backend (Spring Boot) | https://github.com/OneCareSystems/onecare-backend |
 | Chatbot (django)| https://github.com/OneCareSystems/onecare-chatbot |
 | Infrastructure (Docker Compose, deployment) | https://github.com/OneCareSystems/onecare-infra |
 | Tests (Postman / integration) | https://github.com/OneCareSystems/onecare-testing |
 | Documents (SRS, SDS, ADRs) | [onecare-documents](https://github.com/OneCareSystems/onecare-documents) |
-| GitHub Project board | [OneCareSystems Project Board](https://github.com/orgs/OneCareSystems/projects/4) |
+| GitHub Project board | [Project Board](https://github.com/orgs/OneCareSystems/projects/4) |
 
 ## 2. Deployed Application
 | Environment | URL |
