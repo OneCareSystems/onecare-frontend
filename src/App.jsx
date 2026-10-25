@@ -2,7 +2,7 @@ import { BrowserRouter } from "react-router-dom";
 import "./App.css";
 import AppRoutes from "./routes/AppRoutes";
 import SessionManager from "./features/auth/SessionManager.jsx";
-import LanguageDocumentSync from "./LanguageDocumentSync.jsx";
+import LanguageDocumentSync from "./components/LanguageDocumentSync.jsx";
 function App() {
   return (
     <BrowserRouter>
