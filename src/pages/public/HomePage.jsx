@@ -14,9 +14,8 @@ import Icon from "../../components/Icon";
 import { getPublicDoctors } from "../../services/publicBookingService";
 import "../../components/chatbot/onecare-chat-widget.js";
 
-/* Put one image at /public/images/home/hero-clinic.webp (about 900x700).
-   If it is missing, a soft gradient is shown instead. */
-const HERO_IMAGE = "https://tse1.explicit.bing.net/th/id/OIP.m5vBSYmbYA43M_2XRSFfJwHaE8?r=0&rs=1&pid=ImgDetMain&o=7&rm=3";
+/* Keep the hero image local so production does not depend on Bing hotlinking. */
+const HERO_IMAGE = "/images/home/hero-clinic.webp";
 
 /* Use configured clinic hours when available, with the standard evening hours
    as the fallback. */
