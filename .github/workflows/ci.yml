@@ -1,3 +1,16 @@
+# Frontend CI/CD (DDP-#49 / DKR-05).
+#
+# Flow: install → contrast gate → lint → unit tests with coverage thresholds
+#       → build → hadolint → Docker image build → bundle secret scan
+#       → image vulnerability scan → push (publishing branches only).
+#
+# Pull requests build and scan but NEVER push. Merges to develop/main push
+# a SHA-tagged image to GHCR; no `latest` tag is ever pushed — deployments
+# promote the same SHA from staging to production (DDP-#49 AC3).
+# Failing tests, lint errors, coverage below the threshold (enforced by
+# vite.config.js), or a fixable HIGH/CRITICAL vulnerability fail the
+# pipeline and therefore prevent any push (AC2/AC3).
+
 name: Frontend CI
 
 on:
@@ -11,12 +24,31 @@ on:
       - develop
       - main
 
+# Least privilege by default; the docker job elevates to packages:write.
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Same-origin base URL is baked into the bundle; per-environment values
+  # arrive at runtime through /config.json (DKR-03). Never bake a hostname.
+  VITE_API_BASE_URL: /api
+  # Pinned scanner/ linter tool versions (no floating `latest`).
+  HADOLINT_VERSION: v2.15.1
+  GITLEAKS_VERSION: v8.30.1
+  TRIVY_VERSION: 0.76.0
+  NODE_IMAGE_VERSION: 22.23.3-alpine3.24
+
 jobs:
+  # --------------------------------------------------------------------
+  # Stage: install → lint → test (coverage gate) → build.
+  # Any failure here skips the docker job entirely, so nothing is pushed.
+  # --------------------------------------------------------------------
   build-test:
     runs-on: ubuntu-latest
-
-    env:
-      VITE_API_BASE_URL: http://localhost:8080/api
 
     steps:
       - name: Checkout
@@ -25,7 +57,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Install dependencies
@@ -40,8 +72,77 @@ jobs:
       - name: Run lint
         run: npm run lint
 
+      # Coverage thresholds (80/70/80/80) live in vite.config.js and fail
+      # this step when unmet (team DoD gate).
       - name: Run tests with coverage
         run: npm run test:coverage
 
-      - name: Run build
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Build
         run: npm run build
+
+  # --------------------------------------------------------------------
+  # Stage: containerize → scan → push (SDS §2.6.5 + §2.5.5).
+  # --------------------------------------------------------------------
+  docker:
+    needs: build-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # needed only by the push step on publishing branches
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve image name
+        run: |
+          OWNER="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          echo "IMAGE_NAME=ghcr.io/${OWNER}/onecare-frontend" >> "$GITHUB_ENV"
+
+      - name: Lint Dockerfile (hadolint)
+        run: |
+          docker run --rm -i "hadolint/hadolint:${HADOLINT_VERSION}" \
+            < Dockerfile.prod
+
+      - name: Build image (SHA tag)
+        run: |
+          docker build -f Dockerfile.prod \
+            --tag "${IMAGE_NAME}:sha-${GITHUB_SHA}" .
+
+      # Scan exactly what would ship: extract dist/ from the built image.
+      - name: Secret-scan the shipped bundle (gitleaks)
+        run: |
+          docker create --name bundle "${IMAGE_NAME}:sha-${GITHUB_SHA}"
+          mkdir -p bundle-scan
+          docker cp bundle:/usr/share/nginx/html/. ./bundle-scan/
+          docker rm bundle
+          # AC2 (DKR-03): a secret in the bundle fails the pipeline.
+          docker run --rm -v "$PWD/bundle-scan:/scan:ro" \
+            "zricethezav/gitleaks:${GITLEAKS_VERSION}" \
+            detect --source /scan --no-git --exit-code 1 --redact
+
+      # AC3 (DDP-#49): a fixable HIGH/CRITICAL vulnerability fails the
+      # pipeline; vulnerabilities without a fix do not block (--ignore-unfixed).
+      - name: Vulnerability-scan image (trivy)
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "$HOME/.trivy-cache:/root/.cache/" \
+            "aquasec/trivy:${TRIVY_VERSION}" image \
+            --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed \
+            "${IMAGE_NAME}:sha-${GITHUB_SHA}"
+
+      # Publishing branches only: PRs have already been built and scanned
+      # above but never push. SHA tag only — no `latest`.
+      - name: Login to GHCR
+        if: github.event_name == 'push'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" \
+            | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Push SHA-tagged image
+        if: github.event_name == 'push'
+        run: docker push "${IMAGE_NAME}:sha-${GITHUB_SHA}"

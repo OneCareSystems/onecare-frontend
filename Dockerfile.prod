@@ -1,0 +1,59 @@
+# =========================
+# Production Image (DDP-#49 / DKR-01)
+# Stage 1 builds the Vite bundle; stage 2 serves it via unprivileged nginx.
+# No source files, .env or secrets exist in the final image.
+# =========================
+
+# ---- Stage 1: build ----
+# Pinned patch tag (no `latest`); hadolint enforces this in CI.
+FROM node:22.23.3-alpine3.24 AS build
+
+WORKDIR /app
+
+# Copy dependency manifests first so npm ci is cached and reproducible
+# from package-lock.json alone.
+COPY package.json package-lock.json ./
+
+RUN npm ci
+
+COPY . .
+
+# Same-origin base URL is baked in; per-environment values are injected at
+# container start via /config.json (DKR-03), so the image needs no rebuild.
+ENV VITE_API_BASE_URL=/api
+
+RUN npm run build
+
+# ---- Stage 2: serve ----
+# Pinned unprivileged nginx: runs as user nginx (uid 101), listens on 8080.
+FROM nginxinc/nginx-unprivileged:1.31.7-alpine3.24
+
+# nginx template + entrypoint that writes the runtime config (DKR-02, DKR-03).
+# --chmod sets the exec bit here: the unprivileged image runs as user nginx,
+# so a follow-up RUN chmod would fail on the root-owned file.
+COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template
+COPY nginx/security-headers.conf /etc/nginx/security-headers.conf
+COPY --chmod=755 docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+
+# dist/ only: no Node, no source, no dev dependencies in the final image.
+# chown by numeric uid (hadolint DL3066).
+COPY --chown=101:101 --from=build /app/dist /usr/share/nginx/html
+
+# The entrypoint (running as nginx) creates config.json in the web root at
+# container start, so the directory itself must be nginx-owned. The image
+# still runs as the non-root nginx user (uid 101; AC3) — numeric so the
+# ownership resolves on any host (hadolint DL3066).
+USER 0
+RUN apk upgrade --no-cache brotli-libs \
+  && chown 101:101 /usr/share/nginx/html
+USER 101
+
+# Unprivileged port; healthcheck served by nginx itself (DKR-02).
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD ["wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+
+# Image already runs as the non-root nginx user (AC3).
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["nginx", "-g", "daemon off;"]

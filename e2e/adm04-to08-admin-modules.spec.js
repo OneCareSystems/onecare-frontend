@@ -8,7 +8,7 @@ import {
 
 test.use({ trace: "off", screenshot: "off", video: "off" });
 for (const width of [360, 768, 1280]) {
-  test(`Admin booking, hub, queue, cash billing and report gap at ${width}px`, async ({
+  test(`Admin booking, hub, queue, cash billing and live report mapping at ${width}px`, async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width, height: width === 360 ? 640 : 900 });
@@ -146,7 +146,25 @@ for (const width of [360, 768, 1280]) {
           });
         return send(bill, 201);
       }
-      if (path === "/api/reports/clinic") reports++;
+      if (path === "/api/reports/clinic") {
+        reports++;
+        return send({
+          from: url.searchParams.get("from"),
+          to: url.searchParams.get("to"),
+          doctorId: url.searchParams.has("doctorId")
+            ? Number(url.searchParams.get("doctorId"))
+            : null,
+          totalAppointments: 9,
+          consultationCount: 4,
+          scheduled: 2,
+          arrived: 1,
+          completed: 4,
+          cancelled: 1,
+          noShow: 1,
+          uniquePatients: 2,
+          generatedAt: "2026-10-24T10:30:00",
+        });
+      }
       return send([]);
     });
     const noOverflow = async () =>
@@ -318,27 +336,24 @@ for (const width of [360, 768, 1280]) {
       .getByRole("link", { name: "Clinic Reports", exact: true })
       .click();
     await expect(
-      page.getByText(/does not yet provide clinic reports/),
-    ).toBeVisible();
-    await expect(
       page.getByRole("button", { name: "Export CSV" }),
     ).toBeDisabled();
     expect(reports).toBe(0);
-    await page.getByRole("button", { name: "Preview demo report" }).click();
-    await expect(page.getByText(/DEMO — Synthetic data/)).toBeVisible();
+    await page.getByLabel("Report from date").fill("2026-10-01");
+    await page.getByLabel("Report to date").fill("2026-10-24");
+    await page.getByLabel("Report doctor").selectOption("301");
+    await page.getByRole("button", { name: "Generate report" }).click();
     await expect(
-      page.getByRole("img", { name: /Demo daily appointments/ }),
+      page.getByRole("img", { name: /Appointments by status/ }),
     ).toBeVisible();
+    await expect(page.getByRole("table").getByRole("row")).toHaveCount(6);
     const downloadEvent = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Export demo CSV" }).click();
+    await page.getByRole("button", { name: "Export CSV" }).click();
     const download = await downloadEvent;
     expect(download.suggestedFilename()).toBe(
-      "onecare-DEMO-clinic-report-2026-10-12-to-2026-10-18.csv",
+      "onecare-clinic-report-2026-10-01-to-2026-10-24-doctor-301.csv",
     );
-    await page.getByLabel("Report doctor").selectOption("demo-doctor-a");
-    await page.getByRole("button", { name: "Apply demo filters" }).click();
-    await expect(page.getByRole("table").getByRole("row")).toHaveCount(8);
-    expect(reports).toBe(0);
+    expect(reports).toBe(1);
     await noOverflow();
     if (width === 1280)
       await page.screenshot({ path: testInfo.outputPath("reports.png") });

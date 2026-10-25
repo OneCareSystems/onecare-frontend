@@ -1,254 +1,251 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import Button from "../Button";
 import Input from "../Input";
 import Select from "../Select";
 import ErrorMessage from "../ErrorMessage";
+import EmptyState from "../EmptyState";
+import Table from "../Table";
 import { WorkflowCard, WorkflowPage } from "./WorkflowUI";
 import useWorkflowResource from "../../hooks/useWorkflowResource";
+import useClinicReport from "../../hooks/useClinicReport";
 import { listDoctors } from "../../services/adminWorkflowService";
-import { dateRangeError, workflowError } from "../../utils/adminWorkflows";
+import { reportRangeError } from "../../services/reportService";
+import { workflowError } from "../../utils/adminWorkflows";
 import {
-  buildDemoReport,
-  DEMO_REPORT_DOCTORS,
-  downloadDemoReport,
-} from "../../utils/demoClinicReports";
-
-const sampleRange = { from: "2026-10-12", to: "2026-10-18", doctor: "" };
+  CLINIC_STATUS_FIELDS,
+  clinicReportCsv,
+  clinicReportError,
+} from "../../utils/clinicReports";
+import downloadBlob from "../../utils/downloadBlob";
 
 export default function ClinicReports() {
-  const [from, setFrom] = useState(""),
-    [to, setTo] = useState(""),
-    [doctor, setDoctor] = useState(""),
-    [error, setError] = useState("");
-  const [demo, setDemo] = useState(false);
-  const [applied, setApplied] = useState(sampleRange);
-  const report = buildDemoReport(applied);
-  const doctors = useWorkflowResource(listDoctors);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [doctor, setDoctor] = useState("");
+  const [rangeError, setRangeError] = useState("");
+  const [doctorRevision, setDoctorRevision] = useState(0);
+  const [applied, setApplied] = useState(null);
+  const doctors = useWorkflowResource(listDoctors, {}, doctorRevision);
+  const { report, loading, error, generate, invalidate } = useClinicReport();
+  const change = (setter) => (event) => {
+    setter(event.target.value);
+    setRangeError("");
+    setApplied(null);
+    invalidate();
+  };
+  const submit = (event) => {
+    event.preventDefault();
+    const invalid = reportRangeError(from, to);
+    setRangeError(invalid);
+    if (invalid) {
+      setApplied(null);
+      invalidate();
+      return;
+    }
+    const filters = {
+      from,
+      to,
+      doctorId: doctor || null,
+      doctorLabel: doctor
+        ? ((doctors.data ?? []).find((row) => String(row.userId) === doctor)
+            ?.username ?? `Doctor ${doctor}`)
+        : "All doctors",
+    };
+    setApplied(filters);
+    generate(filters);
+  };
+  const hasData = report && report.totalAppointments > 0;
+  const exportCsv = () => {
+    if (!hasData || !applied || loading) return;
+    downloadBlob(
+      new Blob([clinicReportCsv(report, applied.doctorLabel)], {
+        type: "text/csv;charset=utf-8;",
+      }),
+      `onecare-clinic-report-${report.from}-to-${report.to}${report.doctorId == null ? "" : `-doctor-${report.doctorId}`}.csv`,
+    );
+  };
   return (
     <WorkflowPage
       title="Clinic Reports"
       subtitle="View clinic analytics and reports"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary-200 bg-primary-50 p-3">
-        <p role="status" className="text-sm text-primary-950">
-          {demo
-            ? "DEMO — Synthetic data for UI preview only. These are not actual clinic statistics. Sample period: 12–18 October 2026."
-            : "Live clinic reporting is unavailable. You can preview a report using clearly labelled sample data."}
-        </p>
-        <Button
-          variant="outline"
-          onClick={() => {
-            setDemo(!demo);
-            setFrom(demo ? "" : sampleRange.from);
-            setTo(demo ? "" : sampleRange.to);
-            setDoctor("");
-            setApplied(sampleRange);
-            setError("");
-          }}
-        >
-          {demo ? "Exit demo preview" : "Preview demo report"}
-        </Button>
-      </div>
       <WorkflowCard title="Report filters">
         <form
           className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const invalid = dateRangeError(from, to);
-            setError(invalid);
-            if (!invalid) setApplied({ from, to, doctor });
-          }}
+          onSubmit={submit}
+          noValidate
         >
           <Input
             name="report-from"
             label="Report from date"
             type="date"
             value={from}
-            onChange={(event) => setFrom(event.target.value)}
+            onChange={change(setFrom)}
           />
           <Input
             name="report-to"
             label="Report to date"
             type="date"
             value={to}
-            onChange={(event) => setTo(event.target.value)}
+            onChange={change(setTo)}
           />
           <Select
             name="report-doctor"
             label="Report doctor"
             placeholder="All doctors"
             value={doctor}
-            onChange={(event) => setDoctor(event.target.value)}
-            options={
-              demo
-                ? DEMO_REPORT_DOCTORS
-                : (doctors.data ?? []).map((row) => ({
-                    value: row.userId,
-                    label: row.username,
-                  }))
-            }
+            onChange={change(setDoctor)}
+            options={(doctors.data ?? []).map((row) => ({
+              value: String(row.userId),
+              label: row.username,
+            }))}
           />
-          <Button type="submit" variant="outline">
-            {demo ? "Apply demo filters" : "Validate date range"}
+          <Button type="submit" variant="outline" loading={loading}>
+            Generate report
           </Button>
         </form>
+        <p className="text-xs text-neutral-600">
+          Both dates are inclusive clinic appointment dates. Choose dates at
+          most 365 days apart.
+        </p>
         <ErrorMessage
-          message={
-            error ||
-            (!demo && doctors.error
-              ? workflowError(doctors.error, "load doctors")
-              : "")
-          }
+          message={rangeError || (error ? clinicReportError(error) : "")}
         />
+        {error && applied ? (
+          <Button variant="outline" onClick={() => generate(applied)}>
+            Retry report
+          </Button>
+        ) : null}
+        {doctors.error ? (
+          <div className="space-y-2">
+            <ErrorMessage
+              title="Could not load doctors"
+              message={workflowError(doctors.error, "load doctors")}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDoctorRevision((n) => n + 1)}
+            >
+              Retry doctors
+            </Button>
+          </div>
+        ) : null}
+        {doctors.loading ? (
+          <p role="status" className="text-sm text-neutral-600">
+            Loading doctor filters…
+          </p>
+        ) : null}
         <Button
-          disabled={!demo || !report.rows.length}
+          disabled={!hasData || loading || !applied}
           title={
-            demo
-              ? "Export the displayed synthetic aggregates"
-              : "Export requires report data"
+            hasData
+              ? "Export the currently displayed report"
+              : "Generate a report with data to export"
           }
-          onClick={() =>
-            downloadDemoReport(report.rows, applied.from, applied.to)
-          }
+          onClick={exportCsv}
         >
-          {demo ? "Export demo CSV" : "Export CSV"}
+          Export CSV
         </Button>
       </WorkflowCard>
-      {demo ? (
-        report.rows.length ? (
-          <>
+      {loading ? (
+        <WorkflowCard title="Generating clinic report">
+          <div role="status" aria-live="polite">
+            <p>Loading clinic statistics…</p>
             <div
-              className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
-              aria-label="Demo report summary"
+              aria-hidden="true"
+              className="mt-3 grid animate-pulse grid-cols-2 gap-3 motion-reduce:animate-none"
             >
-              {[
-                ["Total appointments", report.totals.appointments],
-                ["New patients", report.totals.newPatients],
-                [
-                  "Total revenue",
-                  `LKR ${(report.totals.revenueCents / 100).toLocaleString("en-LK", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-                ],
-                ["Attendance rate", report.attendance],
-              ].map(([label, value]) => (
-                <WorkflowCard key={label}>
-                  <p className="text-sm text-primary-800">{label}</p>
-                  <p className="text-2xl font-bold text-primary-950">{value}</p>
-                  <p className="text-xs text-neutral-600">Demo data</p>
-                </WorkflowCard>
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="h-24 rounded-xl bg-primary-50" />
               ))}
             </div>
-            <WorkflowCard title="Appointments trend — demo">
-              <p role="status" className="text-sm text-neutral-600">
-                Synthetic report loaded. Filters apply to the sample period
-                only.
-              </p>
+          </div>
+        </WorkflowCard>
+      ) : report ? (
+        <>
+          <p role="status" className="text-sm text-primary-800">
+            {report.from} to {report.to} · {applied.doctorLabel}
+          </p>
+          <div
+            className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+            aria-label="Clinic report summary"
+          >
+            {[
+              ["Total appointments", report.totalAppointments],
+              ["Unique patients", report.uniquePatients],
+              ["Consultations", report.consultationCount],
+              ["Arrived", report.arrived],
+            ].map(([label, value]) => (
+              <WorkflowCard key={label}>
+                <p className="text-sm text-primary-800">{label}</p>
+                <p className="text-2xl font-bold text-primary-950">{value}</p>
+              </WorkflowCard>
+            ))}
+          </div>
+          {!hasData ? (
+            <WorkflowCard>
+              <EmptyState
+                title="No clinic activity"
+                message="No appointments match the selected dates and doctor. Choose another range to generate a report."
+              />
+            </WorkflowCard>
+          ) : (
+            <WorkflowCard title="Appointment status breakdown">
               <div
                 className="flex h-44 items-end gap-2 border-b border-primary-200"
                 role="img"
-                aria-label={`Demo daily appointments: ${report.trend.map((day) => `${day.date}: ${day.appointments}`).join(", ")}`}
+                aria-label={`Appointments by status: ${CLINIC_STATUS_FIELDS.map(([label, key]) => `${label}: ${report[key]}`).join(", ")}`}
               >
-                {report.trend.map((day) => (
+                {CLINIC_STATUS_FIELDS.map(([label, key]) => (
                   <div
-                    key={day.date}
+                    key={key}
                     className="flex h-full min-w-0 flex-1 flex-col justify-end text-center"
                   >
                     <span className="text-xs font-semibold text-primary-950">
-                      {day.appointments}
+                      {report[key]}
                     </span>
                     <div
                       className="mx-auto w-3/4 rounded-t bg-primary-600"
                       style={{
-                        height: `${(day.appointments / Math.max(...report.trend.map((row) => row.appointments))) * 75}%`,
+                        height: `${(report[key] / Math.max(1, ...CLINIC_STATUS_FIELDS.map(([, field]) => report[field]))) * 75}%`,
                       }}
                     />
-                    <span className="mt-1 text-xs text-neutral-600">
-                      {day.date.slice(8)}/10
+                    <span className="mt-1 break-words text-xs text-neutral-700">
+                      {label}
                     </span>
                   </div>
                 ))}
               </div>
             </WorkflowCard>
-            <WorkflowCard title="Daily clinic summary — demo">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <caption className="mb-3 text-left text-neutral-600">
-                    Synthetic aggregates only. No patient identifiers. Revenue
-                    is sample cash receipts; queue minutes are invented for
-                    preview.
-                  </caption>
-                  <thead className="bg-primary-50">
-                    <tr>
-                      {[
-                        "Date",
-                        "Doctor",
-                        "Appointments",
-                        "New patients",
-                        "Arrived",
-                        "No-show",
-                        "Revenue (LKR)",
-                        "Average queue (minutes)",
-                      ].map((heading) => (
-                        <th
-                          key={heading}
-                          className="whitespace-nowrap px-2 py-2"
-                        >
-                          {heading}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {report.rows.map((row) => (
-                      <tr
-                        key={`${row.date}-${row.doctorId}`}
-                        className="border-b border-primary-100"
-                      >
-                        {[
-                          row.date,
-                          row.doctor,
-                          row.appointments,
-                          row.newPatients,
-                          row.arrived,
-                          row.noShow,
-                          (row.revenueCents / 100).toFixed(2),
-                          row.queueMinutes,
-                        ].map((value, index) => (
-                          <td
-                            key={index}
-                            className="whitespace-nowrap px-2 py-2"
-                          >
-                            {value}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </WorkflowCard>
-          </>
-        ) : (
-          <WorkflowCard title="No demo report data">
-            <p role="status">
-              No sample data matches these filters. Choose dates within 12–18
-              October 2026.
+          )}
+          <WorkflowCard title="Clinic status summary">
+            <Table
+              label="Appointment status counts"
+              columns={[
+                { key: "status", header: "Status" },
+                { key: "count", header: "Appointments" },
+              ]}
+              data={CLINIC_STATUS_FIELDS.map(([label, key]) => ({
+                status: label,
+                count: report[key],
+              }))}
+              getRowKey={(row) => row.status}
+            />
+            <p className="text-xs text-neutral-600">
+              Consultations count completed appointments. Unique patients
+              include all appointment statuses. Arrived is the current status,
+              not a historical attendance total.
             </p>
           </WorkflowCard>
-        )
-      ) : (
-        <WorkflowCard title="Clinic reporting is unavailable">
+        </>
+      ) : !error ? (
+        <WorkflowCard title="Generate a clinic report">
           <p role="status">
-            The backend does not yet provide clinic reports. Report generation
-            and CSV export will be available when the reporting service is
-            implemented.
-          </p>
-          <p className="text-sm text-neutral-600">
-            Appointment totals, patient registrations, payment-period revenue,
-            attendance and queue timing statistics are unavailable. No
-            substitute totals are calculated from incomplete records.
+            Choose dates and an optional doctor, then select Generate report.
           </p>
         </WorkflowCard>
-      )}
+      ) : null}
     </WorkflowPage>
   );
 }

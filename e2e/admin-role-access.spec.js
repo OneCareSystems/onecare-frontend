@@ -7,7 +7,7 @@ for (const role of ["ADMIN", "SUPER_ADMIN"]) {
     const group = role === "ADMIN" ? "admin" : "super-admin";
     const dashboard = `/${group}/dashboard`;
     const heading =
-      role === "ADMIN" ? "AdminDashboardPage" : "Super Admin Dashboard";
+      role === "ADMIN" ? "Admin Dashboard" : "Super Admin Dashboard";
     let patientRequests = 0;
     await page.route("**/api/**", async (route) => {
       const pathname = new URL(route.request().url()).pathname;

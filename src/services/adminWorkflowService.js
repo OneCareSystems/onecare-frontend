@@ -1,5 +1,9 @@
 import apiClient from "./apiClient";
 import {
+  appointmentCounts,
+  pendingInvoiceCount,
+} from "../utils/adminDashboard";
+import {
   APPOINTMENT_STATUSES,
   decimalMoney,
   parseInvoiceJson,
@@ -90,6 +94,22 @@ export async function listAdminAppointments({ signal, ...filters } = {}) {
     unwrap(await apiClient.get("/appointments", { params, signal })),
   );
 }
+export async function dashboardAppointments({ date, signal }) {
+  return appointmentCounts(await listAdminAppointments({ date, signal }), date);
+}
+
+export async function dashboardPendingInvoices({ signal } = {}) {
+  // The Page total spans every matching page and date; never count content rows.
+  return pendingInvoiceCount(
+    unwrap(
+      await apiClient.get("/invoices", {
+        params: { status: "UNPAID", page: 0, size: 1 },
+        signal,
+      }),
+    ),
+  );
+}
+
 export async function rescheduleAppointment(id, date, slot) {
   return appointmentView(
     unwrap(

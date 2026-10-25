@@ -95,7 +95,7 @@ describe("shared Admin shell", () => {
       expect(
         await screen.findByRole("heading", {
           name:
-            role === "ADMIN" ? "AdminDashboardPage" : "SuperAdminDashboardPage",
+            role === "ADMIN" ? "Admin Dashboard" : "SuperAdminDashboardPage",
         }),
       ).toBeInTheDocument();
       expect(screen.getByRole("banner")).toBe(header);

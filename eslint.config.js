@@ -19,7 +19,12 @@ export default defineConfig([
     },
   },
   {
-    files: ["scripts/**/*.{js,mjs}", "tailwind.config.js", "postcss.config.js"],
+    files: [
+      "scripts/**/*.{js,mjs}",
+      "tailwind.config.js",
+      "postcss.config.js",
+      "vite.config.js",
+    ],
     extends: [js.configs.recommended],
     languageOptions: {
       globals: globals.node,
@@ -32,7 +37,11 @@ export default defineConfig([
     },
   },
   {
-    files: ["e2e/**/*.{js,jsx}", "playwright.config.js"],
+    files: [
+      "e2e/**/*.{js,jsx}",
+      "playwright.config.js",
+      "playwright.smoke.config.js",
+    ],
     languageOptions: {
       globals: { ...globals.browser, ...globals.node },
     },

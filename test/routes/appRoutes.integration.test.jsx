@@ -93,7 +93,7 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
       {
         role: ROLES.ADMIN,
         path: "/admin/dashboard",
-        heading: /AdminDashboardPage/i,
+        heading: /Admin Dashboard/i,
       },
       {
         role: ROLES.DOCTOR,
