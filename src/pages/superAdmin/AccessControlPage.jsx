@@ -894,7 +894,6 @@ const AccessControlPage = () => {
                 </span>
               </li>
             </ul>
-
           </div>
         </div>
       )}

@@ -206,7 +206,6 @@ const AuditLogsPage = () => {
   const [view, setView] = useState(VIEW_TABLE);
   const [selectedLog, setSelectedLog] = useState(null);
 
-
   /* ---- fetch ---- */
   useEffect(() => {
     let cancelled = false;
@@ -523,7 +522,8 @@ const AuditLogsPage = () => {
         {isFiltering && (
           <p className="mt-2 flex items-center gap-1.5 text-xs text-neutral-500">
             <Icon name="info" className="h-3.5 w-3.5 shrink-0" />
-            Filters apply to page {page} only Ã¢â‚¬â€ clear them to see every row.
+            Filters apply to page {page} only Ã¢â‚¬â€ clear them to see every
+            row.
           </p>
         )}
       </div>
