@@ -51,6 +51,28 @@ let sessionExpired = false;
 let refreshPromise = null;
 const stopCallbacks = new Set();
 
+/** Detect if an error is a terminal token refresh failure (400, 401, 403, TOKEN_REFRESH_FAILED, etc.) */
+export const isTokenRefreshFailure = (error) => {
+  if (!error) return false;
+  const status = error.response?.status;
+  const data = error.response?.data;
+  const msg = String(data?.message || data?.error || error.message || "").toUpperCase();
+
+  if (status === 401 || status === 400 || status === 403 || status === 422) {
+    return true;
+  }
+  if (
+    msg.includes("TOKEN_REFRESH_FAILED") ||
+    msg.includes("INVALID REFRESH TOKEN") ||
+    msg.includes("REFRESH TOKEN EXPIRED") ||
+    msg.includes("INVALID_GRANT") ||
+    msg.includes("TOKEN EXPIRED")
+  ) {
+    return true;
+  }
+  return false;
+};
+
 /** Test/app seam: swap the redirect implementation (router navigate, spy, ...). */
 export const setNavigator = (fn) => {
   navigate = typeof fn === "function" ? fn : defaultNavigate;
@@ -196,12 +218,28 @@ const performRefresh = async () => {
   if (!refreshToken) {
     throw new Error("No refresh token available");
   }
-  const response = await apiClient.post(
-    REFRESH_URL,
-    { refreshToken },
-    { skipAuth: true, _isRefresh: true },
-  );
-  const tokens = extractTokens(response.data);
+
+  let response;
+  try {
+    response = await apiClient.post(
+      REFRESH_URL,
+      { refreshToken },
+      { skipAuth: true, _isRefresh: true },
+    );
+  } catch (error) {
+    if (isTokenRefreshFailure(error)) {
+      handleSessionExpired();
+    }
+    throw error;
+  }
+
+  const data = response?.data;
+  if (data?.success === false || data?.message === "TOKEN_REFRESH_FAILED") {
+    handleSessionExpired();
+    throw new Error(data?.message || "TOKEN_REFRESH_FAILED");
+  }
+
+  const tokens = extractTokens(data);
   if (!tokens.accessToken) {
     throw new Error("Refresh response did not include an access token");
   }
@@ -237,7 +275,10 @@ apiClient.interceptors.response.use(
 
     if (!config) return Promise.reject(normalizeError(error));
 
-    if (status === 401) {
+    if (
+      status === 401 ||
+      (isRefreshRequest(config) && (status === 400 || status === 403 || isTokenRefreshFailure(error)))
+    ) {
       if (isRefreshRequest(config) || config._retry) {
         handleSessionExpired();
         return Promise.reject(normalizeError(error));
@@ -255,8 +296,9 @@ apiClient.interceptors.response.use(
       try {
         await refreshSession();
       } catch (refreshError) {
-        // A refresh 401 ends the session in the branch above. Infrastructure,
-        // rate-limit and network failures do not prove the session is invalid.
+        if (isTokenRefreshFailure(refreshError) || !selectRefreshToken(store.getState())) {
+          handleSessionExpired();
+        }
         return Promise.reject(
           normalizeError(
             refreshError.response?.status === 401 ? error : refreshError,
@@ -269,6 +311,10 @@ apiClient.interceptors.response.use(
         ...config,
         headers: cloneHeaders(config.headers),
       });
+    }
+
+    if (isRefreshRequest(config) && isTokenRefreshFailure(error)) {
+      handleSessionExpired();
     }
 
     return Promise.reject(normalizeError(error));
@@ -331,6 +377,9 @@ export const startTokenRefreshScheduler = ({
         "proactive refresh failed; retrying on the next tick",
         error?.message,
       );
+      if (isTokenRefreshFailure(error) || (expiresAt && expiresAt <= now())) {
+        handleSessionExpired();
+      }
       onRefreshError?.(error);
     });
   };
