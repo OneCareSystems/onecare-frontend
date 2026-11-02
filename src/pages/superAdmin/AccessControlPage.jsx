@@ -671,9 +671,9 @@ const AccessControlPage = () => {
             onChange={setSearchQuery}
             placeholder="Search scope, code, or descriptionÃ¢â‚¬Â¦  ( / )"
             searchLabel="Search permission scopes"
-            className="w-full sm:max-w-md"
+            className="w-full min-w-0 sm:flex-1 sm:max-w-md"
           />
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
             <Select
               id="category-filter"
               name="category-filter"
@@ -681,7 +681,8 @@ const AccessControlPage = () => {
               options={categoryOptions}
               value={category}
               onChange={(e) => setCategory(e.target.value || ALL_CATEGORIES)}
-              className="w-full sm:w-52"
+              className="w-full sm:w-auto sm:flex-row sm:items-center sm:gap-2"
+              selectClassName="sm:w-44"
             />
             {isFiltering && (
               <Button

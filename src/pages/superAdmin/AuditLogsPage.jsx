@@ -469,7 +469,7 @@ const AuditLogsPage = () => {
             className="w-full sm:max-w-xl"
           />
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
             <Select
               id="action-filter"
               name="action-filter"
@@ -477,7 +477,8 @@ const AuditLogsPage = () => {
               options={actionOptions}
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value || ALL_ACTIONS)}
-              className="w-full sm:w-44"
+              className="w-full sm:w-auto sm:flex-row sm:items-center sm:gap-2"
+              selectClassName="sm:w-36"
             />
 
             {/* View toggle */}
