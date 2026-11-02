@@ -5,8 +5,8 @@ import Icon from "../components/Icon";
 import Breadcrumbs from "../components/Breadcrumbs";
 
 const AdminLayout = () => (
-  <div className="m-2 flex min-h-[calc(100vh-1rem)] flex-col overflow-hidden rounded-2xl border border-primary-100 bg-gradient-to-br from-neutral-0 to-secondary-50 text-primary-950 shadow-sm lg:flex-row">
-    <aside className="w-full shrink-0 lg:w-60 lg:border-r lg:border-primary-100 lg:pt-7">
+  <div className="m-2 flex h-[calc(100vh-1rem)] flex-col overflow-hidden rounded-2xl border border-primary-100 bg-gradient-to-br from-neutral-0 to-secondary-50 text-primary-950 shadow-sm lg:flex-row">
+    <aside className="w-full shrink-0 lg:w-60 lg:border-r lg:border-primary-100 lg:pt-7 lg:overflow-y-auto">
       <div className="flex items-center gap-2 px-5 py-3 text-sm font-bold leading-tight text-primary-800 lg:mb-6 lg:py-0">
         <Icon name="stethoscope" size={30} />
         <span>
@@ -18,9 +18,9 @@ const AdminLayout = () => (
       </div>
       <Sidebar />
     </aside>
-    <div className="min-w-0 flex-1">
+    <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
       <TopBar showHome={false} />
-      <main className="min-w-0">
+      <main className="min-w-0 flex-1 overflow-y-auto">
         <Breadcrumbs />
         <div className="px-3 pb-6 md:px-5">
           <Outlet />
