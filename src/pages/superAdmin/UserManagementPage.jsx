@@ -565,28 +565,6 @@ const UserManagementPage = () => {
   const columns = useMemo(
     () => [
       {
-        key: "select",
-        header: (
-          <input
-            type="checkbox"
-            aria-label="Select all on page"
-            checked={allOnPageSelected}
-            onChange={toggleSelectAllOnPage}
-            className="h-3.5 w-3.5 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
-          />
-        ),
-        headerClass: "w-8",
-        render: (row) => (
-          <input
-            type="checkbox"
-            aria-label={`Select ${row.username}`}
-            checked={selectedIds.has(row.userId)}
-            onChange={() => toggleSelectOne(row.userId)}
-            className="h-3.5 w-3.5 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
-          />
-        ),
-      },
-      {
         key: "fullName",
         header: "Employee",
         render: (row) => (

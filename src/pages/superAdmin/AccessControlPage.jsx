@@ -186,7 +186,7 @@ const MatrixCell = memo(
             title={
               isBlocked
                 ? blockReason
-                : `${isGranted ? "Authorized" : "Denied"} Ã¢â‚¬â€ click to toggle`
+                : `${isGranted ? "Authorized" : "Denied"} - click to toggle`
             }
             className={`relative inline-flex ${size} items-center justify-center rounded-lg transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
               isBlocked
@@ -559,7 +559,7 @@ const AccessControlPage = () => {
       {/* ============ Hero ============ */}
       <SuperAdminPageHeader
         icon="shield"
-        badgeText="Access control Ã‚Â· RBAC"
+        badgeText="Access control | RBAC"
         title="Role Permission Matrix"
         description="Toggle entitlements per role. Every change is persisted and audited."
         actions={
@@ -669,7 +669,7 @@ const AccessControlPage = () => {
           <SearchBar
             value={searchQuery}
             onChange={setSearchQuery}
-            placeholder="Search scope, code, or descriptionÃ¢â‚¬Â¦  ( / )"
+            placeholder="Search scope, code, or description... ( / )"
             searchLabel="Search permission scopes"
             className="w-full min-w-0 sm:flex-1 sm:max-w-md"
           />
@@ -849,7 +849,7 @@ const AccessControlPage = () => {
                   className="mt-0.5 h-4 w-4 shrink-0 text-success-600"
                 />
                 <span>
-                  <strong>Authorized</strong> Ã¢â‚¬â€ role currently holds this scope.
+                  <strong>Authorized</strong> - role currently holds this scope.
                   Click to revoke.
                 </span>
               </li>
@@ -859,7 +859,7 @@ const AccessControlPage = () => {
                   className="mt-0.5 h-4 w-4 shrink-0 text-neutral-400"
                 />
                 <span>
-                  <strong>Denied</strong> Ã¢â‚¬â€ role does not hold this scope. Click
+                  <strong>Denied</strong> - role does not hold this scope. Click
                   to grant.
                 </span>
               </li>
@@ -869,7 +869,7 @@ const AccessControlPage = () => {
                   className="mt-0.5 h-4 w-4 shrink-0 text-neutral-400"
                 />
                 <span>
-                  <strong>Blocked</strong> Ã¢â‚¬â€ protected by rule{" "}
+                  <strong>Blocked</strong> - protected by rule{" "}
                   <code className="rounded bg-neutral-100 px-1 font-mono text-[11px]">
                     BR004
                   </code>{" "}
@@ -894,27 +894,7 @@ const AccessControlPage = () => {
                 </span>
               </li>
             </ul>
-            <div className="mt-4 rounded-xl bg-neutral-50 p-3 text-xs text-neutral-600">
-              <p className="font-semibold text-neutral-800">Keyboard</p>
-              <ul className="mt-1 grid grid-cols-2 gap-1">
-                <li>
-                  <kbd className="rounded border border-neutral-200 bg-white px-1.5 py-0.5 font-mono text-[10px]">
-                    Ã¢Å’ËœF
-                  </kbd>{" "}
-                  or{" "}
-                  <kbd className="rounded border border-neutral-200 bg-white px-1.5 py-0.5 font-mono text-[10px]">
-                    /
-                  </kbd>{" "}
-                  search
-                </li>
-                <li>
-                  <kbd className="rounded border border-neutral-200 bg-white px-1.5 py-0.5 font-mono text-[10px]">
-                    Esc
-                  </kbd>{" "}
-                  exit bulk mode
-                </li>
-              </ul>
-            </div>
+
           </div>
         </div>
       )}
