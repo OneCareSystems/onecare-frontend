@@ -15,7 +15,6 @@ export const useSystemMaintenance = () => {
   const [toast, setToast] = useState(null);
   const [confirm, setConfirm] = useState(null);
   const [selectedBackup, setSelectedBackup] = useState(null);
-  const [showShortcuts, setShowShortcuts] = useState(false);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
 
   const [backups, setBackups] = useState([]);
@@ -134,7 +133,7 @@ export const useSystemMaintenance = () => {
       );
       setToast({
         type: "success",
-        message: `Backup #${record.backupId} created — ${record.filename}.`,
+        message: `Backup #${record.backupId} created â€” ${record.filename}.`,
       });
     } catch (error) {
       setToast({
@@ -280,24 +279,6 @@ export const useSystemMaintenance = () => {
     }
   }, []);
 
-  /* Keyboard shortcuts */
-  useEffect(() => {
-    const onKey = (e) => {
-      const mod = e.metaKey || e.ctrlKey;
-      if (mod && e.key.toLowerCase() === "b") {
-        e.preventDefault();
-        handleCreateBackup();
-      } else if (mod && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setShowShortcuts((v) => !v);
-      } else if (e.key === "Escape") {
-        setShowShortcuts(false);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [handleCreateBackup]);
-
   return {
     toast,
     setToast,
@@ -305,8 +286,6 @@ export const useSystemMaintenance = () => {
     setConfirm,
     selectedBackup,
     setSelectedBackup,
-    showShortcuts,
-    setShowShortcuts,
     showRestoreDialog,
     setShowRestoreDialog,
 

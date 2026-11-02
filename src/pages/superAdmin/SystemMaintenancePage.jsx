@@ -9,7 +9,6 @@ import {
   MaintenanceActivityLog,
   BackupHistoryTable,
   RestoreBackupModal,
-  MaintenanceShortcutsModal,
   useSystemMaintenance,
 } from "../../features/superAdmin/maintenance";
 
@@ -21,8 +20,6 @@ const SystemMaintenancePage = () => {
     setConfirm,
     selectedBackup,
     setSelectedBackup,
-    showShortcuts,
-    setShowShortcuts,
     showRestoreDialog,
     setShowRestoreDialog,
 
@@ -56,21 +53,9 @@ const SystemMaintenancePage = () => {
       {/* Page Header */}
       <SuperAdminPageHeader
         icon="settings"
-        badgeText="System Maintenance · Operations"
+        badgeText="System Maintenance Â· Operations"
         title="Backup & Recovery"
         description="Timestamped, encrypted snapshots of clinic database records alongside automated schedule cadence."
-        actions={
-          <button
-            type="button"
-            onClick={() => setShowShortcuts((v) => !v)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-600 shadow-2xs transition hover:border-neutral-300 hover:bg-neutral-50 hover:text-neutral-900"
-          >
-            <kbd className="rounded border border-neutral-200 bg-neutral-100 px-1.5 py-0.5 font-mono text-[10px] text-neutral-500">
-              ⌘K
-            </kbd>
-            Shortcuts
-          </button>
-        }
       />
 
       {/* Safety Status */}
@@ -156,11 +141,6 @@ const SystemMaintenancePage = () => {
       />
 
       {/* Modals & Drawers */}
-      <MaintenanceShortcutsModal
-        isOpen={showShortcuts}
-        onClose={() => setShowShortcuts(false)}
-      />
-
       <RestoreBackupModal
         isOpen={showRestoreDialog}
         onClose={() => setShowRestoreDialog(false)}

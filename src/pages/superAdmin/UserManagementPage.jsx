@@ -87,7 +87,7 @@ const EmployeeCell = memo(({ username, email }) => {
           {username}
         </span>
         <span className="block truncate font-mono text-xs text-neutral-500">
-          {email || "—"}
+          {email || "Ã¢â‚¬â€"}
         </span>
       </div>
     </div>
@@ -102,7 +102,7 @@ const RolePill = memo(({ role }) => (
       "border-neutral-200 bg-neutral-100 text-neutral-800"
     }`}
   >
-    {roleLabel(role) || "—"}
+    {roleLabel(role) || "Ã¢â‚¬â€"}
   </span>
 ));
 RolePill.displayName = "RolePill";
@@ -119,7 +119,7 @@ const LockCountdown = memo(({ lockedUntil }) => {
   if (diff <= 0)
     return (
       <span className="text-[11px] text-warning-700">
-        Lock expired — retry signing in
+        Lock expired Ã¢â‚¬â€ retry signing in
       </span>
     );
   const mins = Math.ceil(diff / 60000);
@@ -261,8 +261,6 @@ const UserManagementPage = () => {
   const [editError, setEditError] = useState("");
 
   const [toast, setToast] = useState(null);
-  const [showShortcuts, setShowShortcuts] = useState(false);
-  const searchInputRef = useRef(null);
 
   const openCreate = useCallback(() => {
     setForm(EMPTY_FORM);
@@ -270,30 +268,6 @@ const UserManagementPage = () => {
     setSubmitError("");
     setIsCreateOpen(true);
   }, []);
-
-  /* ---- shortcuts ---- */
-  useEffect(() => {
-    const onKey = (e) => {
-      const mod = e.metaKey || e.ctrlKey;
-      if (mod && e.key.toLowerCase() === "f") {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      } else if (mod && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setShowShortcuts((v) => !v);
-      } else if (mod && e.key.toLowerCase() === "n") {
-        e.preventDefault();
-        openCreate();
-      } else if (e.key === "/" && document.activeElement?.tagName !== "INPUT") {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      } else if (e.key === "Escape") {
-        setShowShortcuts(false);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [openCreate]);
 
   /* ---- fetch ---- */
   useEffect(() => {
@@ -683,7 +657,7 @@ const UserManagementPage = () => {
       {/* ============ Hero ============ */}
       <SuperAdminPageHeader
         icon="users"
-        badgeText="Identity · Staff directory"
+        badgeText="Identity Ã‚Â· Staff directory"
         title="User Management"
         description="Provision, edit, and lock down staff accounts. All actions are audited."
         actions={
@@ -708,16 +682,6 @@ const UserManagementPage = () => {
                 </button>
               ))}
             </div>
-            <button
-              type="button"
-              onClick={() => setShowShortcuts((v) => !v)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-medium text-neutral-600 transition hover:border-neutral-300 hover:text-neutral-900"
-            >
-              <kbd className="rounded bg-neutral-100 px-1 font-mono text-[10px]">
-                ⌘K
-              </kbd>
-              Shortcuts
-            </button>
             <Button
               onClick={openCreate}
               className="inline-flex shrink-0 items-center gap-1.5"
@@ -803,10 +767,9 @@ const UserManagementPage = () => {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
             <SearchBar
-              ref={searchInputRef}
               value={query}
               onChange={handleQueryChange}
-              placeholder="Search by name or email…  ( / )"
+              placeholder="Search by name or emailÃ¢â‚¬Â¦  ( / )"
               className="w-full sm:max-w-xs"
             />
             <div className="flex flex-wrap items-center gap-2">
@@ -922,39 +885,6 @@ const UserManagementPage = () => {
             />
           )}
         </section>
-      )}
-
-      {/* ============ Shortcuts popover ============ */}
-      {showShortcuts && (
-        <div
-          className="fixed inset-0 z-40 flex items-center justify-center bg-neutral-900/30 p-4 backdrop-blur-sm"
-          onClick={() => setShowShortcuts(false)}
-        >
-          <div
-            className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-5 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-sm font-semibold text-neutral-900">
-              Keyboard shortcuts
-            </h3>
-            <ul className="mt-3 space-y-2 text-sm">
-              {[
-                ["⌘ / Ctrl + F", "Focus search"],
-                ["/", "Focus search"],
-                ["⌘ / Ctrl + N", "Create new user"],
-                ["⌘ / Ctrl + K", "Toggle shortcuts"],
-                ["Esc", "Close drawer / dialog"],
-              ].map(([k, label]) => (
-                <li key={k} className="flex items-center justify-between">
-                  <span className="text-neutral-600">{label}</span>
-                  <kbd className="rounded border border-neutral-200 bg-neutral-50 px-2 py-0.5 font-mono text-[11px] text-neutral-700">
-                    {k}
-                  </kbd>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
       )}
 
       {/* ============ Confirm ============ */}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
+import { useCallback, useEffect, useMemo, useState, memo } from "react";
 import Button from "../../components/Button";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import ErrorMessage from "../../components/ErrorMessage";
@@ -186,7 +186,7 @@ const MatrixCell = memo(
             title={
               isBlocked
                 ? blockReason
-                : `${isGranted ? "Authorized" : "Denied"} — click to toggle`
+                : `${isGranted ? "Authorized" : "Denied"} Ã¢â‚¬â€ click to toggle`
             }
             className={`relative inline-flex ${size} items-center justify-center rounded-lg transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
               isBlocked
@@ -243,36 +243,11 @@ const AccessControlPage = () => {
   const [confirm, setConfirm] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
 
-  const searchInputRef = useRef(null);
-
   /* ---- search debounce ---- */
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchQuery), 150);
     return () => clearTimeout(t);
   }, [searchQuery]);
-
-  /* ---- shortcuts ---- */
-  useEffect(() => {
-    const onKey = (e) => {
-      const mod = e.metaKey || e.ctrlKey;
-      if (mod && e.key.toLowerCase() === "f") {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      } else if (mod && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      } else if (e.key === "/" && document.activeElement?.tagName !== "INPUT") {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      } else if (e.key === "Escape") {
-        setBulkMode(false);
-        setSelectedCodes(new Set());
-        setShowHelp(false);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
 
   /* ---- fetch ---- */
   const fetchPermissions = useCallback(
@@ -584,7 +559,7 @@ const AccessControlPage = () => {
       {/* ============ Hero ============ */}
       <SuperAdminPageHeader
         icon="shield"
-        badgeText="Access control · RBAC"
+        badgeText="Access control Ã‚Â· RBAC"
         title="Role Permission Matrix"
         description="Toggle entitlements per role. Every change is persisted and audited."
         actions={
@@ -692,10 +667,9 @@ const AccessControlPage = () => {
       <div className="sticky top-3 z-20 rounded-2xl border border-neutral-200 bg-white/95 p-3 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/80 sm:p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <SearchBar
-            ref={searchInputRef}
             value={searchQuery}
             onChange={setSearchQuery}
-            placeholder="Search scope, code, or description…  ( / )"
+            placeholder="Search scope, code, or descriptionÃ¢â‚¬Â¦  ( / )"
             searchLabel="Search permission scopes"
             className="w-full sm:max-w-md"
           />
@@ -874,7 +848,7 @@ const AccessControlPage = () => {
                   className="mt-0.5 h-4 w-4 shrink-0 text-success-600"
                 />
                 <span>
-                  <strong>Authorized</strong> — role currently holds this scope.
+                  <strong>Authorized</strong> Ã¢â‚¬â€ role currently holds this scope.
                   Click to revoke.
                 </span>
               </li>
@@ -884,7 +858,7 @@ const AccessControlPage = () => {
                   className="mt-0.5 h-4 w-4 shrink-0 text-neutral-400"
                 />
                 <span>
-                  <strong>Denied</strong> — role does not hold this scope. Click
+                  <strong>Denied</strong> Ã¢â‚¬â€ role does not hold this scope. Click
                   to grant.
                 </span>
               </li>
@@ -894,7 +868,7 @@ const AccessControlPage = () => {
                   className="mt-0.5 h-4 w-4 shrink-0 text-neutral-400"
                 />
                 <span>
-                  <strong>Blocked</strong> — protected by rule{" "}
+                  <strong>Blocked</strong> Ã¢â‚¬â€ protected by rule{" "}
                   <code className="rounded bg-neutral-100 px-1 font-mono text-[11px]">
                     BR004
                   </code>{" "}
@@ -924,7 +898,7 @@ const AccessControlPage = () => {
               <ul className="mt-1 grid grid-cols-2 gap-1">
                 <li>
                   <kbd className="rounded border border-neutral-200 bg-white px-1.5 py-0.5 font-mono text-[10px]">
-                    ⌘F
+                    Ã¢Å’ËœF
                   </kbd>{" "}
                   or{" "}
                   <kbd className="rounded border border-neutral-200 bg-white px-1.5 py-0.5 font-mono text-[10px]">

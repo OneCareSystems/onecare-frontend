@@ -13,7 +13,6 @@ export { MaintenanceActivityLog } from "./MaintenanceActivityLog";
 export { BackupRowActions } from "./BackupRowActions";
 export { BackupHistoryTable } from "./BackupHistoryTable";
 export { RestoreBackupModal } from "./RestoreBackupModal";
-export { MaintenanceShortcutsModal } from "./MaintenanceShortcutsModal";
 export { useSystemMaintenance } from "./useSystemMaintenance";
 export { BackupScheduleEditor } from "../BackupScheduleEditor";
 export { BackupDetailDrawer } from "../BackupDetailDrawer";
