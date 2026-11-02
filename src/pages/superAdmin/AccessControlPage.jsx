@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState, memo } from "react";
 import Button from "../../components/Button";
 import ConfirmDialog from "../../components/ConfirmDialog";
+import EmptyState from "../../components/EmptyState";
 import ErrorMessage from "../../components/ErrorMessage";
 import Icon from "../../components/Icon";
 import SearchBar from "../../components/SearchBar";
 import Select from "../../components/Select";
 import StatCard from "../../components/StatCard";
-import Table from "../../components/Table";
 import Toast from "../../components/Toast";
 import { SuperAdminPageHeader } from "../../features/superAdmin/SuperAdminPageHeader";
 import {
@@ -85,6 +85,58 @@ const SavedPulse = memo(({ show, children }) => (
   </span>
 ));
 SavedPulse.displayName = "SavedPulse";
+
+const PermissionMatrixTable = ({
+  columns,
+  data,
+  emptyTitle,
+  emptyMessage,
+}) => {
+  if (data.length === 0) {
+    return <EmptyState title={emptyTitle} message={emptyMessage} />;
+  }
+
+  return (
+    <div
+      role="region"
+      aria-label="Role entitlement matrix"
+      tabIndex={0}
+      className="max-h-[70vh] w-full overflow-auto rounded-lg border border-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
+    >
+      <table className="w-full border-collapse text-left text-sm">
+        <thead>
+          <tr>
+            {columns.map((column) => (
+              <th
+                key={column.key}
+                scope="col"
+                className={`sticky top-0 z-10 whitespace-nowrap bg-neutral-50 px-4 py-3 font-semibold text-neutral-700 ${column.headerClass ?? ""}`}
+              >
+                {column.header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-neutral-200">
+          {data.map((row) => (
+            <tr key={row.code} className="hover:bg-neutral-50">
+              {columns.map((column) => (
+                <td
+                  key={column.key}
+                  className="whitespace-nowrap px-4 py-3 text-neutral-700"
+                >
+                  {column.render
+                    ? column.render(row)
+                    : (row[column.key] ?? "—")}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
 
 /* ------------------------------------------------------------------ */
 /* Scope cell                                                          */
@@ -663,8 +715,8 @@ const AccessControlPage = () => {
         </div>
       )}
 
-      {/* ============ Sticky filter bar ============ */}
-      <div className="sticky top-3 z-20 rounded-2xl border border-neutral-200 bg-white/95 p-3 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/80 sm:p-4">
+      {/* ============ Filter bar ============ */}
+      <div className="rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm sm:p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <SearchBar
             value={searchQuery}
@@ -802,18 +854,15 @@ const AccessControlPage = () => {
           </div>
         ) : (
           <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-xs">
-            <Table
+            <PermissionMatrixTable
               columns={permissionColumns}
               data={filteredPermissions}
-              getRowKey={(row) => row.code}
-              stickyHeader
               emptyTitle="No matching permissions found"
               emptyMessage={
                 isFiltering
                   ? "No permission scopes match your search or domain query."
                   : "The permission matrix catalog is empty."
               }
-              label="Role entitlement matrix"
             />
           </div>
         )}
