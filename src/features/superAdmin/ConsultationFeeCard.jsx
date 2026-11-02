@@ -55,6 +55,9 @@ export const ConsultationFeeCard = ({
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             {/* Input Group */}
             <div className="relative flex-1">
+              <label htmlFor="consultation-fee" className="sr-only">
+                Consultation Fee
+              </label>
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-neutral-400">
                 Rs.
               </span>

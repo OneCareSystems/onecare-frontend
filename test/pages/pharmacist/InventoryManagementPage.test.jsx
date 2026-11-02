@@ -32,7 +32,7 @@ const medicines = [
     name: "Amoxicillin",
     stockQuantity: 5,
     reorderLevel: 10,
-    expiryDate: "2026-11-01",
+    expiryDate: "2027-11-01",
     isQuarantined: false,
   },
 ];
@@ -214,7 +214,7 @@ describe("InventoryManagementPage", () => {
     await screen.findByText("Paracetamol");
 
     await user.click(
-      screen.getAllByRole("button", { name: "Adjust stock" })[1],
+      screen.getAllByRole("button", { name: "Adjust stock" },)[1],
     );
 
     await user.type(screen.getByLabelText("Stock change"), "-6");
