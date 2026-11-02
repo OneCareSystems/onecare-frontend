@@ -154,7 +154,11 @@ describe("reportService — pharmacy report", () => {
   });
   it("rejects an unknown type with the backend message", async () => {
     await expect(
-      getPharmacyReport({ type: "bogus", from: "2026-10-01", to: "2026-10-18" }),
+      getPharmacyReport({
+        type: "bogus",
+        from: "2026-10-01",
+        to: "2026-10-18",
+      }),
     ).rejects.toMatchObject({
       status: 400,
       userMessage: "Unknown report type 'bogus'",

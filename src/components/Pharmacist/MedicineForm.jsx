@@ -246,12 +246,8 @@
 
 // export default MedicineForm;
 
-
-import {  useState } from "react";
-import {
-  getTodayDate,
-  validateMedicine,
-} from "../../utils/medicineValidation";
+import { useState } from "react";
+import { getTodayDate, validateMedicine } from "../../utils/medicineValidation";
 
 const EMPTY_VALUES = {
   name: "",
@@ -273,8 +269,7 @@ const normalizeValues = (values = {}) => ({
   unit: values.unit ?? "",
   price: values.price == null ? "" : String(values.price),
   expiryDate: values.expiryDate ?? "",
-  reorderLevel:
-    values.reorderLevel == null ? "" : String(values.reorderLevel),
+  reorderLevel: values.reorderLevel == null ? "" : String(values.reorderLevel),
   stockQuantity:
     values.stockQuantity == null ? "0" : String(values.stockQuantity),
 });
@@ -288,9 +283,7 @@ const MedicineForm = ({
   initialValues = EMPTY_VALUES,
   mode = "create",
 }) => {
-  const [values, setValues] = useState(() =>
-    normalizeValues(initialValues),
-  );
+  const [values, setValues] = useState(() => normalizeValues(initialValues));
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
 
@@ -430,10 +423,7 @@ const MedicineForm = ({
         </div>
 
         <div>
-          <label
-            htmlFor="price"
-            className="text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="price" className="text-sm font-medium text-gray-700">
             Unit price (LKR) *
           </label>
           <input

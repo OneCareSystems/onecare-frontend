@@ -91,10 +91,7 @@ export const getPrescriptionsByStatus = async (
 };
 
 /** Read-only preview of in-house dispensing and current stock. */
-export const getDispensePreview = async (
-  prescriptionId,
-  { signal } = {},
-) => {
+export const getDispensePreview = async (prescriptionId, { signal } = {}) => {
   const response = await apiClient.get(
     `/prescriptions/${prescriptionId}/dispense-preview`,
     { signal },
@@ -127,13 +124,16 @@ export const dispensePrescription = async (
   const payload = response.data;
 
   if (payload?.success !== true || !payload.data) {
-    throw new Error(
-      payload?.message || "Unexpected dispense response format",
-    );
+    throw new Error(payload?.message || "Unexpected dispense response format");
   }
 
   return payload.data;
 };
 
-
-export default { createPrescription, getPrescriptionById, getPrescriptionsByStatus, getDispensePreview, dispensePrescription };
+export default {
+  createPrescription,
+  getPrescriptionById,
+  getPrescriptionsByStatus,
+  getDispensePreview,
+  dispensePrescription,
+};

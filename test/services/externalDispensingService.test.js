@@ -1,4 +1,3 @@
-
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { apiPost, apiGet } = vi.hoisted(() => ({
@@ -175,10 +174,9 @@ describe("externalDispensingService", () => {
       const result = await getExternalDispensingById(10);
 
       expect(result).toEqual(dispensingRecord);
-      expect(apiGet).toHaveBeenCalledWith(
-        "/external-dispensing/10",
-        { signal: undefined },
-      );
+      expect(apiGet).toHaveBeenCalledWith("/external-dispensing/10", {
+        signal: undefined,
+      });
     });
 
     it("rejects when the dispensing ID is missing", async () => {

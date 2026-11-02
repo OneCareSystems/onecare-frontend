@@ -129,7 +129,7 @@ export const NAV_ITEMS = Object.freeze({
     //   icon: "list-checks",
     // }),
   ]),
-    [ROLES.PHARMACIST]: Object.freeze([
+  [ROLES.PHARMACIST]: Object.freeze([
     Object.freeze({
       id: "dashboard",
       to: "/pharmacist/dashboard",
@@ -155,10 +155,10 @@ export const NAV_ITEMS = Object.freeze({
       icon: "clipboard",
     }),
     Object.freeze({
-  id: "reports",
-  to: "/pharmacist/reports",
-  label: "Reports",
-  icon: "chart-column",
-}),
+      id: "reports",
+      to: "/pharmacist/reports",
+      label: "Reports",
+      icon: "chart-column",
+    }),
   ]),
 });

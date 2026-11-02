@@ -78,9 +78,7 @@ describe("super-admin clinic reports page — REST cases", () => {
     generate();
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent(/unable to/i);
-    expect(screen.getByLabelText("Report from date")).toHaveValue(
-      "2026-10-01",
-    );
+    expect(screen.getByLabelText("Report from date")).toHaveValue("2026-10-01");
   });
 
   it("exports the displayed report as a CSV file", async () => {

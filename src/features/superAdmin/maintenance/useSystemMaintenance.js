@@ -40,7 +40,7 @@ export const useSystemMaintenance = () => {
         .filter(Boolean)
         .sort()
         .at(-1) ?? null,
-    [backups]
+    [backups],
   );
 
   const nextRun = useMemo(() => {
@@ -48,7 +48,7 @@ export const useSystemMaintenance = () => {
     const runs = computeUpcomingRuns(
       Number(schedule.dayOfMonth),
       schedule.executionTime,
-      1
+      1,
     );
     return runs[0] ?? null;
   }, [schedule]);
@@ -82,7 +82,7 @@ export const useSystemMaintenance = () => {
       setSchedule(data);
     } catch (error) {
       setScheduleError(
-        error?.userMessage ?? "Could not load the backup schedule."
+        error?.userMessage ?? "Could not load the backup schedule.",
       );
     } finally {
       setScheduleLoading(false);
@@ -101,7 +101,7 @@ export const useSystemMaintenance = () => {
       } catch (error) {
         if (!cancelled)
           setScheduleError(
-            error?.userMessage ?? "Could not load the backup schedule."
+            error?.userMessage ?? "Could not load the backup schedule.",
           );
       } finally {
         if (!cancelled) setScheduleLoading(false);
@@ -130,7 +130,7 @@ export const useSystemMaintenance = () => {
             tone: "success",
           },
           ...prev,
-        ].slice(0, 5)
+        ].slice(0, 5),
       );
       setToast({
         type: "success",
@@ -231,7 +231,7 @@ export const useSystemMaintenance = () => {
               tone: "success",
             },
             ...previous,
-          ].slice(0, 5)
+          ].slice(0, 5),
         );
 
         setBackupsReload((count) => count + 1);
@@ -246,7 +246,7 @@ export const useSystemMaintenance = () => {
         setRestoring(false);
       }
     },
-    []
+    [],
   );
 
   /* Save Schedule */
@@ -271,7 +271,7 @@ export const useSystemMaintenance = () => {
             tone: "info",
           },
           ...prev,
-        ].slice(0, 5)
+        ].slice(0, 5),
       );
     } catch (error) {
       setScheduleError(error?.userMessage ?? "Could not update the schedule.");

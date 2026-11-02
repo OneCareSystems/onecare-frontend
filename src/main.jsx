@@ -24,7 +24,7 @@ const start = async () => {
     <StrictMode>
       <Provider store={store}>
         <PersistGate
-           loading={<div role="status">{i18n.t("common.loading")}</div>}
+          loading={<div role="status">{i18n.t("common.loading")}</div>}
           persistor={persistor}
         >
           <App />
@@ -35,4 +35,3 @@ const start = async () => {
 };
 
 start();
-

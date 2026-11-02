@@ -24,7 +24,10 @@ export const validateMedicine = (values) => {
 
   if (values.price.trim() === "") {
     errors.price = "Price is required.";
-  } else if (!Number.isFinite(Number(values.price)) || Number(values.price) <= 0) {
+  } else if (
+    !Number.isFinite(Number(values.price)) ||
+    Number(values.price) <= 0
+  ) {
     errors.price = "Price must be greater than 0.";
   } else if (!/^\d+(\.\d{1,2})?$/.test(values.price.trim())) {
     errors.price = "Enter a price with no more than 2 decimal places.";
@@ -36,7 +39,8 @@ export const validateMedicine = (values) => {
     !/^\d+$/.test(values.reorderLevel.trim()) ||
     !Number.isSafeInteger(Number(values.reorderLevel))
   ) {
-    errors.reorderLevel ="Threshold must be a whole number greater than or equal to 0.";
+    errors.reorderLevel =
+      "Threshold must be a whole number greater than or equal to 0.";
   }
 
   if (!values.expiryDate) {
@@ -51,7 +55,8 @@ export const validateMedicine = (values) => {
     !/^\d+$/.test(values.stockQuantity.trim()) ||
     !Number.isSafeInteger(Number(values.stockQuantity))
   ) {
-    errors.stockQuantity = "Stock must be a whole number greater than or equal to 0.";
+    errors.stockQuantity =
+      "Stock must be a whole number greater than or equal to 0.";
   }
 
   return errors;

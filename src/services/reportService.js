@@ -126,7 +126,9 @@ export function adaptPharmacyReport(payload) {
 const clinicParams = ({ from, to, doctorId } = {}) => ({
   from,
   to,
-  ...(doctorId !== null && doctorId !== undefined && doctorId !== "" ? { doctorId } : {}),
+  ...(doctorId !== null && doctorId !== undefined && doctorId !== ""
+    ? { doctorId }
+    : {}),
 });
 
 const pharmacyParams = ({ type, from, to } = {}) => ({ type, from, to });

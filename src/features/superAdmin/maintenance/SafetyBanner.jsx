@@ -15,17 +15,20 @@ export const SafetyBanner = memo(
     if (latestAgeDays == null) {
       tone = "danger";
       title = "No backup on record";
-      sub = "Create the first encrypted snapshot to begin protecting system data.";
+      sub =
+        "Create the first encrypted snapshot to begin protecting system data.";
       icon = "shield-alert";
     } else if (latestAgeDays >= 30) {
       tone = "danger";
       title = `Last backup ${latestAgeDays} days ago`;
-      sub = "System data is outside the recommended recovery window. Run a backup now.";
+      sub =
+        "System data is outside the recommended recovery window. Run a backup now.";
       icon = "shield-alert";
     } else if (latestAgeDays >= 7) {
       tone = "warning";
       title = `Last backup ${latestAgeDays} days ago`;
-      sub = "Consider running a manual backup to keep clinic snapshot up to date.";
+      sub =
+        "Consider running a manual backup to keep clinic snapshot up to date.";
       icon = "alert-circle";
     }
 
@@ -58,14 +61,23 @@ export const SafetyBanner = memo(
             <p className="mt-0.5 text-xs opacity-85 leading-relaxed">{sub}</p>
             {nextRun && (
               <p className="mt-2.5 flex items-center gap-1.5 text-xs font-medium text-neutral-600">
-                <Icon name="calendar-clock" className="h-3.5 w-3.5 text-neutral-400" />
+                <Icon
+                  name="calendar-clock"
+                  className="h-3.5 w-3.5 text-neutral-400"
+                />
                 <span>
-                  Next automatic run <span className="font-semibold">{relFuture(nextRun.toISOString())}</span> ({nextRun.toLocaleString(undefined, {
+                  Next automatic run{" "}
+                  <span className="font-semibold">
+                    {relFuture(nextRun.toISOString())}
+                  </span>{" "}
+                  (
+                  {nextRun.toLocaleString(undefined, {
                     month: "short",
                     day: "numeric",
                     hour: "2-digit",
                     minute: "2-digit",
-                  })})
+                  })}
+                  )
                 </span>
               </p>
             )}
@@ -83,7 +95,7 @@ export const SafetyBanner = memo(
         </Button>
       </div>
     );
-  }
+  },
 );
 
 SafetyBanner.displayName = "SafetyBanner";

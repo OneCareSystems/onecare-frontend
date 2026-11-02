@@ -63,30 +63,28 @@ describe("Sidebar — CFG-04 role-driven navigation", () => {
     );
   });
 
-  
-it("renders all Pharmacy Management navigation links", () => {
-  store.dispatch(setSession({ accessToken: "a", role: ROLES.PHARMACIST }));
+  it("renders all Pharmacy Management navigation links", () => {
+    store.dispatch(setSession({ accessToken: "a", role: ROLES.PHARMACIST }));
 
-  renderSidebar();
+    renderSidebar();
 
-  const expectedItems = [
-    ["Dashboard", "/pharmacist/dashboard"],
-    ["Dispensing Queue", "/pharmacist/dispensing-queue"],
-    ["Inventory", "/pharmacist/inventory"],
-    ["External Dispensing", "/pharmacist/external-dispensing"],
-    ["Reports", "/pharmacist/reports"],
-  ];
+    const expectedItems = [
+      ["Dashboard", "/pharmacist/dashboard"],
+      ["Dispensing Queue", "/pharmacist/dispensing-queue"],
+      ["Inventory", "/pharmacist/inventory"],
+      ["External Dispensing", "/pharmacist/external-dispensing"],
+      ["Reports", "/pharmacist/reports"],
+    ];
 
-  for (const [label, destination] of expectedItems) {
-    expect(screen.getByRole("link", { name: label })).toHaveAttribute(
-      "href",
-      destination,
-    );
-  }
+    for (const [label, destination] of expectedItems) {
+      expect(screen.getByRole("link", { name: label })).toHaveAttribute(
+        "href",
+        destination,
+      );
+    }
 
-  expect(screen.getAllByRole("link")).toHaveLength(expectedItems.length);
-});
-
+    expect(screen.getAllByRole("link")).toHaveLength(expectedItems.length);
+  });
 
   it("renders SuperAdmin sections and shared clinic reports with their route destinations", () => {
     store.dispatch(setSession({ accessToken: "a", role: ROLES.SUPER_ADMIN }));

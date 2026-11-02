@@ -1,7 +1,9 @@
 # OneCare Frontend
+
 [![CI](https://github.com/OneCareSystems/onecare-frontend/actions/workflows/ci.yml/badge.svg)](https://github.com/OneCareSystems/onecare-frontend/actions/workflows/ci.yml) [![License](https://img.shields.io/github/license/OneCareSystems/onecare-frontend)](https://github.com/OneCareSystems/onecare-frontend) [![Last Commit](https://img.shields.io/github/last-commit/OneCareSystems/onecare-frontend)](https://github.com/OneCareSystems/onecare-frontend/commits/main) [![Issues](https://img.shields.io/github/issues/OneCareSystems/onecare-frontend)](https://github.com/OneCareSystems/onecare-frontend/issues) [![Pull Requests](https://img.shields.io/github/issues-pr/OneCareSystems/onecare-frontend)](https://github.com/OneCareSystems/onecare-frontend/pulls) [![Contributors](https://img.shields.io/github/contributors/OneCareSystems/onecare-frontend)](https://github.com/OneCareSystems/onecare-frontend/graphs/contributors) [![Code Size](https://img.shields.io/github/languages/code-size/OneCareSystems/onecare-frontend)](https://github.com/OneCareSystems/onecare-frontend) [![Node.js](https://img.shields.io/badge/Node.js-22-green?logo=nodedotjs)](https://nodejs.org/) [![React](https://img.shields.io/badge/React-Frontend-61DAFB?logo=react&logoColor=black)](https://react.dev/) [![Vite](https://img.shields.io/badge/Vite-Build-646CFF?logo=vite&logoColor=white)](https://vite.dev/) [![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?logo=docker&logoColor=white)](https://www.docker.com/) [![Security](https://img.shields.io/badge/Security-Gitleaks%20%2B%20Trivy-blue?logo=github)](https://github.com/OneCareSystems/onecare-frontend/actions/workflows/ci.yml)
 
 ## 1. Project Description
+
 **OneCare Clinic Integrated Pharmacy Management System** is a web-based platform that digitises the operations of a single-doctor private clinic with an in-house pharmacy: patient records, appointments, queue management, consultations, prescriptions, pharmacy dispensing, inventory, billing, reporting and a patient chatbot.
 
 This repository (`onecare-frontend`) is the **React single-page application** of the system. It covers two areas:
@@ -13,26 +15,29 @@ This repository (`onecare-frontend`) is the **React single-page application** of
 The interface is bilingual (English and Tamil).
 
 ### Link to the broader project
+
 This repository is part of the **OneCareSystems** GitHub Organisation (SENG 34213 – System Development Project, University of Kelaniya).
 
-| Part | Location |
-| ---- | -------- |
-| GitHub Organization | [Github]https://github.com/OneCareSystems |
-| Backend (Spring Boot) | https://github.com/OneCareSystems/onecare-backend |
-| Chatbot (django)| https://github.com/OneCareSystems/onecare-chatbot |
-| Infrastructure (Docker Compose, deployment) | https://github.com/OneCareSystems/onecare-infra |
-| Tests (Postman / integration) | https://github.com/OneCareSystems/onecare-testing |
-| Documents (SRS, SDS, ADRs) | [onecare-documents](https://github.com/OneCareSystems/onecare-documents) |
-| GitHub Project board | [Project Board](https://github.com/orgs/OneCareSystems/projects/4) |
+| Part                                        | Location                                                                 |
+| ------------------------------------------- | ------------------------------------------------------------------------ |
+| GitHub Organization                         | [Github]https://github.com/OneCareSystems                                |
+| Backend (Spring Boot)                       | https://github.com/OneCareSystems/onecare-backend                        |
+| Chatbot (django)                            | https://github.com/OneCareSystems/onecare-chatbot                        |
+| Infrastructure (Docker Compose, deployment) | https://github.com/OneCareSystems/onecare-infra                          |
+| Tests (Postman / integration)               | https://github.com/OneCareSystems/onecare-testing                        |
+| Documents (SRS, SDS, ADRs)                  | [onecare-documents](https://github.com/OneCareSystems/onecare-documents) |
+| GitHub Project board                        | [Project Board](https://github.com/orgs/OneCareSystems/projects/4)       |
 
 ## 2. Deployed Application
-| Environment | URL |
-| ----------- | --- |
-| Staging | `<STAGING_URL>` |
+
+| Environment | URL             |
+| ----------- | --------------- |
+| Staging     | `<STAGING_URL>` |
 
 Demo user credentials are supplied to the supervisor with the submission and are never committed to this repository.
 
 ## 3. Built Using
+
 - React 19 + Vite
 
 - Redux Toolkit + redux-persist
@@ -52,6 +57,7 @@ Demo user credentials are supplied to the supervisor with the submission and are
 - Docker + nginx
 
 ## 4. Prerequisites
+
 **Runtime and tools**
 
 - Git
@@ -68,20 +74,21 @@ Demo user credentials are supplied to the supervisor with the submission and are
 
 All variables are optional for local development; `.env.example` lists them with defaults.
 
-| Variable | Required | Default | Purpose |
-| -------- | -------- | ------- | ------- |
-| `VITE_API_BASE_URL` | No | `/api` | Base URL of the backend API, including the `/api` prefix |
-| `VITE_DEV_PROXY_TARGET` | No | `http://localhost:8080` | Backend target the Vite dev server proxies `/api` to |
-| `VITE_CLINIC_PHONE` | No | built-in default | Clinic phone shown in footer/contact block |
-| `VITE_CLINIC_EMAIL` | No | built-in default | Clinic email shown in footer/contact block |
-| `VITE_CLINIC_ADDRESS` | No | built-in default | Clinic address shown in footer/contact block |
-| `VITE_CLINIC_HOURS` | No | built-in default | Opening-hours text on the Home page |
+| Variable                | Required | Default                 | Purpose                                                  |
+| ----------------------- | -------- | ----------------------- | -------------------------------------------------------- |
+| `VITE_API_BASE_URL`     | No       | `/api`                  | Base URL of the backend API, including the `/api` prefix |
+| `VITE_DEV_PROXY_TARGET` | No       | `http://localhost:8080` | Backend target the Vite dev server proxies `/api` to     |
+| `VITE_CLINIC_PHONE`     | No       | built-in default        | Clinic phone shown in footer/contact block               |
+| `VITE_CLINIC_EMAIL`     | No       | built-in default        | Clinic email shown in footer/contact block               |
+| `VITE_CLINIC_ADDRESS`   | No       | built-in default        | Clinic address shown in footer/contact block             |
+| `VITE_CLINIC_HOURS`     | No       | built-in default        | Opening-hours text on the Home page                      |
 
 For the smoke tests only: `SMOKE_BASE_URL`, `SMOKE_STAFF_USERNAME`, `SMOKE_STAFF_PASSWORD` (never committed).
 
 > Nothing secret may be placed in any `VITE_*` variable or in `/config.json`; these are baked into or served with the public bundle.
 
 ## 5. Installation and Running (step by step)
+
 These steps work on a fresh machine.
 
 1. **Install Node.js 22** (for example with [nvm](https://github.com/nvm-sh/nvm)):
@@ -145,25 +152,28 @@ These steps work on a fresh machine.
    ```
 
 ### How the API URL is resolved
+
 `VITE_API_BASE_URL` is read once in `src/services/config.js` and used by the central Axios client. If missing or blank it defaults to `/api`. In development Vite proxies `/api` to `VITE_DEV_PROXY_TARGET` (default `http://localhost:8080`) without rewriting the path, so `/api/auth/login` reaches `http://localhost:8080/api/auth/login`. Service paths such as `/auth/login` must not add another `/api` prefix. Restart Vite after changing environment variables or proxy configuration.
 
 For direct backend requests, set `VITE_API_BASE_URL=http://localhost:8080/api` and allow the frontend origin in the backend CORS configuration.
 
 ## 6. Scripts
-| Command | Purpose |
-| ------- | ------- |
-| `npm run dev` | Development server |
-| `npm run build` | Production build |
-| `npm run preview` | Preview the production build |
-| `npm run lint` | ESLint |
-| `npm run format` / `npm run format:check` | Prettier write / check |
-| `npm run check:i18n` | Every user-facing string exists in both locales |
-| `npm run test` | Unit tests |
-| `npm run test:coverage` | Unit tests with coverage |
-| `npm run test:e2e` | Playwright (starts dev server, Chromium at 360 px) |
-| `npm run test:smoke` | Playwright against a deployed environment |
+
+| Command                                   | Purpose                                            |
+| ----------------------------------------- | -------------------------------------------------- |
+| `npm run dev`                             | Development server                                 |
+| `npm run build`                           | Production build                                   |
+| `npm run preview`                         | Preview the production build                       |
+| `npm run lint`                            | ESLint                                             |
+| `npm run format` / `npm run format:check` | Prettier write / check                             |
+| `npm run check:i18n`                      | Every user-facing string exists in both locales    |
+| `npm run test`                            | Unit tests                                         |
+| `npm run test:coverage`                   | Unit tests with coverage                           |
+| `npm run test:e2e`                        | Playwright (starts dev server, Chromium at 360 px) |
+| `npm run test:smoke`                      | Playwright against a deployed environment          |
 
 ## 7. Testing
+
 Tests live in the top-level `test/` directory, which mirrors `src/` (for example `src/services/apiClient.js` → `test/services/apiClient.test.js`). Shared infrastructure (`setup.js`, MSW handlers/server) is in `test/` as well. No test files are kept inside `src/`.
 
 ```bash
@@ -193,6 +203,7 @@ npm run test:smoke      # already-deployed environment
 `test:smoke` needs `SMOKE_BASE_URL`, `SMOKE_STAFF_USERNAME` and `SMOKE_STAFF_PASSWORD`; it never runs against a local dev server.
 
 ## 8. CI Pipeline
+
 Workflow: `.github/workflows/ci.yml` (status badge at the top of this file).
 
 **Job `build-test`** – install → translation parity check → colour contrast check → lint → tests with coverage thresholds → `npm audit` (production dependencies) → build.
@@ -202,7 +213,9 @@ Workflow: `.github/workflows/ci.yml` (status badge at the top of this file).
 Pull requests build and scan but never push. Merges to `develop` / `main` push the image to GHCR tagged `sha-<commit>`; no `latest` tag is ever pushed, and deployments promote the same SHA from staging to production.
 
 ## 9. Docker
+
 ### Production image
+
 `Dockerfile.prod` is a two-stage build:
 
 1. **build** – pinned `node:<version>-alpine`, `npm ci`, `vite build` with `VITE_API_BASE_URL=/api` (same-origin; no hostname in the bundle)
@@ -222,6 +235,7 @@ Then open `http://localhost:3000`. (Port 3000 is used on the host to avoid clash
 At start, `docker/entrypoint.sh` exports nginx template defaults and writes `/config.json` from `RUNTIME_API_BASE_URL` (default `/api`). Base images are pinned and `hadolint` fails CI on unpinned or `latest` tags (`.hadolint.yaml`).
 
 ### Runtime configuration
+
 `VITE_*` variables are baked in at build time, so the image never carries an environment-specific URL. `src/services/config.js` resolves the API base URL in this order:
 
 1. runtime `/config.json` value (`apiBaseUrl`)
@@ -233,6 +247,7 @@ At start, `docker/entrypoint.sh` exports nginx template defaults and writes `/co
 A missing or broken runtime file silently falls back to build-time defaults. This lets **one image run in staging and production without a rebuild**.
 
 ### nginx behaviour
+
 `nginx/default.conf.template` (rendered at container start):
 
 - `location /` – SPA fallback to `index.html` so deep links survive a hard refresh
@@ -250,9 +265,11 @@ A missing or broken runtime file silently falls back to build-time defaults. Thi
 **TLS:** HTTPS (TLS 1.2+) and HSTS are terminated at the production edge/ingress, not in this container.
 
 ### Compose
+
 The full stack (frontend, backend, MySQL, Redis, chatbot) lives in [`onecare-infra`](https://github.com/OneCareSystems/onecare-infra); see its README for dev and prod-like modes.
 
 ## 10. Project Structure
+
 ```text
 
 onecare-frontend/
@@ -316,16 +333,18 @@ onecare-frontend/
 ```
 
 ### Feature modules
-| Module | Route prefix | Screens |
-| ------ | ------------ | ------- |
-| Public portal | `/` | Home, login, forgot/reset password, booking, booking confirmation, 404, styleguide |
-| Super Admin | `/super-admin` | Dashboard, user management, access control, clinic configuration, system maintenance, audit logs, reports |
-| Admin | `/admin` | Dashboard, register patient, patient search/edit, book appointment, appointment hub, billing, clinic reports, knowledge base |
-| Doctor | `/doctor` | Dashboard, today's schedule, consultation, patient records/details, knowledge base |
-| Pharmacist | `/pharmacist` | Dashboard, dispensing queue, inventory, add/update medicine, external dispensing, reports |
-| Shared | `/queue` | Live queue view for Admin, Doctor and Super Admin |
+
+| Module        | Route prefix   | Screens                                                                                                                      |
+| ------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Public portal | `/`            | Home, login, forgot/reset password, booking, booking confirmation, 404, styleguide                                           |
+| Super Admin   | `/super-admin` | Dashboard, user management, access control, clinic configuration, system maintenance, audit logs, reports                    |
+| Admin         | `/admin`       | Dashboard, register patient, patient search/edit, book appointment, appointment hub, billing, clinic reports, knowledge base |
+| Doctor        | `/doctor`      | Dashboard, today's schedule, consultation, patient records/details, knowledge base                                           |
+| Pharmacist    | `/pharmacist`  | Dashboard, dispensing queue, inventory, add/update medicine, external dispensing, reports                                    |
+| Shared        | `/queue`       | Live queue view for Admin, Doctor and Super Admin                                                                            |
 
 ### Routing and access control
+
 - `src/routes/AppRoutes.jsx` declares every route; `src/routes/RequireAuth.jsx` guards the staff areas.
 
 - `src/constants/roles.js`, `permissions.js` and `routeAccess.js` define the four roles (`SUPER_ADMIN`, `ADMIN`, `DOCTOR`, `PHARMACIST`), what each may do and where each may go.
@@ -335,15 +354,15 @@ onecare-frontend/
 - Never hard-code role strings or route paths – import them from `src/constants/`.
 
 ## 11. Architecture Notes
+
 ### API client and interceptors
+
 All HTTP calls go through one Axios instance, `src/services/apiClient.js`:
 
 ```js
-
 import apiClient from "../services/apiClient";
 
 const { data } = await apiClient.get("/patients/1");
-
 ```
 
 - **Request interceptor** – attaches `Authorization: Bearer <token>` in one place; pass `{ skipAuth: true }` for public endpoints.
@@ -359,6 +378,7 @@ const { data } = await apiClient.get("/patients/1");
 Tokens, passwords and request bodies are never logged. Module services (`authService`, `patientService`, `appointmentService`, `medicineService`, `prescriptionService`, …) must call the central client.
 
 ### Session state (Redux)
+
 Auth state lives in `src/features/auth/authSlice.js` (`accessToken`, `refreshToken`, `expiresAt`, `role`, `redirectUrl`).
 
 - **Store** – the single store is `src/app/store.js`; register new reducers there.
@@ -372,6 +392,7 @@ Auth state lives in `src/features/auth/authSlice.js` (`accessToken`, `refreshTok
 Only the `auth` slice is persisted (redux-persist whitelist), so a signed-in session survives reload. Everything else, including `queue`, is in memory. Do not add ad-hoc `localStorage` / `sessionStorage` calls; go through the store.
 
 ### Branding and static assets
+
 - `public/logo.svg` – OneCare mark and browser favicon (`/logo.svg` in `index.html`).
 
 - `public/images/home/hero-clinic.webp` – locally hosted Home hero image; keep it in the repository so production does not depend on an external host.
@@ -379,6 +400,7 @@ Only the `auth` slice is persisted (redux-persist whitelist), so a signed-in ses
 - `public/fonts.css` and `public/fonts/` – self-hosted fonts.
 
 ## 12. Contributing
+
 - Branch from `develop` using `feat/<ticket-id>/<slug>` or `fix/<ticket-id>/<slug>`; open PRs against `develop`.
 
 - Use Conventional Commits and reference the issue (`Closes #XX`).

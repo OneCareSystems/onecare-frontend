@@ -1,4 +1,3 @@
-
 import { afterEach, describe, expect, it } from "vitest";
 import {
   searchMedicines,
@@ -32,48 +31,47 @@ afterEach(() => {
 
 describe("medicineService", () => {
   it("creates a medicine without sending initial stock", async () => {
-  const medicine = {
-    name: "Paracetamol",
-    genericName: "Acetaminophen",
-    category: "Analgesic",
-    unit: "tablet",
-    price: "125.50",
-    expiryDate: "2027-12-31",
-    reorderLevel: "10",
-  };
+    const medicine = {
+      name: "Paracetamol",
+      genericName: "Acetaminophen",
+      category: "Analgesic",
+      unit: "tablet",
+      price: "125.50",
+      expiryDate: "2027-12-31",
+      reorderLevel: "10",
+    };
 
-  mswState.medicineCreateResponses.push({
-    medicineId: 101,
-    ...medicine,
-    price: 125.5,
-    stockQuantity: 0,
+    mswState.medicineCreateResponses.push({
+      medicineId: 101,
+      ...medicine,
+      price: 125.5,
+      stockQuantity: 0,
+    });
+
+    const result = await createMedicine(medicine);
+
+    expect(result).toMatchObject({
+      medicineId: 101,
+      name: "Paracetamol",
+      stockQuantity: 0,
+    });
+
+    expect(mswState.medicineCreateHits).toHaveLength(1);
+
+    const requestBody = mswState.medicineCreateHits[0].body;
+
+    expect(requestBody).toMatchObject({
+      name: "Paracetamol",
+      genericName: "Acetaminophen",
+      category: "Analgesic",
+      unit: "tablet",
+      price: "125.50",
+      expiryDate: "2027-12-31",
+      reorderLevel: 10,
+    });
+
+    expect(requestBody).not.toHaveProperty("stockQuantity");
   });
-
-  const result = await createMedicine(medicine);
-
-  expect(result).toMatchObject({
-    medicineId: 101,
-    name: "Paracetamol",
-    stockQuantity: 0,
-  });
-
-  expect(mswState.medicineCreateHits).toHaveLength(1);
-
-  const requestBody = mswState.medicineCreateHits[0].body;
-
-  expect(requestBody).toMatchObject({
-    name: "Paracetamol",
-    genericName: "Acetaminophen",
-    category: "Analgesic",
-    unit: "tablet",
-    price: "125.50",
-    expiryDate: "2027-12-31",
-    reorderLevel: 10,
-  });
-
-  expect(requestBody).not.toHaveProperty("stockQuantity");
-});
-
 
   it("creates a medicine and starts with zero stock", async () => {
     const medicine = {
@@ -138,7 +136,6 @@ describe("medicineService", () => {
 
     expect(mswState.medicineCreateHits[0].body.genericName).toBeNull();
   });
-
 
   it("searches medicines using the search query", async () => {
     mswState.medicineListResponses.push(medicines);

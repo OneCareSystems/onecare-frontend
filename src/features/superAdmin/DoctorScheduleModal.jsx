@@ -25,7 +25,6 @@ export const DoctorScheduleModal = ({
       title={`Weekly Schedule — ${doctor.fullName ?? doctor.username}`}
       className="max-w-4xl"
     >
-
       <div className="max-h-[75vh] overflow-y-auto">
         <DoctorScheduleEditor
           days={days}

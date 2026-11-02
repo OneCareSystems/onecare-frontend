@@ -26,8 +26,8 @@ export const MaintenanceActivityLog = memo(({ activity, onClear }) => {
                 a.tone === "success"
                   ? "bg-emerald-500"
                   : a.tone === "info"
-                  ? "bg-primary-500"
-                  : "bg-neutral-400"
+                    ? "bg-primary-500"
+                    : "bg-neutral-400"
               }`}
             />
             <span className="font-medium text-neutral-700">{a.text}</span>

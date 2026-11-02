@@ -240,9 +240,9 @@ export const DoctorScheduleEditor = ({
   const totalSlots = getSlotCount(days);
   const totalMinutes = weeklyHours(days);
 
-    return (
+  return (
     <div className="space-y-4">
-            <div className="flex flex-col gap-3 rounded-xl border border-primary-100 bg-primary-50/50 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-xl border border-primary-100 bg-primary-50/50 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-primary-700 shadow-xs">
             <Icon name="calendar" className="h-5 w-5" />

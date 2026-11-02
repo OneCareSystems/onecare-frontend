@@ -1,4 +1,3 @@
-
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -86,9 +85,7 @@ describe("UpdateMedicinePage", () => {
     expect(await screen.findByLabelText(/medicine name/i)).toHaveValue(
       "Paracetamol",
     );
-    expect(screen.getByLabelText(/generic name/i)).toHaveValue(
-      "Acetaminophen",
-    );
+    expect(screen.getByLabelText(/generic name/i)).toHaveValue("Acetaminophen");
     expect(screen.getByLabelText(/unit price/i)).toHaveValue(125.5);
     expect(mswState.medicineByIdHits).toHaveLength(1);
     expect(mswState.medicineByIdHits[0].id).toBe("101");
@@ -115,9 +112,7 @@ describe("UpdateMedicinePage", () => {
     renderPage();
     await fillUpdatedMedicine(user);
 
-    await user.click(
-      screen.getByRole("button", { name: /update medicine/i }),
-    );
+    await user.click(screen.getByRole("button", { name: /update medicine/i }));
 
     expect(
       await screen.findByText(/medicine details updated successfully/i),
@@ -150,9 +145,7 @@ describe("UpdateMedicinePage", () => {
     renderPage();
     await fillUpdatedMedicine(user);
 
-    await user.click(
-      screen.getByRole("button", { name: /update medicine/i }),
-    );
+    await user.click(screen.getByRole("button", { name: /update medicine/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       /unable to update medicine/i,

@@ -65,9 +65,7 @@ describe("public service contract", () => {
     [
       {
         data: {
-          content: [
-            { doctorId: 3, displayName: "Dr Name", hours: "10?12" },
-          ],
+          content: [{ doctorId: 3, displayName: "Dr Name", hours: "10?12" }],
         },
       },
       [

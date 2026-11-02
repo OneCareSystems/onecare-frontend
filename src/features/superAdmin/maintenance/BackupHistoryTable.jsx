@@ -54,7 +54,9 @@ export const BackupHistoryTable = memo(
                     })
                   : "—"}
               </p>
-              <p className="text-[11px] text-neutral-400">{relTime(b.createdAt)}</p>
+              <p className="text-[11px] text-neutral-400">
+                {relTime(b.createdAt)}
+              </p>
             </div>
           ),
         },
@@ -91,7 +93,7 @@ export const BackupHistoryTable = memo(
           ),
         },
       ],
-      [onSelectBackup, onDownloadBackup, downloadingId]
+      [onSelectBackup, onDownloadBackup, downloadingId],
     );
 
     return (
@@ -132,11 +134,7 @@ export const BackupHistoryTable = memo(
               title="Could not load stored backups"
               message="The backup service did not answer."
             />
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={onRetry}
-            >
+            <Button size="sm" variant="outline" onClick={onRetry}>
               <Icon name="refresh" className="mr-1.5 h-3.5 w-3.5" /> Retry
             </Button>
           </div>
@@ -153,7 +151,7 @@ export const BackupHistoryTable = memo(
         )}
       </section>
     );
-  }
+  },
 );
 
 BackupHistoryTable.displayName = "BackupHistoryTable";

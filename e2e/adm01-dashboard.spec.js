@@ -98,7 +98,10 @@ for (const width of [360, 768, 1280]) {
       ).violations.map(({ id, description }) => ({ id, description })),
     );
     expect(violations).toEqual([]);
-    await page.screenshot({ path: `.playwright/adm01-dashboard-${width}.png`, fullPage: true });
+    await page.screenshot({
+      path: `.playwright/adm01-dashboard-${width}.png`,
+      fullPage: true,
+    });
     const actions = page.getByRole("region", { name: "Quick Actions" });
     const booking = actions.getByRole("link", { name: /Book Appointment/ });
     await booking.focus();

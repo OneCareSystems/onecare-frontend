@@ -26,14 +26,20 @@ it("shows the current landing page information and assistant guidance", () => {
   expect(
     screen.getByRole("heading", { name: en.publicLanding.welcome }),
   ).toBeVisible();
-  expect(screen.getByRole("heading", { name: "How a visit works" })).toBeVisible();
+  expect(
+    screen.getByRole("heading", { name: "How a visit works" }),
+  ).toBeVisible();
   expect(screen.getByRole("heading", { name: "Book online" })).toBeVisible();
   expect(screen.getByRole("heading", { name: "See the doctor" })).toBeVisible();
-  expect(screen.getByRole("heading", { name: "Collect your medicines" })).toBeVisible();
+  expect(
+    screen.getByRole("heading", { name: "Collect your medicines" }),
+  ).toBeVisible();
   expect(
     screen.getByText(/It shares general clinic information only/),
   ).toBeVisible();
-  expect(screen.getByRole("button", { name: "Chat with OneCare" })).toBeVisible();
+  expect(
+    screen.getByRole("button", { name: "Chat with OneCare" }),
+  ).toBeVisible();
 });
 
 it("navigates to public booking from the home appointment button", async () => {
@@ -42,7 +48,10 @@ it("navigates to public booking from the home appointment button", async () => {
     <MemoryRouter initialEntries={["/home"]}>
       <Routes>
         <Route path="/home" element={<HomePage />} />
-        <Route path="/appointments" element={<h1>Book an appointment page</h1>} />
+        <Route
+          path="/appointments"
+          element={<h1>Book an appointment page</h1>}
+        />
       </Routes>
     </MemoryRouter>,
   );
@@ -104,7 +113,9 @@ it("navigates to booking from the assistant response action", async () => {
   });
 
   await widget.ask("How can I book an appointment?");
-  expect(screen.queryByRole("heading", { name: "Booking page" })).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("heading", { name: "Booking page" }),
+  ).not.toBeInTheDocument();
   await user.click(widget.shadowRoot.querySelector(".booking-link"));
   expect(screen.getByRole("heading", { name: "Booking page" })).toBeVisible();
 });

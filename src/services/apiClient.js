@@ -56,7 +56,9 @@ export const isTokenRefreshFailure = (error) => {
   if (!error) return false;
   const status = error.response?.status;
   const data = error.response?.data;
-  const msg = String(data?.message || data?.error || error.message || "").toUpperCase();
+  const msg = String(
+    data?.message || data?.error || error.message || "",
+  ).toUpperCase();
 
   if (status === 401 || status === 400 || status === 403 || status === 422) {
     return true;
@@ -277,7 +279,8 @@ apiClient.interceptors.response.use(
 
     if (
       status === 401 ||
-      (isRefreshRequest(config) && (status === 400 || status === 403 || isTokenRefreshFailure(error)))
+      (isRefreshRequest(config) &&
+        (status === 400 || status === 403 || isTokenRefreshFailure(error)))
     ) {
       if (isRefreshRequest(config) || config._retry) {
         handleSessionExpired();
@@ -296,7 +299,10 @@ apiClient.interceptors.response.use(
       try {
         await refreshSession();
       } catch (refreshError) {
-        if (isTokenRefreshFailure(refreshError) || !selectRefreshToken(store.getState())) {
+        if (
+          isTokenRefreshFailure(refreshError) ||
+          !selectRefreshToken(store.getState())
+        ) {
           handleSessionExpired();
         }
         return Promise.reject(

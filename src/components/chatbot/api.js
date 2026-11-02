@@ -17,7 +17,6 @@ export class ChatApiError extends Error {
 
 /** Accept Retry-After as delta seconds or an HTTP date. */
 export function parseRetryAfter(value, fallback = 30) {
-
   const raw = String(value ?? "").trim();
   const seconds = /^\d+$/.test(raw)
     ? Number(raw)

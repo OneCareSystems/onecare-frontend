@@ -19,7 +19,9 @@ import {
 /* Normalize the report type returned by the API so the section lookup is
    case-insensitive and tolerant of enum casing differences. */
 const normalizeType = (raw) =>
-  String(raw ?? "").toUpperCase().replace(/\s+/g, "_");
+  String(raw ?? "")
+    .toUpperCase()
+    .replace(/\s+/g, "_");
 
 export default function PharmacyReportsPage() {
   const [type, setType] = useState(PHARMACY_REPORT_TYPES[0].value),
@@ -234,7 +236,10 @@ function ReportSkeleton() {
       <div className="h-4 w-40 animate-pulse rounded bg-neutral-100" />
       <div className="space-y-2">
         {[0, 1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-10 animate-pulse rounded-xl bg-neutral-100" />
+          <div
+            key={i}
+            className="h-10 animate-pulse rounded-xl bg-neutral-100"
+          />
         ))}
       </div>
     </div>
@@ -266,9 +271,7 @@ function summaryFor(section, report) {
   if (section.key === "DISPENSING_HISTORY") {
     const units = rows.reduce((sum, r) => sum + (Number(r.quantity) || 0), 0);
     const uniquePatients = new Set(
-      rows
-        .filter((r) => r.patientId != null)
-        .map((r) => String(r.patientId)),
+      rows.filter((r) => r.patientId != null).map((r) => String(r.patientId)),
     ).size;
     return [
       ["Dispense events", total, "clipboard-list"],

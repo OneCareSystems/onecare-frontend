@@ -4,7 +4,14 @@ import Icon from "../../../components/Icon";
 import { fmtSize } from "./maintenanceUtils";
 
 export const RestoreBackupModal = memo(
-  ({ isOpen, onClose, backups = [], onRestore, restoring, initialBackupId = "" }) => {
+  ({
+    isOpen,
+    onClose,
+    backups = [],
+    onRestore,
+    restoring,
+    initialBackupId = "",
+  }) => {
     const [restoreSource, setRestoreSource] = useState("stored");
     const [restoreBackupId, setRestoreBackupId] = useState("");
     const [restoreFile, setRestoreFile] = useState(null);
@@ -59,7 +66,8 @@ export const RestoreBackupModal = memo(
                 Restore System Data
               </h2>
               <p className="mt-0.5 text-xs text-neutral-500 leading-relaxed">
-                Restore system state from a stored backup snapshot or upload an external recovery file.
+                Restore system state from a stored backup snapshot or upload an
+                external recovery file.
               </p>
             </div>
           </div>
@@ -95,7 +103,8 @@ export const RestoreBackupModal = memo(
                     Stored Snapshot
                   </span>
                   <span className="mt-0.5 block text-[11px] text-neutral-500">
-                    Restore from an encrypted snapshot stored locally in OneCare.
+                    Restore from an encrypted snapshot stored locally in
+                    OneCare.
                   </span>
                 </span>
               </label>
@@ -118,13 +127,15 @@ export const RestoreBackupModal = memo(
                     <option value="">Choose stored snapshot</option>
                     {backups.map((backup) => (
                       <option key={backup.backupId} value={backup.backupId}>
-                        #{backup.backupId} — {backup.filename} ({fmtSize(backup.sizeBytes)})
+                        #{backup.backupId} — {backup.filename} (
+                        {fmtSize(backup.sizeBytes)})
                       </option>
                     ))}
                   </select>
                   {backups.length === 0 && (
                     <p className="mt-1 text-[11px] text-neutral-500">
-                      No stored snapshots available. Choose an external file instead.
+                      No stored snapshots available. Choose an external file
+                      instead.
                     </p>
                   )}
                 </div>
@@ -173,7 +184,9 @@ export const RestoreBackupModal = memo(
                     type="file"
                     accept=".backup,application/octet-stream"
                     disabled={restoring}
-                    onChange={(event) => setRestoreFile(event.target.files?.[0] ?? null)}
+                    onChange={(event) =>
+                      setRestoreFile(event.target.files?.[0] ?? null)
+                    }
                     className="block w-full text-xs text-neutral-500 file:mr-3 file:rounded-md file:border-0 file:bg-neutral-100 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-neutral-700 hover:file:bg-neutral-200"
                   />
                   {restoreFile && (
@@ -191,17 +204,22 @@ export const RestoreBackupModal = memo(
                 Warning: System Overwrite Action
               </p>
               <p className="mt-0.5 text-[11px] leading-relaxed text-rose-800">
-                Restoring data will replace your active database state with the contents of this snapshot.
+                Restoring data will replace your active database state with the
+                contents of this snapshot.
               </p>
               <label className="mt-2.5 flex cursor-pointer items-start gap-2 text-xs font-medium text-rose-900">
                 <input
                   type="checkbox"
                   checked={restoreConfirmed}
-                  onChange={(event) => setRestoreConfirmed(event.target.checked)}
+                  onChange={(event) =>
+                    setRestoreConfirmed(event.target.checked)
+                  }
                   disabled={restoring}
                   className="mt-0.5 rounded border-rose-300 text-rose-600 focus:ring-rose-500"
                 />
-                <span>I understand and wish to proceed with data replacement.</span>
+                <span>
+                  I understand and wish to proceed with data replacement.
+                </span>
               </label>
             </div>
           </div>
@@ -234,7 +252,7 @@ export const RestoreBackupModal = memo(
         </section>
       </div>
     );
-  }
+  },
 );
 
 RestoreBackupModal.displayName = "RestoreBackupModal";

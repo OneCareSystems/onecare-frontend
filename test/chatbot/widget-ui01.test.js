@@ -105,10 +105,7 @@ describe("language of the interface and of the messages", () => {
     expect(w.input.getAttribute("placeholder")).toBe(STRINGS.en.placeholder);
   });
 
-
   it("the interface stays in the selected language until the language setting changes", async () => {
-
-
     const fetchImpl = vi.fn(async () => response(200, reply()));
     const w = mount({ fetchImpl, attrs: { lang: "ta" } });
     w.type("what are the clinic hours");

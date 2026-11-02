@@ -7,7 +7,10 @@ import "../src/i18n";
 // jsdom's Blob implements arrayBuffer() but not stream(); undici's Response
 // body extraction calls stream() when MSW resolves a responseType:"blob"
 // request (report/backup file downloads).
-if (typeof Blob !== "undefined" && typeof Blob.prototype.stream !== "function") {
+if (
+  typeof Blob !== "undefined" &&
+  typeof Blob.prototype.stream !== "function"
+) {
   Blob.prototype.stream = function stream() {
     const blob = this;
     return new ReadableStream({

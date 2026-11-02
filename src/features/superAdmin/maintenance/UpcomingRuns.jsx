@@ -8,10 +8,10 @@ export const UpcomingRuns = memo(({ schedule }) => {
         ? computeUpcomingRuns(
             Number(schedule.dayOfMonth),
             schedule.executionTime,
-            3
+            3,
           )
         : [],
-    [schedule]
+    [schedule],
   );
 
   if (!runs.length) return null;
@@ -34,7 +34,11 @@ export const UpcomingRuns = memo(({ schedule }) => {
             </span>
           )}
           <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
-            {i === 0 ? "Next Scheduled Run" : i === 1 ? "Following Month" : "Later Month"}
+            {i === 0
+              ? "Next Scheduled Run"
+              : i === 1
+                ? "Following Month"
+                : "Later Month"}
           </p>
           <p className="mt-1 text-sm font-semibold text-neutral-900">
             {run.toLocaleDateString(undefined, {
@@ -48,7 +52,10 @@ export const UpcomingRuns = memo(({ schedule }) => {
               hour: "2-digit",
               minute: "2-digit",
             })}{" "}
-            · <span className="font-medium text-neutral-700">{relFuture(run.toISOString())}</span>
+            ·{" "}
+            <span className="font-medium text-neutral-700">
+              {relFuture(run.toISOString())}
+            </span>
           </p>
         </div>
       ))}

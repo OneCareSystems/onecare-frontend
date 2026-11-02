@@ -1,7 +1,8 @@
 import { useTranslation } from "react-i18next";
 
 const phone = import.meta.env.VITE_CLINIC_PHONE?.trim() || "0218700530";
-const email = import.meta.env.VITE_CLINIC_EMAIL?.trim() || "onecaresystems@gmail.com";
+const email =
+  import.meta.env.VITE_CLINIC_EMAIL?.trim() || "onecaresystems@gmail.com";
 const address =
   import.meta.env.VITE_CLINIC_ADDRESS?.trim() || "QW2M+39, Moolai, Jaffna";
 
@@ -56,12 +57,9 @@ export default function ClinicContact({ embedded = false }) {
           <span className="font-medium text-slate-500">
             {t("publicCommon.address")}:{" "}
           </span>
-          <span className="font-semibold text-slate-900">
-            {address}
-          </span>
+          <span className="font-semibold text-slate-900">{address}</span>
         </li>
       </ul>
-
     </section>
   );
 }

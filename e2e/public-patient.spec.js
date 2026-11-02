@@ -67,7 +67,9 @@ for (const language of ["en", "ta"]) {
       for (const lang of ["en", "ta"]) {
         await expect(
           page.locator(`onecare-chat-widget .chip[lang="${lang}"]`),
-        ).toHaveText(dictionaries[lang].chatbot.chips.map((chip) => chip.label));
+        ).toHaveText(
+          dictionaries[lang].chatbot.chips.map((chip) => chip.label),
+        );
       }
       await expect(
         page.locator("onecare-chat-widget .chip").first(),

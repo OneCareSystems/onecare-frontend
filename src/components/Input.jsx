@@ -67,10 +67,7 @@ const Input = ({
 
   return (
     <div className={`flex flex-col gap-1 ${className}`}>
-      <label
-        htmlFor={inputId}
-        className="text-sm font-medium text-neutral-800"
-      >
+      <label htmlFor={inputId} className="text-sm font-medium text-neutral-800">
         <span>{label}</span>
         {required && (
           <span aria-hidden="true" className="ml-1">

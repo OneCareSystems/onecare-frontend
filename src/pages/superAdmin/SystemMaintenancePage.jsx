@@ -96,7 +96,10 @@ const SystemMaintenancePage = () => {
           className="flex flex-col rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-xs"
         >
           <div className="mb-3">
-            <h2 id="automatic-cadence-heading" className="text-sm font-semibold text-neutral-900">
+            <h2
+              id="automatic-cadence-heading"
+              className="text-sm font-semibold text-neutral-900"
+            >
               Automatic Cadence
             </h2>
             <p className="mt-0.5 text-xs text-neutral-500">
@@ -122,7 +125,10 @@ const SystemMaintenancePage = () => {
             className="rounded-2xl border border-neutral-200/80 bg-white p-5 shadow-xs"
           >
             <div className="mb-3">
-              <h2 id="upcoming-runs-heading" className="text-sm font-semibold text-neutral-900">
+              <h2
+                id="upcoming-runs-heading"
+                className="text-sm font-semibold text-neutral-900"
+              >
                 Upcoming Runs
               </h2>
               <p className="mt-0.5 text-xs text-neutral-500">

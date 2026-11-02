@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import EmptyState from "../../components/EmptyState";
 import ErrorMessage from "../../components/ErrorMessage";
@@ -143,27 +142,22 @@ const DispensingQueuePage = () => {
     (item) => Number(item.shortfallQuantity) > 0,
   );
 
- 
-const hasDispensableItems = previewItems.some((item) => {
-  const remaining = Number(item.remainingQuantity);
-  const available = Number(item.availableStock);
-  const shortfall = Number(item.shortfallQuantity);
+  const hasDispensableItems = previewItems.some((item) => {
+    const remaining = Number(item.remainingQuantity);
+    const available = Number(item.availableStock);
+    const shortfall = Number(item.shortfallQuantity);
 
-  const canPartiallyDispense =
-    item.reason === "Insufficient stock" &&
-    available > 0 &&
-    shortfall > 0;
+    const canPartiallyDispense =
+      item.reason === "Insufficient stock" && available > 0 && shortfall > 0;
 
-  const canFullyDispense =
-    item.dispensable !== false && !item.reason;
+    const canFullyDispense = item.dispensable !== false && !item.reason;
 
-  return (
-    item.medicineId != null &&
-    remaining > 0 &&
-    (canPartiallyDispense || canFullyDispense)
-  );
-});
-
+    return (
+      item.medicineId != null &&
+      remaining > 0 &&
+      (canPartiallyDispense || canFullyDispense)
+    );
+  });
 
   const handleSelect = (prescription) => {
     setSelectedId(prescription.prescriptionId);
@@ -254,9 +248,7 @@ const hasDispensableItems = previewItems.some((item) => {
   return (
     <main className="space-y-6 p-4 sm:p-6">
       <header>
-        <h1 className="text-2xl font-bold text-gray-900">
-          Dispensing Queue
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-900">Dispensing Queue</h1>
         <p className="mt-1 text-sm text-gray-600">
           Review prescription details and current stock before dispensing.
         </p>
@@ -318,12 +310,10 @@ const hasDispensableItems = previewItems.some((item) => {
                     type="button"
                     onClick={() => handleSelect(prescription)}
                     aria-pressed={
-                      String(selectedId) ===
-                      String(prescription.prescriptionId)
+                      String(selectedId) === String(prescription.prescriptionId)
                     }
                     className={`w-full rounded-lg p-4 text-left hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
-                      String(selectedId) ===
-                      String(prescription.prescriptionId)
+                      String(selectedId) === String(prescription.prescriptionId)
                         ? "bg-primary-50 ring-1 ring-primary-200"
                         : ""
                     }`}
@@ -477,10 +467,10 @@ const hasDispensableItems = previewItems.some((item) => {
                         <input
                           type="checkbox"
                           checked={partialConfirmed}
-                         onChange={(event) => {
-  setPartialConfirmed(event.target.checked);
-  setNotice("");
-}}
+                          onChange={(event) => {
+                            setPartialConfirmed(event.target.checked);
+                            setNotice("");
+                          }}
                           className="mt-1 h-4 w-4"
                         />
                         <span>

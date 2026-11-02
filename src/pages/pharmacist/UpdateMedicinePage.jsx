@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import MedicineForm from "../../components/Pharmacist/MedicineForm";
@@ -20,55 +19,58 @@ const UpdateMedicinePage = () => {
   const [successMessage, setSuccessMessage] = useState("");
   const inFlight = useRef(false);
 
-  const loadMedicine = useCallback(async (signal) => {
-    try {
-      const result = await getMedicineById(medicineId);
+  const loadMedicine = useCallback(
+    async (signal) => {
+      try {
+        const result = await getMedicineById(medicineId);
 
-      if (signal?.aborted) return;
+        if (signal?.aborted) return;
 
-      setMedicine({
-        ...result,
-        name: result.name ?? result.medicineName ?? "",
-        genericName: result.genericName ?? "",
-        category: result.category ?? "",
-        unit: result.unit ?? "",
-        price: result.price ?? "",
-        expiryDate: String(result.expiryDate ?? "").slice(0, 10),
-        reorderLevel: result.reorderLevel ?? "",
-        stockQuantity: result.stockQuantity ?? 0,
-      });
-    } catch (error) {
-      if (signal?.aborted) return;
+        setMedicine({
+          ...result,
+          name: result.name ?? result.medicineName ?? "",
+          genericName: result.genericName ?? "",
+          category: result.category ?? "",
+          unit: result.unit ?? "",
+          price: result.price ?? "",
+          expiryDate: String(result.expiryDate ?? "").slice(0, 10),
+          reorderLevel: result.reorderLevel ?? "",
+          stockQuantity: result.stockQuantity ?? 0,
+        });
+      } catch (error) {
+        if (signal?.aborted) return;
 
-      const status = error?.response?.status;
+        const status = error?.response?.status;
 
-      if (status === 404) {
-        setServerError("Medicine not found. It may have been removed.");
-      } else if (status === 403) {
-        setServerError("You do not have permission to view this medicine.");
-      } else {
-        setServerError("Unable to load medicine details. Please try again.");
+        if (status === 404) {
+          setServerError("Medicine not found. It may have been removed.");
+        } else if (status === 403) {
+          setServerError("You do not have permission to view this medicine.");
+        } else {
+          setServerError("Unable to load medicine details. Please try again.");
+        }
+      } finally {
+        if (!signal?.aborted) setLoading(false);
       }
-    } finally {
-      if (!signal?.aborted) setLoading(false);
-    }
-  }, [medicineId]);
+    },
+    [medicineId],
+  );
 
- useEffect(() => {
-  const controller = new AbortController();
+  useEffect(() => {
+    const controller = new AbortController();
 
-  const fetchMedicine = async () => {
-    try {
-      await loadMedicine(controller.signal);
-    } catch {
-      // loadMedicine handles and displays request errors.
-    }
-  };
+    const fetchMedicine = async () => {
+      try {
+        await loadMedicine(controller.signal);
+      } catch {
+        // loadMedicine handles and displays request errors.
+      }
+    };
 
-  void fetchMedicine();
+    void fetchMedicine();
 
-  return () => controller.abort();
-}, [loadMedicine]);
+    return () => controller.abort();
+  }, [loadMedicine]);
 
   const handleUpdate = async (values) => {
     if (inFlight.current) return;
@@ -104,7 +106,9 @@ const UpdateMedicinePage = () => {
       } else if (status === 404) {
         setServerError("Medicine not found. It may have been removed.");
       } else {
-        setServerError("Unable to update medicine. Your form data is preserved. Please try again.");
+        setServerError(
+          "Unable to update medicine. Your form data is preserved. Please try again.",
+        );
       }
     } finally {
       inFlight.current = false;
@@ -140,7 +144,9 @@ const UpdateMedicinePage = () => {
             "This medicine has pending prescriptions and cannot be deactivated yet.",
         );
       } else if (status === 403) {
-        setServerError("You do not have permission to deactivate this medicine.");
+        setServerError(
+          "You do not have permission to deactivate this medicine.",
+        );
       } else if (status === 404) {
         setServerError("Medicine not found. It may already be inactive.");
       } else {
@@ -155,9 +161,7 @@ const UpdateMedicinePage = () => {
   return (
     <main className="space-y-6 p-4 sm:p-6">
       <header>
-        <h1 className="text-2xl font-bold text-gray-900">
-          Update Medicine
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-900">Update Medicine</h1>
         <p className="mt-1 text-sm text-gray-600">
           Update medicine details or deactivate a medicine. Stock must be
           changed separately through Inventory Management.
@@ -182,11 +186,11 @@ const UpdateMedicinePage = () => {
           </p>
           <button
             type="button"
-          onClick={() => {
-  setLoading(true);
-  setServerError("");
-  loadMedicine();
-}}
+            onClick={() => {
+              setLoading(true);
+              setServerError("");
+              loadMedicine();
+            }}
             className="rounded-md border border-gray-300 px-4 py-2"
           >
             Try again

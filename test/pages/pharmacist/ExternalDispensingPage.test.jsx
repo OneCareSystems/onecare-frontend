@@ -1,11 +1,5 @@
-
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  cleanup,
-  render,
-  screen,
-  
-} from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 
@@ -62,9 +56,7 @@ const fillPrescriptionForm = async (user) => {
 
 const createRecord = async (user) => {
   await fillPrescriptionForm(user);
-  await user.click(
-    screen.getByRole("button", { name: /save and continue/i }),
-  );
+  await user.click(screen.getByRole("button", { name: /save and continue/i }));
 };
 
 beforeEach(() => {
@@ -124,13 +116,13 @@ describe("ExternalDispensingPage", () => {
       ],
     });
 
-  expect(screen.getByText("Patient ID", { exact: true })).toBeInTheDocument();
-expect(screen.getByText("25", { exact: true })).toBeInTheDocument();
+    expect(screen.getByText("Patient ID", { exact: true })).toBeInTheDocument();
+    expect(screen.getByText("25", { exact: true })).toBeInTheDocument();
 
-expect(
-  screen.getByText("Dispensing record", { exact: true }),
-).toBeInTheDocument();
-expect(screen.getByText("9001", { exact: true })).toBeInTheDocument();
+    expect(
+      screen.getByText("Dispensing record", { exact: true }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("9001", { exact: true })).toBeInTheDocument();
   });
 
   it("does not submit the form when required fields are missing", async () => {
@@ -158,9 +150,9 @@ expect(screen.getByText("9001", { exact: true })).toBeInTheDocument();
     expect(confirmButton).toBeDisabled();
     expect(mockVerifyExternalDispensingIdentity).not.toHaveBeenCalled();
 
-    expect(
-      screen.getByRole("note"),
-    ).toHaveTextContent(/backend does not validate the actual phone number/i);
+    expect(screen.getByRole("note")).toHaveTextContent(
+      /backend does not validate the actual phone number/i,
+    );
   });
 
   it("verifies identity after staff confirmation", async () => {
@@ -186,14 +178,11 @@ expect(screen.getByText("9001", { exact: true })).toBeInTheDocument();
       name: /step 3: confirm and complete/i,
     });
 
-    expect(mockVerifyExternalDispensingIdentity).toHaveBeenCalledWith(
-      9001,
-      {
-        verificationMethod: "PHONE",
-        verified: true,
-        notes: "Identity checked by staff against the selected identifier.",
-      },
-    );
+    expect(mockVerifyExternalDispensingIdentity).toHaveBeenCalledWith(9001, {
+      verificationMethod: "PHONE",
+      verified: true,
+      notes: "Identity checked by staff against the selected identifier.",
+    });
 
     expect(mockCompleteExternalDispensing).not.toHaveBeenCalled();
   });
@@ -233,13 +222,11 @@ expect(screen.getByText("9001", { exact: true })).toBeInTheDocument();
       }),
     );
 
-    await user.click(
-      screen.getByRole("button", { name: /confirm identity/i }),
-    );
+    await user.click(screen.getByRole("button", { name: /confirm identity/i }));
 
-   expect(await screen.findByRole("alert")).toHaveTextContent(
-  "Identity verification failed. Please verify and try again."
-);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Identity verification failed. Please verify and try again.",
+    );
 
     expect(
       screen.getByRole("heading", {
@@ -260,9 +247,7 @@ expect(screen.getByText("9001", { exact: true })).toBeInTheDocument();
       }),
     );
 
-    await user.click(
-      screen.getByRole("button", { name: /confirm identity/i }),
-    );
+    await user.click(screen.getByRole("button", { name: /confirm identity/i }));
 
     await screen.findByRole("heading", {
       name: /step 3: confirm and complete/i,
@@ -277,8 +262,8 @@ expect(screen.getByText("9001", { exact: true })).toBeInTheDocument();
     ).toBeInTheDocument();
 
     expect(mockCompleteExternalDispensing).toHaveBeenCalledWith(9001);
-  expect(screen.getByText("Status", { exact: true })).toBeInTheDocument();
-expect(screen.getByText("DISPENSED", { exact: true })).toBeInTheDocument();
+    expect(screen.getByText("Status", { exact: true })).toBeInTheDocument();
+    expect(screen.getByText("DISPENSED", { exact: true })).toBeInTheDocument();
   });
 
   it("displays the partial dispensing result and follow-up message", async () => {
@@ -298,9 +283,7 @@ expect(screen.getByText("DISPENSED", { exact: true })).toBeInTheDocument();
       }),
     );
 
-    await user.click(
-      screen.getByRole("button", { name: /confirm identity/i }),
-    );
+    await user.click(screen.getByRole("button", { name: /confirm identity/i }));
 
     await screen.findByRole("heading", {
       name: /step 3: confirm and complete/i,
@@ -310,17 +293,15 @@ expect(screen.getByText("DISPENSED", { exact: true })).toBeInTheDocument();
       screen.getByRole("button", { name: /confirm dispensing/i }),
     );
 
-   expect(screen.getByText("Status", { exact: true })).toBeInTheDocument();
-expect(
-  screen.getByText("PARTIALLY_DISPENSED", { exact: true })
-).toBeInTheDocument();
+    expect(screen.getByText("Status", { exact: true })).toBeInTheDocument();
+    expect(
+      screen.getByText("PARTIALLY_DISPENSED", { exact: true }),
+    ).toBeInTheDocument();
 
     expect(
       screen.getByText(/only the available quantity was dispensed/i),
     ).toBeInTheDocument();
 
-    expect(
-      screen.getByText(/follow-up is required/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/follow-up is required/i)).toBeInTheDocument();
   });
 });

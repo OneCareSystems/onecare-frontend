@@ -25,11 +25,13 @@ const AddMedicinePage = () => {
 
       if (status === 409) {
         setServerError(
-          message || "A medicine with these details already exists. Check the inventory.",
+          message ||
+            "A medicine with these details already exists. Check the inventory.",
         );
       } else if (status === 400 || status === 422) {
         setServerError(
-          message || "The medicine details were rejected. Please check your entries.",
+          message ||
+            "The medicine details were rejected. Please check your entries.",
         );
       } else if (status === 403) {
         setServerError("You do not have permission to add medicines.");
@@ -60,8 +62,8 @@ const AddMedicinePage = () => {
             Medicine saved successfully
           </h2>
           <p className="text-sm text-gray-700">
-            {createdMedicine.name ?? createdMedicine.medicineName} has been added.
-            Initial stock is 0.
+            {createdMedicine.name ?? createdMedicine.medicineName} has been
+            added. Initial stock is 0.
           </p>
           <button
             type="button"

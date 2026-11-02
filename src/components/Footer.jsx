@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { FaPhoneAlt, FaMapMarkerAlt } from "react-icons/fa";
@@ -23,7 +22,10 @@ export default function Footer() {
       <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
-          <section aria-label="OneCare" className="space-y-3 sm:col-span-2 lg:col-span-1">
+          <section
+            aria-label="OneCare"
+            className="space-y-3 sm:col-span-2 lg:col-span-1"
+          >
             <Link
               to="/home"
               aria-label={copy("home")}
@@ -35,7 +37,9 @@ export default function Footer() {
               >
                 +
               </span>
-              <span className="text-base font-bold text-slate-900">OneCare</span>
+              <span className="text-base font-bold text-slate-900">
+                OneCare
+              </span>
             </Link>
             <p className="font-semibold text-emerald-700">{copy("tagline")}</p>
             <p className="leading-relaxed">{copy("description")}</p>
@@ -71,14 +75,21 @@ export default function Footer() {
           </nav>
 
           {/* Contact */}
-          <section id="footer-contact" aria-labelledby="footer-contact-heading" className="scroll-mt-20">
+          <section
+            id="footer-contact"
+            aria-labelledby="footer-contact-heading"
+            className="scroll-mt-20"
+          >
             <h2 id="footer-contact-heading" className={headingClass}>
               {copy("contactHeading")}
             </h2>
             {phone || email || address ? (
               <address className="grid gap-2 not-italic">
                 {phone && (
-                  <a href={`tel:${phone.replace(/\s/g, "")}`} className={linkClass}>
+                  <a
+                    href={`tel:${phone.replace(/\s/g, "")}`}
+                    className={linkClass}
+                  >
                     {phone}
                   </a>
                 )}
@@ -128,8 +139,12 @@ export default function Footer() {
             <p className="m-0 leading-relaxed">{copy("guidance")}</p>
 
             <div className="mt-4 rounded-lg border-l-4 border-red-500 bg-red-50 p-3">
-              <h3 className="m-0 text-sm font-bold text-red-900">{copy("emergencyTitle")}</h3>
-              <p className="m-0 mt-1 text-xs leading-relaxed text-red-800">{copy("emergency")}</p>
+              <h3 className="m-0 text-sm font-bold text-red-900">
+                {copy("emergencyTitle")}
+              </h3>
+              <p className="m-0 mt-1 text-xs leading-relaxed text-red-800">
+                {copy("emergency")}
+              </p>
             </div>
           </section>
         </div>
