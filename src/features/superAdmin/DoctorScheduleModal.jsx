@@ -23,9 +23,10 @@ export const DoctorScheduleModal = ({
       isOpen={isOpen}
       onClose={onClose}
       title={`Weekly Schedule — ${doctor.fullName ?? doctor.username}`}
-      className="max-w-4xl max-h-[90vh] overflow-y-auto"
+      className="max-w-4xl"
     >
-      <div className="mt-2">
+
+      <div className="max-h-[75vh] overflow-y-auto">
         <DoctorScheduleEditor
           days={days}
           onChangeSlot={onChangeSlot}
