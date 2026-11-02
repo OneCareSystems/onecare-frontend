@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
@@ -58,6 +58,10 @@ beforeEach(() => {
   store.dispatch(clearSession());
 });
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe("RequireAuth — CFG-03 route guard", () => {
   it("AC1: renders the guarded route for an allowed role", () => {
     seed({ accessToken: "a", role: ROLES.DOCTOR });
@@ -72,6 +76,22 @@ describe("RequireAuth — CFG-03 route guard", () => {
     renderGuardedRoute("/protected", [ROLES.DOCTOR]);
 
     expect(screen.getByTestId("login-page")).toBeInTheDocument();
+    expect(screen.queryByTestId("protected-page")).not.toBeInTheDocument();
+    expectLocation("/login");
+  });
+
+  it("AC3: redirects an expired session without a refresh token to /login", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(10_000);
+    seed({
+      accessToken: "a",
+      role: ROLES.DOCTOR,
+      expiresIn: 1,
+    });
+    vi.spyOn(Date, "now").mockReturnValue(12_000);
+
+    renderGuardedRoute("/protected", [ROLES.DOCTOR]);
+
+    expect(await screen.findByTestId("login-page")).toBeInTheDocument();
     expect(screen.queryByTestId("protected-page")).not.toBeInTheDocument();
     expectLocation("/login");
   });

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 
@@ -30,9 +31,36 @@ const RequireAuth = ({ allowedRoles }) => {
   const refreshToken = useSelector(selectRefreshToken);
   const role = useSelector(selectRole);
   const location = useLocation();
+  const requiresExpiryCheck =
+    isAuthenticated && Boolean(expiresAt) && !refreshToken;
+  const [expiryCheck, setExpiryCheck] = useState({
+    expiresAt: null,
+    expired: false,
+  });
 
+  useEffect(() => {
+    if (!requiresExpiryCheck) return undefined;
+
+    const checkExpiry = () => {
+      setExpiryCheck({
+        expiresAt,
+        expired: Date.now() >= expiresAt,
+      });
+    };
+
+    checkExpiry();
+    const timeoutId = setTimeout(
+      checkExpiry,
+      Math.max(0, expiresAt - Date.now()),
+    );
+    return () => clearTimeout(timeoutId);
+  }, [expiresAt, requiresExpiryCheck]);
+
+  const expiryCheckPending =
+    requiresExpiryCheck && expiryCheck.expiresAt !== expiresAt;
   const isExpired =
-    !isAuthenticated || (expiresAt && Date.now() >= expiresAt && !refreshToken);
+    !isAuthenticated ||
+    (requiresExpiryCheck && !expiryCheckPending && expiryCheck.expired);
 
   if (isExpired) {
     return (
@@ -43,6 +71,8 @@ const RequireAuth = ({ allowedRoles }) => {
       />
     );
   }
+
+  if (expiryCheckPending) return null;
 
   const roleAllowed =
     !Array.isArray(allowedRoles) ||

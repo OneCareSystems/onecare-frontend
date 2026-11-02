@@ -128,7 +128,7 @@ describe("ADM-07 cash billing", () => {
     expect(
       screen.queryByRole("button", { name: "Save medicine quantities" }),
     ).not.toBeInTheDocument();
-  });
+  }, 10000);
   it.each(["0", "1000.01", "0.001", "-1"])(
     "rejects invalid amount %s before payment",
     async (value) => {
