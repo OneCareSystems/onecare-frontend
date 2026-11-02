@@ -242,7 +242,6 @@ const UserManagementPage = () => {
   const [statusFilter, setStatusFilter] = useState(ALL_FILTER);
   const [page, setPage] = useState(1);
   const [density, setDensity] = useState("comfortable");
-  const [selectedIds, setSelectedIds] = useState(() => new Set());
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -494,16 +493,8 @@ const UserManagementPage = () => {
       );
     } finally {
       setEditSubmitting(false);
-    }
-  };
+    }  };
 
-  /* ---- bulk selection ---- */
-  const toggleSelectOne = (userId) =>
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      next.has(userId) ? next.delete(userId) : next.add(userId);
-      return next;
-    });
 
   /* ---- derived ---- */
   const filteredUsers = useMemo(() => {
@@ -543,24 +534,6 @@ const UserManagementPage = () => {
     return { total: users.length, active, locked, inactive };
   }, [users]);
 
-  const allOnPageSelected =
-    visibleUsers.length > 0 &&
-    visibleUsers.every((u) => selectedIds.has(u.userId));
-
-  const toggleSelectAllOnPage = useCallback(
-    () =>
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        if (allOnPageSelected) {
-          visibleUsers.forEach((u) => next.delete(u.userId));
-        } else {
-          visibleUsers.forEach((u) => next.add(u.userId));
-        }
-        return next;
-      }),
-    [allOnPageSelected, visibleUsers],
-  );
-
   /* ---- columns ---- */
   const columns = useMemo(
     () => [
@@ -599,9 +572,6 @@ const UserManagementPage = () => {
       },
     ],
     [
-      allOnPageSelected,
-      toggleSelectAllOnPage,
-      selectedIds,
       openEdit,
       requestUnlock,
       requestDeactivate,
