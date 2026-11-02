@@ -49,7 +49,7 @@ const ActionBadge = memo(({ action }) => {
     <span
       className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-mono text-[11px] font-semibold ring-1 ring-inset ${palette}`}
     >
-      {action || "Ã¢â‚¬â€"}
+      {action || "-"}
     </span>
   );
 });
@@ -331,7 +331,7 @@ const AuditLogsPage = () => {
             <ActorAvatar username={row.username} />
             <div className="min-w-0">
               <span className="block truncate text-sm font-medium text-neutral-900">
-                {row.username || "Ã¢â‚¬â€"}
+                {row.username || "-"}
               </span>
               {row.ipAddress && (
                 <span className="block truncate font-mono text-[11px] text-neutral-500">
@@ -353,7 +353,7 @@ const AuditLogsPage = () => {
         render: (row) => (
           <div className="min-w-0 whitespace-normal">
             <span className="block text-xs font-medium text-neutral-800">
-              {row.entityType || "Ã¢â‚¬â€"}
+              {row.entityType || "-"}
             </span>
             {row.entityId && (
               <span className="mt-0.5 block font-mono text-[11px] text-neutral-500">
@@ -368,7 +368,7 @@ const AuditLogsPage = () => {
         header: "Description",
         render: (row) => (
           <span className="block max-w-md whitespace-normal text-xs leading-relaxed text-neutral-600 line-clamp-2">
-            {row.description || "Ã¢â‚¬â€"}
+            {row.description || "-"}
           </span>
         ),
       },
@@ -381,7 +381,7 @@ const AuditLogsPage = () => {
       {/* ============ Hero header ============ */}
       <SuperAdminPageHeader
         icon="clipboard"
-        badgeText="Live audit trail Ã‚Â· Security"
+        badgeText="Live audit trail | Security"
         title="Audit Logs"
         description="Every privileged action across the platform, in one ledger."
         actions={
@@ -463,7 +463,7 @@ const AuditLogsPage = () => {
           <SearchBar
             value={query}
             onChange={handleQueryChange}
-            placeholder="Search user, action, entity, IPÃ¢â‚¬Â¦  ( / )"
+            placeholder="Search user, action, entity, IP... ( / )"
             searchLabel="Search audit logs"
             className="w-full sm:max-w-xl"
           />
@@ -522,8 +522,7 @@ const AuditLogsPage = () => {
         {isFiltering && (
           <p className="mt-2 flex items-center gap-1.5 text-xs text-neutral-500">
             <Icon name="info" className="h-3.5 w-3.5 shrink-0" />
-            Filters apply to page {page} only Ã¢â‚¬â€ clear them to see every
-            row.
+            Filters apply to page {page} only - clear them to see every row.
           </p>
         )}
       </div>
@@ -570,7 +569,7 @@ const AuditLogsPage = () => {
             <span className="text-xs text-neutral-500">
               {filteredLogs.length === logs.length
                 ? `${logs.length} of ${totalElements} events`
-                : `${filteredLogs.length} of ${logs.length} on this page Ã‚Â· ${totalElements} total`}
+                : `${filteredLogs.length} of ${logs.length} on this page | ${totalElements} total`}
             </span>
           </div>
 

@@ -52,7 +52,7 @@ describe("super-admin system maintenance — REST cases", () => {
     fireEvent.click(screen.getByRole("button", { name: /Run backup now/ }));
 
     expect(
-      await screen.findByText(/Backup #3 created — onecare-backup-/),
+      await screen.findByText(/Backup #3 created - onecare-backup-/),
     ).toBeInTheDocument();
     expect(mswState.systemBackupCreateHits).toHaveLength(1);
     expect(mswState.systemBackupCreateHits[0].authorization).toBe(

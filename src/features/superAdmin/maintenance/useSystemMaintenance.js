@@ -133,7 +133,7 @@ export const useSystemMaintenance = () => {
       );
       setToast({
         type: "success",
-        message: `Backup #${record.backupId} created â€” ${record.filename}.`,
+        message: `Backup #${record.backupId} created - ${record.filename}.`,
       });
     } catch (error) {
       setToast({
