@@ -67,7 +67,7 @@ describe("ADM-02 registration through real routing and authenticated HTTP client
   it.each([
     [null, /sign in to onecare/i],
     ["DOCTOR", /today.s overview/i],
-    ["PHARMACIST", /PharmacistDashboardPage/],
+    ["PHARMACIST", /Pharmacist Dashboard/],
   ])("blocks %s", async (role, heading) => {
     open(role);
     expect(

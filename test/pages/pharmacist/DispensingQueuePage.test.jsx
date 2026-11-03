@@ -98,7 +98,7 @@ const renderPage = () => {
 
 const selectPrescription = async (user) => {
   await user.click(
-    await screen.findByRole("button", { name: /Prescription #501/i }),
+    await screen.findByRole("button", { name: /#\s*501(?!\d)/i }),
   );
 };
 
@@ -234,7 +234,11 @@ describe("DispensingQueuePage", () => {
     });
 
     // Wait until the partial stock preview is displayed.
-    expect(await screen.findByText(/insufficient stock/i)).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", {
+        name: /confirm partial dispensing/i,
+      }),
+    ).toBeInTheDocument();
 
     const dispenseButton = screen.getByRole("button", {
       name: /confirm partial dispensing/i,
@@ -261,7 +265,7 @@ describe("DispensingQueuePage", () => {
     // Explicitly confirm dispensing only the available stock.
     await user.click(
       screen.getByRole("checkbox", {
-        name: /confirm dispensing only the available quantities/i,
+        name: /^confirm partial dispensing\./i,
       }),
     );
 

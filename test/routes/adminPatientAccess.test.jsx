@@ -99,7 +99,7 @@ describe("Admin-only patient workflows and separate dashboards", () => {
 
   it.each([
     ["DOCTOR", /today.s schedule/i],
-    ["PHARMACIST", /PharmacistDashboardPage/],
+    ["PHARMACIST", /Pharmacist Dashboard/],
   ])("%s cannot open either Admin patient workflow", async (role, heading) => {
     for (const path of ["/admin/register-patient", "/admin/patient-search"]) {
       open(role, path);

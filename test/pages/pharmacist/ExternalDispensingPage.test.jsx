@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 
@@ -59,6 +59,17 @@ const createRecord = async (user) => {
   await user.click(screen.getByRole("button", { name: /save and continue/i }));
 };
 
+const confirmDispensing = async (user) => {
+  await user.click(
+    screen.getByRole("button", { name: /^confirm dispensing$/i }),
+  );
+  const dialog = screen.getByRole("dialog", { name: /^confirm dispensing$/i });
+  expect(mockCompleteExternalDispensing).not.toHaveBeenCalled();
+  await user.click(
+    within(dialog).getByRole("button", { name: "Yes, confirm dispensing" }),
+  );
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
 
@@ -99,7 +110,7 @@ describe("ExternalDispensingPage", () => {
         screen.getByRole("button", { name: /save and continue/i }),
       );
       await screen.findByRole("heading", {
-        name: /step 2: verify patient identity/i,
+        name: /verify patient identity/i,
       });
       expect(mockCreateExternalDispensing).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -124,11 +135,9 @@ describe("ExternalDispensingPage", () => {
     );
     await user.click(screen.getByRole("button", { name: /confirm identity/i }));
     await screen.findByRole("heading", {
-      name: /step 3: confirm and complete/i,
+      name: /confirm and complete/i,
     });
-    await user.click(
-      screen.getByRole("button", { name: /confirm dispensing/i }),
-    );
+    await confirmDispensing(user);
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Stock update failed",
     );
@@ -150,8 +159,8 @@ describe("ExternalDispensingPage", () => {
       screen.getByLabelText("Prescription ID (Optional)"),
     ).not.toBeRequired();
     expect(screen.getByLabelText("Patient ID (Optional)")).not.toBeRequired();
-    expect(screen.getByLabelText(/Medicine ID/)).toBeRequired();
-    expect(screen.getByLabelText(/Quantity/)).toBeRequired();
+    expect(screen.getByLabelText(/Medicine ID/)).toHaveAttribute("min", "1");
+    expect(screen.getByLabelText(/Quantity/)).toHaveAttribute("min", "1");
 
     expect(
       screen.getByRole("button", { name: /save and continue/i }),
@@ -167,7 +176,7 @@ describe("ExternalDispensingPage", () => {
     await createRecord(user);
 
     await screen.findByRole("heading", {
-      name: /step 2: verify patient identity/i,
+      name: /verify patient identity/i,
     });
 
     expect(mockCreateExternalDispensing).toHaveBeenCalledWith({
@@ -203,7 +212,10 @@ describe("ExternalDispensingPage", () => {
     );
 
     expect(mockCreateExternalDispensing).not.toHaveBeenCalled();
-    expect(screen.getByLabelText(/Medicine ID/)).toBeInvalid();
+    expect(screen.getByLabelText(/Medicine ID/)).toHaveValue(null);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Please fix the highlighted fields before continuing.",
+    );
   });
 
   it("requires identity confirmation before verification", async () => {
@@ -244,7 +256,7 @@ describe("ExternalDispensingPage", () => {
     await user.click(confirmButton);
 
     await screen.findByRole("heading", {
-      name: /step 3: confirm and complete/i,
+      name: /confirm and complete/i,
     });
 
     expect(mockVerifyExternalDispensingIdentity).toHaveBeenCalledWith(9001, {
@@ -271,7 +283,7 @@ describe("ExternalDispensingPage", () => {
     );
 
     expect(
-      screen.getByRole("heading", { name: /step 1: prescription details/i }),
+      screen.getByRole("heading", { name: /prescription details/i }),
     ).toBeInTheDocument();
   });
 
@@ -299,7 +311,7 @@ describe("ExternalDispensingPage", () => {
 
     expect(
       screen.getByRole("heading", {
-        name: /step 2: verify patient identity/i,
+        name: /verify patient identity/i,
       }),
     ).toBeInTheDocument();
   });
@@ -319,12 +331,10 @@ describe("ExternalDispensingPage", () => {
     await user.click(screen.getByRole("button", { name: /confirm identity/i }));
 
     await screen.findByRole("heading", {
-      name: /step 3: confirm and complete/i,
+      name: /confirm and complete/i,
     });
 
-    await user.click(
-      screen.getByRole("button", { name: /confirm dispensing/i }),
-    );
+    await confirmDispensing(user);
 
     expect(
       await screen.findByRole("heading", { name: "Dispensing result" }),
@@ -358,12 +368,10 @@ describe("ExternalDispensingPage", () => {
     await user.click(screen.getByRole("button", { name: /confirm identity/i }));
 
     await screen.findByRole("heading", {
-      name: /step 3: confirm and complete/i,
+      name: /confirm and complete/i,
     });
 
-    await user.click(
-      screen.getByRole("button", { name: /confirm dispensing/i }),
-    );
+    await confirmDispensing(user);
 
     expect(screen.getByText("Status", { exact: true })).toBeInTheDocument();
     expect(

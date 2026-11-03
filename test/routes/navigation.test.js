@@ -14,9 +14,9 @@ describe("AC6 — common tasks within ≤ 3 navigation steps per role", () => {
     expect(NAV_ITEMS[ROLES.PHARMACIST].map((item) => item.label)).toEqual([
       "Dashboard",
       "Dispensing Queue",
+      "Inventory",
       "External Dispensing",
       "Dispensing History",
-      "Inventory",
       "Reports",
     ]);
     expect(ROUTE_ACCESS.pharmacist).toEqual([ROLES.PHARMACIST]);

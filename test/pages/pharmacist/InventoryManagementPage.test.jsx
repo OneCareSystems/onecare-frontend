@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import InventoryManagementPage from "../../../src/pages/pharmacist/InventoryManagementPage";
@@ -43,6 +50,25 @@ const renderPage = () =>
     </MemoryRouter>,
   );
 
+// Desktop rows and mobile cards coexist in jsdom; scope inventory assertions
+// to the table so responsive copies do not make medicine queries ambiguous.
+const inventory = () => within(screen.getByRole("table"));
+const findMedicine = (name) => waitFor(() => inventory().getByText(name));
+const adjustStock = (user, name) =>
+  user.click(
+    within(inventory().getByText(name).closest("tr")).getByRole("button", {
+      name: "Adjust",
+      exact: true,
+    }),
+  );
+
+const changeAdjustment = (label, value) => {
+  const input = within(
+    screen.getByRole("dialog", { name: "Adjust stock" }),
+  ).getByLabelText(label);
+  fireEvent.change(input, { target: { value } });
+};
+
 describe("InventoryManagementPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -66,10 +92,10 @@ describe("InventoryManagementPage", () => {
       screen.getByRole("heading", { name: "Inventory Management" }),
     ).toBeInTheDocument();
 
-    expect(await screen.findByText("Paracetamol")).toBeInTheDocument();
+    expect(await findMedicine("Paracetamol")).toBeInTheDocument();
 
-    expect(screen.getByText("Amoxicillin")).toBeInTheDocument();
-    expect(screen.getByText("50")).toBeInTheDocument();
+    expect(inventory().getByText("Amoxicillin")).toBeInTheDocument();
+    expect(inventory().getByText("50")).toBeInTheDocument();
     expect(searchMedicines).toHaveBeenCalledWith(
       "",
       expect.objectContaining({ signal: expect.anything() }),
@@ -80,7 +106,7 @@ describe("InventoryManagementPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await screen.findByText("Paracetamol");
+    await findMedicine("Paracetamol");
 
     await user.type(
       screen.getByRole("searchbox", { name: "Search medicines" }),
@@ -94,40 +120,34 @@ describe("InventoryManagementPage", () => {
       );
     });
 
-    expect(await screen.findByText("Paracetamol")).toBeInTheDocument();
-    expect(screen.queryByText("Amoxicillin")).not.toBeInTheDocument();
+    expect(await findMedicine("Paracetamol")).toBeInTheDocument();
+    expect(inventory().queryByText("Amoxicillin")).not.toBeInTheDocument();
   });
 
   it("loads low-stock medicines when the filter changes", async () => {
     const user = userEvent.setup();
     renderPage();
 
-    await screen.findByText("Paracetamol");
+    await findMedicine("Paracetamol");
 
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "Filter inventory" }),
-      "low",
-    );
+    await user.click(screen.getByRole("tab", { name: "Low stock" }));
 
-    expect(await screen.findByText("Amoxicillin")).toBeInTheDocument();
+    expect(await findMedicine("Amoxicillin")).toBeInTheDocument();
 
     await waitFor(() => {
       expect(getLowStockMedicines).toHaveBeenCalled();
     });
 
-    expect(screen.queryByText("Paracetamol")).not.toBeInTheDocument();
+    expect(inventory().queryByText("Paracetamol")).not.toBeInTheDocument();
   });
 
   it("loads near-expiry medicines when selected", async () => {
     const user = userEvent.setup();
     renderPage();
 
-    await screen.findByText("Paracetamol");
+    await findMedicine("Paracetamol");
 
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "Filter inventory" }),
-      "near",
-    );
+    await user.click(screen.getByRole("tab", { name: "Near expiry" }));
 
     await waitFor(() => {
       expect(getNearExpiryMedicines).toHaveBeenCalled();
@@ -152,24 +172,19 @@ describe("InventoryManagementPage", () => {
       expect(searchMedicines).toHaveBeenCalledTimes(2);
     });
 
-    expect(await screen.findByText("Paracetamol")).toBeInTheDocument();
+    expect(await findMedicine("Paracetamol")).toBeInTheDocument();
   });
 
   it("rejects a zero stock adjustment", async () => {
     const user = userEvent.setup();
     renderPage();
 
-    await screen.findByText("Paracetamol");
+    await findMedicine("Paracetamol");
 
-    await user.click(
-      screen.getAllByRole("button", { name: "Adjust stock" })[0],
-    );
+    await adjustStock(user, "Paracetamol");
 
-    await user.type(screen.getByLabelText("Stock change"), "0");
-    await user.type(
-      screen.getByLabelText("Reason for adjustment"),
-      "Stock count correction",
-    );
+    changeAdjustment("Stock change", "0");
+    changeAdjustment("Reason for adjustment", "Stock count correction");
 
     await user.click(
       screen.getByRole("button", { name: "Confirm adjustment" }),
@@ -186,13 +201,11 @@ describe("InventoryManagementPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await screen.findByText("Paracetamol");
+    await findMedicine("Paracetamol");
 
-    await user.click(
-      screen.getAllByRole("button", { name: "Adjust stock" })[0],
-    );
+    await adjustStock(user, "Paracetamol");
 
-    await user.type(screen.getByLabelText("Stock change"), "10");
+    changeAdjustment("Stock change", "10");
 
     // The browser's required-field validation prevents empty submission.
     expect(screen.getByLabelText("Reason for adjustment")).toBeRequired();
@@ -204,17 +217,12 @@ describe("InventoryManagementPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await screen.findByText("Paracetamol");
+    await findMedicine("Paracetamol");
 
-    await user.click(
-      screen.getAllByRole("button", { name: "Adjust stock" })[1],
-    );
+    await adjustStock(user, "Amoxicillin");
 
-    await user.type(screen.getByLabelText("Stock change"), "-6");
-    await user.type(
-      screen.getByLabelText("Reason for adjustment"),
-      "Damaged stock",
-    );
+    changeAdjustment("Stock change", "-6");
+    changeAdjustment("Reason for adjustment", "Damaged stock");
 
     await user.click(
       screen.getByRole("button", { name: "Confirm adjustment" }),
@@ -231,17 +239,12 @@ describe("InventoryManagementPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await screen.findByText("Paracetamol");
+    await findMedicine("Paracetamol");
 
-    await user.click(
-      screen.getAllByRole("button", { name: "Adjust stock" })[0],
-    );
+    await adjustStock(user, "Paracetamol");
 
-    await user.type(screen.getByLabelText("Stock change"), "10");
-    await user.type(
-      screen.getByLabelText("Reason for adjustment"),
-      "New stock received",
-    );
+    changeAdjustment("Stock change", "10");
+    changeAdjustment("Reason for adjustment", "New stock received");
 
     await user.click(
       screen.getByRole("button", { name: "Confirm adjustment" }),
@@ -266,17 +269,12 @@ describe("InventoryManagementPage", () => {
 
     renderPage();
 
-    await screen.findByText("Paracetamol");
+    await findMedicine("Paracetamol");
 
-    await user.click(
-      screen.getAllByRole("button", { name: "Adjust stock" })[0],
-    );
+    await adjustStock(user, "Paracetamol");
 
-    await user.type(screen.getByLabelText("Stock change"), "5");
-    await user.type(
-      screen.getByLabelText("Reason for adjustment"),
-      "Stock received",
-    );
+    changeAdjustment("Stock change", "5");
+    changeAdjustment("Reason for adjustment", "Stock received");
 
     await user.click(
       screen.getByRole("button", { name: "Confirm adjustment" }),
