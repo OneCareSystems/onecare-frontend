@@ -121,6 +121,8 @@ beforeEach(() => {
 
   mockDispensePrescription.mockResolvedValue({
     prescriptionId: 501,
+    dispenseId: 7001,
+    patientId: 25,
     status: "DISPENSED",
   });
 });
@@ -211,6 +213,9 @@ describe("DispensingQueuePage", () => {
         expect.objectContaining({ confirmPartial: false }),
       );
     });
+    expect(
+      await screen.findByRole("button", { name: "View / Generate Invoice" }),
+    ).toBeInTheDocument();
   });
 
   it("requires partial-dispensing confirmation when stock is insufficient", async () => {

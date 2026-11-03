@@ -72,6 +72,73 @@ afterEach(() => {
 });
 
 describe("ExternalDispensingPage", () => {
+  it.each([
+    ["501", "25"],
+    ["", "25"],
+    ["501", ""],
+    ["", ""],
+  ])(
+    "allows optional prescription %s and patient %s without submitting fake IDs",
+    async (prescriptionId, patientId) => {
+      const user = userEvent.setup();
+      mockCreateExternalDispensing.mockResolvedValue({
+        ...createdRecord,
+        prescriptionId: prescriptionId ? 501 : null,
+        patientId: patientId ? 25 : null,
+      });
+      renderPage();
+      if (prescriptionId)
+        await user.type(
+          screen.getByLabelText(/Prescription ID/),
+          prescriptionId,
+        );
+      if (patientId)
+        await user.type(screen.getByLabelText(/Patient ID/), patientId);
+      await user.type(screen.getByLabelText(/Medicine ID/), "11");
+      await user.click(
+        screen.getByRole("button", { name: /save and continue/i }),
+      );
+      await screen.findByRole("heading", {
+        name: /step 2: verify patient identity/i,
+      });
+      expect(mockCreateExternalDispensing).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prescriptionId: prescriptionId ? 501 : null,
+          patientId: patientId ? 25 : null,
+        }),
+      );
+      if (!patientId) expect(screen.getByText("Walk-in")).toBeInTheDocument();
+    },
+  );
+  it("does not offer billing when completion fails", async () => {
+    mockCompleteExternalDispensing.mockRejectedValue(
+      new Error("Stock update failed"),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await createRecord(user);
+    await user.click(
+      await screen.findByRole("checkbox", {
+        name: /i have checked the patient's identity/i,
+      }),
+    );
+    await user.click(screen.getByRole("button", { name: /confirm identity/i }));
+    await screen.findByRole("heading", {
+      name: /step 3: confirm and complete/i,
+    });
+    await user.click(
+      screen.getByRole("button", { name: /confirm dispensing/i }),
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Stock update failed",
+    );
+    expect(
+      screen.queryByRole("button", { name: "View / Generate Invoice" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Dispensing result" }),
+    ).not.toBeInTheDocument();
+  });
   it("renders the prescription form and medicine fields", () => {
     renderPage();
 
@@ -79,8 +146,10 @@ describe("ExternalDispensingPage", () => {
       screen.getByRole("heading", { name: "External Dispensing" }),
     ).toBeInTheDocument();
 
-    expect(screen.getByLabelText(/Prescription ID/)).toBeRequired();
-    expect(screen.getByLabelText(/Patient ID/)).toBeRequired();
+    expect(
+      screen.getByLabelText("Prescription ID (Optional)"),
+    ).not.toBeRequired();
+    expect(screen.getByLabelText("Patient ID (Optional)")).not.toBeRequired();
     expect(screen.getByLabelText(/Medicine ID/)).toBeRequired();
     expect(screen.getByLabelText(/Quantity/)).toBeRequired();
 
@@ -134,7 +203,7 @@ describe("ExternalDispensingPage", () => {
     );
 
     expect(mockCreateExternalDispensing).not.toHaveBeenCalled();
-    expect(screen.getByLabelText(/Prescription ID/)).toBeInvalid();
+    expect(screen.getByLabelText(/Medicine ID/)).toBeInvalid();
   });
 
   it("requires identity confirmation before verification", async () => {
@@ -264,6 +333,9 @@ describe("ExternalDispensingPage", () => {
     expect(mockCompleteExternalDispensing).toHaveBeenCalledWith(9001);
     expect(screen.getByText("Status", { exact: true })).toBeInTheDocument();
     expect(screen.getByText("DISPENSED", { exact: true })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "View / Generate Invoice" }),
+    ).toBeInTheDocument();
   });
 
   it("displays the partial dispensing result and follow-up message", async () => {

@@ -546,7 +546,8 @@
 
 // export default DispensingQueuePage;
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
+import DispensingBilling from "../../components/Pharmacist/DispensingBilling";
 import EmptyState from "../../components/EmptyState";
 import ErrorMessage from "../../components/ErrorMessage";
 import LoadingSpinner from "../../components/LoadingSpinner";
@@ -688,7 +689,8 @@ const DispensingQueuePage = () => {
   const [previewAttempt, setPreviewAttempt] = useState(0);
 
   const [dispensing, setDispensing] = useState(false);
-  const [notice, setNotice] = useState(null);
+  const [notice, setNotice] = useState("");
+  const [completedHandover, setCompletedHandover] = useState(null);
 
   const [query, setQuery] = useState("");
   const detailsRef = useRef(null);
@@ -864,6 +866,7 @@ const DispensingQueuePage = () => {
       const result = await dispensePrescription(selectedId, {
         confirmPartial: partialConfirmed,
       });
+      setCompletedHandover(result);
 
       setNotice({
         tone: "success",
@@ -920,6 +923,17 @@ const DispensingQueuePage = () => {
       )}
 
       {loading && <LoadingSpinner label="Loading dispensing queue..." />}
+      {completedHandover?.dispenseId != null && (
+        <section className="space-y-3 rounded-xl border border-neutral-200 bg-white p-5">
+          <p>Dispensing completed — medicine billing is available.</p>
+          <DispensingBilling
+            key={completedHandover.dispenseId}
+            dispenseId={completedHandover.dispenseId}
+            prescriptionId={completedHandover.prescriptionId}
+            patientId={completedHandover.patientId}
+          />
+        </section>
+      )}
 
       {error && (
         <section className="rounded-2xl border border-neutral-200 bg-white p-5">

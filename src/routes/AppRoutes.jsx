@@ -57,6 +57,7 @@ import BillingPage from "../pages/admin/BillingPage";
 import ClinicReports from "../components/admin/ClinicReports";
 import ReportsPage from "../pages/superAdmin/ReportsPage";
 import ExternalDispensingPage from "../pages/pharmacist/ExternalDispensingPage";
+import DispensingHistoryPage from "../pages/pharmacist/DispensingHistoryPage";
 import PharmacyReportsPage from "../pages/shared/PharmacyReportsPage";
 
 const AppRoutes = () => {
@@ -160,6 +161,10 @@ const AppRoutes = () => {
         <Route path="/pharmacist" element={<PharmacistLayout />}>
           <Route path="dashboard" element={<PharmacistDashboardPage />} />
           <Route path="dispensing-queue" element={<DispensingQueuePage />} />
+          <Route
+            path="dispensing-history"
+            element={<DispensingHistoryPage />}
+          />
           <Route path="inventory" element={<InventoryManagementPage />} />
           <Route path="add-medicine" element={<AddMedicinePage />} />
           <Route

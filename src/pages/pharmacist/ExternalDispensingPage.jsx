@@ -745,7 +745,8 @@
 //   );
 // }
 
-import { useEffect, useRef, useState, useId } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import DispensingBilling from "../../components/Pharmacist/DispensingBilling";
 import {
   completeExternalDispensing,
   createExternalDispensing,
@@ -879,8 +880,6 @@ export default function ExternalDispensingPage() {
   /* ---------- Derived validation ---------- */
 
   const createErrors = {
-    prescriptionId: !prescriptionId ? "Prescription ID is required." : "",
-    patientId: !patientId ? "Patient ID is required." : "",
     items: items.some((item) => !item.medicineId)
       ? "Every medicine needs a Medicine ID."
       : "",
@@ -925,8 +924,8 @@ export default function ExternalDispensingPage() {
 
     try {
       const record = await createExternalDispensing({
-        prescriptionId: Number(prescriptionId),
-        patientId: Number(patientId),
+        prescriptionId: prescriptionId ? Number(prescriptionId) : null,
+        patientId: patientId ? Number(patientId) : null,
         verificationMethod,
         deliveryMethod,
         items: items.map((item) => ({
@@ -1139,7 +1138,7 @@ export default function ExternalDispensingPage() {
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             <div>
               <label className={labelClass} htmlFor="prescriptionId">
-                Prescription ID <span className="text-red-600">*</span>
+                Prescription ID (Optional)
               </label>
               <input
                 className={inputClass}
@@ -1162,7 +1161,7 @@ export default function ExternalDispensingPage() {
 
             <div>
               <label className={labelClass} htmlFor="patientId">
-                Patient ID <span className="text-red-600">*</span>
+                Patient ID (Optional)
               </label>
               <input
                 className={inputClass}
@@ -1416,7 +1415,7 @@ export default function ExternalDispensingPage() {
                 Patient ID
               </p>
               <p className="mt-1 text-lg font-bold text-neutral-900">
-                {dispensing.patientId}
+                {dispensing.patientId ?? "Walk-in"}
               </p>
             </div>
             <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
@@ -1525,7 +1524,7 @@ export default function ExternalDispensingPage() {
                 Prescription ID
               </p>
               <p className="mt-1 font-semibold text-neutral-900">
-                {dispensing.prescriptionId}
+                {dispensing.prescriptionId ?? "Not linked"}
               </p>
             </div>
             <div className="rounded-xl border border-neutral-200 p-4">
@@ -1533,7 +1532,7 @@ export default function ExternalDispensingPage() {
                 Patient ID
               </p>
               <p className="mt-1 font-semibold text-neutral-900">
-                {dispensing.patientId}
+                {dispensing.patientId ?? "Walk-in"}
               </p>
             </div>
             <div className="rounded-xl border border-neutral-200 p-4">
@@ -1643,7 +1642,7 @@ export default function ExternalDispensingPage() {
                 Patient ID
               </p>
               <p className="mt-1 font-semibold text-neutral-900">
-                {result.patientId}
+                {result.patientId ?? "Walk-in"}
               </p>
             </div>
             <div className="rounded-xl border border-neutral-200 p-4">
@@ -1694,6 +1693,18 @@ export default function ExternalDispensingPage() {
               Start new dispensing
             </button>
           </div>
+          {["DISPENSED", "PARTIALLY_DISPENSED"].includes(result.status) && (
+            <div className="space-y-3">
+              <p className="text-sm text-neutral-700">
+                Dispensing completed — medicine billing is available.
+              </p>
+              <DispensingBilling
+                dispenseId={result.dispenseId}
+                prescriptionId={result.prescriptionId}
+                patientId={result.patientId}
+              />
+            </div>
+          )}
         </section>
       )}
 

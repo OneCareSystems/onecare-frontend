@@ -1,4 +1,5 @@
 import apiClient from "./apiClient";
+import { getPrescriptionById } from "./prescriptionService";
 import {
   appointmentCounts,
   pendingInvoiceCount,
@@ -269,6 +270,63 @@ export async function generateConsultationInvoice(appointment) {
       );
   }
   throw new Error("Invoice pagination exceeded limit");
+}
+
+/** Medicine billing remains separate from the completed stock transaction. */
+export async function findOrGenerateDispensingInvoice({
+  dispenseId,
+  appointmentId,
+  prescriptionId,
+  patientId,
+}) {
+  const source = dispenseId != null ? "dispenseId" : "appointmentId";
+  const id = positiveId(dispenseId ?? appointmentId);
+  const findExisting = async (key = source, sourceId = id) => {
+    for (let page = 0; page < 1000; page++) {
+      const data = await listInvoices({
+        ...(patientId != null ? { patientId: positiveId(patientId) } : {}),
+        page,
+        size: 100,
+      });
+      const existing = data.content.find(
+        (invoice) => String(invoice[key]) === sourceId,
+      );
+      if (existing) return getInvoice(existing.invoiceId);
+      if (page + 1 >= data.totalPages) return null;
+    }
+    throw new Error("Invoice pagination exceeded limit");
+  };
+  const existing = await findExisting();
+  if (existing) return existing;
+  try {
+    return invoiceView(
+      unwrap(
+        await apiClient.post("/invoices", `{"${source}":${id}}`, invoiceConfig),
+      ),
+      true,
+    );
+  } catch (error) {
+    // A racing create may have succeeded; retrieve it instead of posting again.
+    if (error.status === 409) {
+      const recovered = await findExisting();
+      if (recovered) return recovered;
+      // The server may report that an older handover was billed with its consultation.
+      if (
+        prescriptionId != null &&
+        /invoice already includes medicine lines/.test(error.message)
+      ) {
+        const prescription = await getPrescriptionById(prescriptionId);
+        if (prescription.appointmentId != null) {
+          const covered = await findExisting(
+            "appointmentId",
+            String(prescription.appointmentId),
+          );
+          if (covered) return covered;
+        }
+      }
+    }
+    throw error;
+  }
 }
 export async function correctInvoice(id, items) {
   const body = {

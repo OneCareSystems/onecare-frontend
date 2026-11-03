@@ -155,6 +155,12 @@ export const NAV_ITEMS = Object.freeze({
       icon: "truck",
     }),
     Object.freeze({
+      id: "dispensing-history",
+      to: "/pharmacist/dispensing-history",
+      label: "Dispensing History",
+      icon: "clipboard",
+    }),
+    Object.freeze({
       id: "reports",
       to: "/pharmacist/reports",
       label: "Reports",

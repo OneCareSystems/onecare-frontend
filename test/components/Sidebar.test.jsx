@@ -71,8 +71,9 @@ describe("Sidebar — CFG-04 role-driven navigation", () => {
     const expectedItems = [
       ["Dashboard", "/pharmacist/dashboard"],
       ["Dispensing Queue", "/pharmacist/dispensing-queue"],
-      ["Inventory", "/pharmacist/inventory"],
       ["External Dispensing", "/pharmacist/external-dispensing"],
+      ["Dispensing History", "/pharmacist/dispensing-history"],
+      ["Inventory", "/pharmacist/inventory"],
       ["Reports", "/pharmacist/reports"],
     ];
 

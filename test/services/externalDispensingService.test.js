@@ -17,6 +17,7 @@ import {
   getExternalDispensingById,
   verifyExternalDispensingIdentity,
   completeExternalDispensing,
+  listExternalDispensing,
 } from "../../src/services/externalDispensingService";
 
 const apiResponse = (data) => ({
@@ -102,25 +103,38 @@ describe("externalDispensingService", () => {
       });
     });
 
-    it("rejects when prescription ID is missing", async () => {
+    it.each([
+      [20, 30],
+      [undefined, 30],
+      [20, undefined],
+      [undefined, undefined],
+      ["", ""],
+    ])(
+      "sends nullable IDs for prescription %s and patient %s",
+      async (prescriptionId, patientId) => {
+        apiPost.mockResolvedValue(apiResponse(dispensingRecord));
+        await createExternalDispensing({
+          prescriptionId,
+          patientId,
+          items: [{ medicineId: 5, quantity: 1 }],
+        });
+        expect(apiPost.mock.calls[0][1]).toMatchObject({
+          prescriptionId: prescriptionId || null,
+          patientId: patientId || null,
+        });
+      },
+    );
+    it.each([
+      { prescriptionId: 0 },
+      { patientId: -1 },
+      { patientId: "invalid" },
+    ])("rejects an invalid supplied optional identifier: %j", async (ids) => {
       await expect(
         createExternalDispensing({
-          patientId: 30,
+          ...ids,
           items: [{ medicineId: 5, quantity: 1 }],
         }),
-      ).rejects.toThrow("Prescription ID and patient ID are required.");
-
-      expect(apiPost).not.toHaveBeenCalled();
-    });
-
-    it("rejects when patient ID is missing", async () => {
-      await expect(
-        createExternalDispensing({
-          prescriptionId: 20,
-          items: [{ medicineId: 5, quantity: 1 }],
-        }),
-      ).rejects.toThrow("Prescription ID and patient ID are required.");
-
+      ).rejects.toThrow("Invalid identifier");
       expect(apiPost).not.toHaveBeenCalled();
     });
 
@@ -168,6 +182,18 @@ describe("externalDispensingService", () => {
   });
 
   describe("getExternalDispensingById", () => {
+    it("loads history from the existing list endpoint and validates its shape", async () => {
+      apiGet
+        .mockResolvedValueOnce(apiResponse([dispensingRecord]))
+        .mockResolvedValueOnce(apiResponse({}));
+      expect(await listExternalDispensing()).toEqual([dispensingRecord]);
+      expect(apiGet).toHaveBeenCalledWith("/external-dispensing", {
+        signal: undefined,
+      });
+      await expect(listExternalDispensing()).rejects.toThrow(
+        "Unexpected dispensing history response format",
+      );
+    });
     it("fetches a dispensing record by ID", async () => {
       apiGet.mockResolvedValue(apiResponse(dispensingRecord));
 
