@@ -1,0 +1,123 @@
+# nginx configuration for the OneCare SPA (DDP-#49 / DKR-02).
+#
+# ${BACKEND_URL}, ${NGINX_RESOLVER}, ${CLIENT_MAX_BODY_SIZE} and
+# ${PROXY_READ_TIMEOUT} are substituted from the environment at container
+# start (docker/entrypoint.sh exports defaults; compose overrides them).
+# nginx runtime variables ($host, $remote_addr, ...) are left untouched:
+# the stock template mechanism only substitutes defined environment variables.
+#
+# The security headers live in /etc/nginx/security-headers.conf and are
+# included per block: nginx drops inherited add_header directives as soon as
+# a child block declares its own, and AC4 requires the headers on every
+# response.
+
+server {
+    listen 8080;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+    charset utf-8;
+
+    # Do not advertise the nginx version (AC4).
+    server_tokens off;
+
+    include /etc/nginx/security-headers.conf;
+
+    gzip on;
+    gzip_types application/javascript application/json image/svg+xml text/css;
+
+    # ------------------------------------------------------------------
+    # Container health endpoint, served by nginx itself (DKR-01/04).
+    # ------------------------------------------------------------------
+    location = /healthz {
+        access_log off;
+        include /etc/nginx/security-headers.conf;
+        add_header Cache-Control "no-store" always;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    # ------------------------------------------------------------------
+    # Runtime configuration (DKR-03): written by the entrypoint at container
+    # start; never cached so a restart picks up new values immediately.
+    # ------------------------------------------------------------------
+    location = /config.json {
+        include /etc/nginx/security-headers.conf;
+        add_header Cache-Control "no-store" always;
+        default_type application/json;
+        try_files /config.json =404;
+    }
+
+    # ------------------------------------------------------------------
+    # Same-origin API proxy (AC1). /api and everything below it is proxied
+    # to the backend; unknown /api paths return the backend's real 404 and
+    # never fall back to the SPA (AC2).
+    #
+    # The upstream host is resolved at request time through the Docker DNS
+    # (resolver + variable proxy_pass), so nginx starts and serves the SPA
+    # even while the backend container is still booting.
+    # ------------------------------------------------------------------
+    location /api {
+        include /etc/nginx/security-headers.conf;
+        add_header Cache-Control "no-store" always;
+
+        resolver ${NGINX_RESOLVER} valid=10s ipv6=off;
+        set $backend_upstream "${BACKEND_URL}";
+        proxy_pass $backend_upstream;
+
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        # Auth and session cookies pass through unchanged (same origin).
+        proxy_set_header Authorization $http_authorization;
+        proxy_set_header Cookie $http_cookie;
+
+        # Match the backend limits: PDF uploads must not 413 and long
+        # backup/restore calls must not time out (AC5).
+        client_max_body_size ${CLIENT_MAX_BODY_SIZE};
+        proxy_connect_timeout 10s;
+        proxy_send_timeout ${PROXY_READ_TIMEOUT};
+        proxy_read_timeout ${PROXY_READ_TIMEOUT};
+    }
+
+    # ------------------------------------------------------------------
+    # Hashed build assets (AC3): content-hashed by Vite, safe to cache
+    # forever. ^~ wins over the static-extension regex below so the
+    # immutable header always applies under /assets/.
+    # Missing assets return a real 404, never the SPA shell (AC2).
+    # ------------------------------------------------------------------
+    location ^~ /assets/ {
+        include /etc/nginx/security-headers.conf;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        try_files $uri =404;
+    }
+
+    # ------------------------------------------------------------------
+    # Other static files (favicon, icons, self-hosted fonts): served or 404.
+    # No add_header here: inherits the server-level security headers.
+    # ------------------------------------------------------------------
+    location ~* \.(?:svg|png|jpe?g|gif|webp|ico|woff2?|ttf|txt|xml|map)$ {
+        try_files $uri =404;
+    }
+
+    # ------------------------------------------------------------------
+    # index.html (AC3): never cached, so a new deploy is picked up on the
+    # next navigation. The SPA fallback below re-enters this exact location,
+    # so deep-link responses are also uncached.
+    # ------------------------------------------------------------------
+    location = /index.html {
+        include /etc/nginx/security-headers.conf;
+        add_header Cache-Control "no-store" always;
+    }
+
+    # ------------------------------------------------------------------
+    # SPA fallback (AC2): unknown paths render the app so React Router deep
+    # links such as /doctor/today-schedule survive a hard refresh.
+    # ------------------------------------------------------------------
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

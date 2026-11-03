@@ -1,0 +1,26 @@
+@media print {
+  body:has(#invoice-print) * {
+    visibility: hidden;
+  }
+  body:has(#invoice-print) #invoice-print,
+  body:has(#invoice-print) #invoice-print * {
+    visibility: visible;
+  }
+  #invoice-print {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 1rem;
+    color: black;
+    background: white;
+  }
+  #invoice-print [role="region"] {
+    overflow: visible;
+    border: 0;
+  }
+  #invoice-print table {
+    font-size: 10pt;
+    width: 100%;
+  }
+}

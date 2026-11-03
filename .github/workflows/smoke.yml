@@ -1,0 +1,73 @@
+# Staging smoke suite (DDP-#49 / DKR-06).
+#
+# Runs the Playwright smoke checks in e2e/smoke/ against an ALREADY-DEPLOYED
+# environment (the SHA-tagged frontend image behind the prod-like Compose
+# stack). Dispatch manually after a deploy-staging run from onecare-infra.
+#
+#   SMOKE_BASE_URL=https://<staging-host>   (required, input below)
+#
+# Optional secrets (checks that need a seeded synthetic staff account skip
+# themselves when absent; the rest always run):
+#   SMOKE_STAFF_USERNAME / SMOKE_STAFF_PASSWORD - synthetic staging account
+#                                                (never commit credentials)
+#
+# Synthetic data only; no traces or videos are recorded and successful runs
+# keep no artifacts (SDS §2.6.4.2).
+
+name: staging-smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      smoke_base_url:
+        description: "Base URL of the deployed environment (e.g. https://staging.example.com)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-smoke-${{ inputs.smoke_base_url }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run smoke suite against the deployed environment
+        env:
+          SMOKE_BASE_URL: ${{ inputs.smoke_base_url }}
+          SMOKE_STAFF_USERNAME: ${{ secrets.SMOKE_STAFF_USERNAME }}
+          SMOKE_STAFF_PASSWORD: ${{ secrets.SMOKE_STAFF_PASSWORD }}
+        run: npm run test:smoke
+
+      # Screenshot-on-failure only; uploaded so a failed deploy can be
+      # diagnosed without SSH access.
+      - name: Upload failure report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: ignore
