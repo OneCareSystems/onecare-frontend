@@ -142,7 +142,7 @@ const ConsultationPage = () => {
     appointment?.status === "COMPLETED" || appointment?.status === "CANCELLED";
 
   const isCompleted = appointment?.status === "COMPLETED";
-  const canComplete = appointment?.status === "SCHEDULED";
+  const canComplete = appointment?.status === "SCHEDULED" || "ARRIVED";
 
   const load = useCallback(() => {
     const loadId = ++loadIdRef.current;
