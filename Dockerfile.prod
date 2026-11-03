@@ -43,8 +43,9 @@ COPY --chown=101:101 --from=build /app/dist /usr/share/nginx/html
 # container start, so the directory itself must be nginx-owned. The image
 # still runs as the non-root nginx user (uid 101; AC3) — numeric so the
 # ownership resolves on any host (hadolint DL3066).
+# Apply available Alpine security updates to the complete runtime package set.
 USER 0
-RUN apk upgrade --no-cache brotli-libs curl libcurl \
+RUN apk upgrade --no-cache \
   && chown 101:101 /usr/share/nginx/html
 USER 101
 
