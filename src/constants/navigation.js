@@ -140,19 +140,19 @@ export const NAV_ITEMS = Object.freeze({
       id: "dispensing-queue",
       to: "/pharmacist/dispensing-queue",
       label: "Dispensing Queue",
-      icon: "prescription",
+      icon: "list-checks",
     }),
     Object.freeze({
       id: "inventory",
       to: "/pharmacist/inventory",
       label: "Inventory",
-      icon: "package",
+      icon: "package-check",
     }),
     Object.freeze({
       id: "external-dispensing",
       to: "/pharmacist/external-dispensing",
       label: "External Dispensing",
-      icon: "clipboard",
+      icon: "truck",
     }),
     Object.freeze({
       id: "reports",
