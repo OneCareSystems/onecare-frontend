@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -30,7 +29,8 @@ const SiteHeader = ({ style }) => {
   return (
     <header
       style={style}
-      className="relative z-40 border-b border-slate-200 bg-white/90 backdrop-blur"
+      className="static border-b border-slate-200 bg-white/90 backdrop-blur"
+      // className="relative z-40 border-b border-slate-200 bg-white/90 backdrop-blur"
     >
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
 
