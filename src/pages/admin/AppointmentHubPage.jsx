@@ -6,6 +6,7 @@ import Select from "../../components/Select";
 import Table from "../../components/Table";
 import ErrorMessage from "../../components/ErrorMessage";
 import ConfirmDialog from "../../components/ConfirmDialog";
+import Modal from "../../components/Modal";
 import AvailableSlotPicker from "../../components/admin/AvailableSlotPicker";
 import BookAppointmentModal from "../../components/admin/BookAppointmentModal";
 import {
@@ -18,6 +19,7 @@ import {
   cancelAppointment,
   listAdminAppointments,
   rescheduleAppointment,
+  updateAdminQueue,
 } from "../../services/adminWorkflowService";
 import {
   APPOINTMENT_STATUSES,
@@ -62,6 +64,7 @@ export default function AppointmentHubPage() {
     [message, setMessage] = useState(""),
     [error, setError] = useState("");
   const lock = useRef(false);
+  const rescheduleOpen = action?.type === "reschedule";
   const all = records.data ?? [];
   const rows = all.filter(
     (a) =>
@@ -75,6 +78,34 @@ export default function AppointmentHubPage() {
     setError("");
     setMessage("");
     setConfirm(type === "cancel");
+  };
+  const arrive = async (appointment) => {
+    if (lock.current || appointment.status !== "SCHEDULED") return;
+    lock.current = true;
+    setPending(true);
+    setError("");
+    setMessage("");
+    try {
+      const result = await updateAdminQueue(
+        appointment.appointmentId,
+        "ARRIVED",
+      );
+      setMessage(
+        `Appointment ${result.appointmentId}: ${statusLabel(result.status)}.`,
+      );
+    } catch (failure) {
+      setError(workflowError(failure, "update the queue"));
+    } finally {
+      lock.current = false;
+      setPending(false);
+      setRefresh((key) => key + 1);
+    }
+  };
+  const closeReschedule = () => {
+    if (pending) return;
+    setAction(null);
+    setConfirm(false);
+    setError("");
   };
   const requestConfirmation = () => {
     const validation = bookingError({
@@ -149,8 +180,8 @@ export default function AppointmentHubPage() {
     >
       <div
         className="space-y-4"
-        aria-hidden={bookingOpen || undefined}
-        inert={bookingOpen || undefined}
+        aria-hidden={bookingOpen || rescheduleOpen || undefined}
+        inert={bookingOpen || rescheduleOpen || undefined}
       >
         <Button ref={bookingButton} onClick={() => setBookingOpen(true)}>
           + Book Appointment
@@ -187,7 +218,7 @@ export default function AppointmentHubPage() {
             />
             <Button type="submit">Apply filters</Button>
           </form>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap items-end gap-3">
             <Select
               name="hub-status"
               label="Status"
@@ -210,7 +241,7 @@ export default function AppointmentHubPage() {
               )}
             />
             <Button
-              variant="outline"
+              className="h-[38px] shrink-0"
               onClick={() => setRefresh((key) => key + 1)}
               disabled={records.loading}
             >
@@ -220,7 +251,7 @@ export default function AppointmentHubPage() {
         </WorkflowCard>
         <ErrorMessage
           message={
-            error ||
+            (!rescheduleOpen && error) ||
             (records.error
               ? workflowError(records.error, "load appointments")
               : "")
@@ -257,7 +288,15 @@ export default function AppointmentHubPage() {
                   header: "Actions",
                   render: (a) =>
                     a.status === "SCHEDULED" ? (
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          disabled={pending}
+                          onClick={() => arrive(a)}
+                          aria-label={`Mark appointment ${a.appointmentId} arrived`}
+                        >
+                          Arrived
+                        </Button>
                         <Button
                           size="sm"
                           variant="outline"
@@ -285,66 +324,98 @@ export default function AppointmentHubPage() {
             />
           )}
         </WorkflowCard>
-        {action?.type === "reschedule" && (
-          <WorkflowCard
-            title={`Reschedule appointment ${action.appointment.appointmentId}`}
-          >
-            <fieldset disabled={pending} className="space-y-3">
-              <Input
-                name="reschedule-date"
-                label="New appointment date"
-                type="date"
-                min={clinicToday()}
-                value={date}
-                onChange={(event) => {
-                  setDate(event.target.value);
-                  setSlot("");
-                }}
-              />
-              <AvailableSlotPicker
-                doctorId={action.appointment.doctorId}
-                date={date}
-                value={slot}
-                onChange={setSlot}
-                refreshKey={slotRefresh}
-                disabled={pending}
-              />
-              <div className="flex gap-3">
-                <Button onClick={requestConfirmation}>Review reschedule</Button>
-                <Button variant="outline" onClick={() => setAction(null)}>
-                  Close reschedule
-                </Button>
-              </div>
-            </fieldset>
-          </WorkflowCard>
-        )}
         <ConfirmDialog
-          isOpen={confirm}
-          title={
-            action?.type === "cancel"
-              ? "Cancel appointment?"
-              : "Confirm reschedule"
-          }
-          message={
-            action?.type === "cancel"
-              ? `Cancel appointment ${action?.appointment.appointmentId}?`
-              : `Move appointment ${action?.appointment.appointmentId} to ${date} at ${slot}?`
-          }
-          confirmLabel={
-            action?.type === "cancel"
-              ? "Confirm cancellation"
-              : "Confirm reschedule"
-          }
+          isOpen={confirm && action?.type === "cancel"}
+          title="Cancel appointment?"
+          message={`Cancel appointment ${action?.appointment.appointmentId}?`}
+          confirmLabel="Confirm cancellation"
           loading={pending}
           onClose={() => {
             if (!pending) {
               setConfirm(false);
-              if (action?.type === "cancel") setAction(null);
+              setAction(null);
             }
           }}
           onConfirm={execute}
         />
       </div>
+      {rescheduleOpen && (
+        <Modal
+          isOpen
+          title={`Reschedule appointment ${action.appointment.appointmentId}`}
+          onClose={closeReschedule}
+          closeLabel="Close reschedule dialog"
+          closeDisabled={pending}
+          trapFocus
+          className="max-w-lg max-h-[90dvh] overflow-y-auto"
+          bodyClassName="space-y-3"
+        >
+          <p className="text-sm text-neutral-600">
+            Patient {action.appointment.patientId} · Doctor{" "}
+            {action.appointment.doctorId}
+            {" · "}
+            {action.appointment.appointmentDate} {action.appointment.timeSlot}
+          </p>
+          <ErrorMessage message={error} />
+          <fieldset disabled={pending || confirm} className="space-y-3">
+            <Input
+              name="reschedule-date"
+              label="New appointment date"
+              type="date"
+              min={clinicToday()}
+              value={date}
+              onChange={(event) => {
+                setDate(event.target.value);
+                setSlot("");
+              }}
+            />
+            <AvailableSlotPicker
+              doctorId={action.appointment.doctorId}
+              date={date}
+              value={slot}
+              onChange={setSlot}
+              refreshKey={slotRefresh}
+              disabled={pending}
+            />
+          </fieldset>
+          {slot && (
+            <p>
+              Selected slot: {date} at {slot}
+            </p>
+          )}
+          {confirm && (
+            <p>
+              Move appointment {action.appointment.appointmentId} to {date} at{" "}
+              {slot}?
+            </p>
+          )}
+          <div className="flex flex-wrap gap-3">
+            {confirm ? (
+              <>
+                <Button onClick={execute} loading={pending}>
+                  Confirm reschedule
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={pending}
+                  onClick={() => setConfirm(false)}
+                >
+                  Back
+                </Button>
+              </>
+            ) : (
+              <Button onClick={requestConfirmation}>Review reschedule</Button>
+            )}
+            <Button
+              variant="outline"
+              disabled={pending}
+              onClick={closeReschedule}
+            >
+              Close reschedule
+            </Button>
+          </div>
+        </Modal>
+      )}
       {bookingOpen && (
         <BookAppointmentModal
           returnFocusRef={bookingButton}
