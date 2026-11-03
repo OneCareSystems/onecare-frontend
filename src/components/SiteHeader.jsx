@@ -60,7 +60,6 @@ const SiteHeader = ({ style }) => {
               </NavLink>
             </li>
 
-
             {/* English / Tamil switcher */}
             <li className="flex items-center border-l border-slate-200 pl-2 sm:pl-3">
               <LanguageSwitcher />

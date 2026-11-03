@@ -1,4 +1,3 @@
-
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -32,7 +31,7 @@ const medicines = [
     name: "Amoxicillin",
     stockQuantity: 5,
     reorderLevel: 10,
-    expiryDate: "2026-11-01",
+    expiryDate: "2027-11-01",
     isQuarantined: false,
   },
 ];
@@ -67,9 +66,7 @@ describe("InventoryManagementPage", () => {
       screen.getByRole("heading", { name: "Inventory Management" }),
     ).toBeInTheDocument();
 
-    expect(
-      await screen.findByText("Paracetamol"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Paracetamol")).toBeInTheDocument();
 
     expect(screen.getByText("Amoxicillin")).toBeInTheDocument();
     expect(screen.getByText("50")).toBeInTheDocument();
@@ -136,9 +133,7 @@ describe("InventoryManagementPage", () => {
       expect(getNearExpiryMedicines).toHaveBeenCalled();
     });
 
-    expect(
-      await screen.findByText("No medicines found"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("No medicines found")).toBeInTheDocument();
   });
 
   it("shows an error and retries when inventory loading fails", async () => {
@@ -180,9 +175,9 @@ describe("InventoryManagementPage", () => {
       screen.getByRole("button", { name: "Confirm adjustment" }),
     );
 
-    expect(
-      await screen.findByRole("alert"),
-    ).toHaveTextContent("Enter a non-zero whole-number stock change.");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Enter a non-zero whole-number stock change.",
+    );
 
     expect(adjustMedicineStock).not.toHaveBeenCalled();
   });
@@ -200,9 +195,7 @@ describe("InventoryManagementPage", () => {
     await user.type(screen.getByLabelText("Stock change"), "10");
 
     // The browser's required-field validation prevents empty submission.
-    expect(
-      screen.getByLabelText("Reason for adjustment"),
-    ).toBeRequired();
+    expect(screen.getByLabelText("Reason for adjustment")).toBeRequired();
 
     expect(adjustMedicineStock).not.toHaveBeenCalled();
   });

@@ -31,7 +31,11 @@ const PublicLayout = () => {
 
       <SiteHeader style={{ position: "static" }} />
 
-      <main id="main-content" tabIndex={-1} className="flex-1 focus:outline-none">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="flex-1 focus:outline-none"
+      >
         <PublicErrorBoundary>
           <Outlet />
         </PublicErrorBoundary>

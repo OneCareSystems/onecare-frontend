@@ -23,13 +23,13 @@ const StaffLayout = () => {
   const role = useSelector(selectRole);
   if (role === "ADMIN") return <AdminLayout />;
   return (
-    <div className="flex min-h-screen flex-col bg-neutral-0">
+    <div className="flex h-screen flex-col overflow-hidden bg-neutral-0">
       <TopBar />
 
-      <div className="flex flex-1 flex-col lg:flex-row">
+      <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
         <Sidebar />
 
-        <main className="min-w-0 flex-1">
+        <main className="min-w-0 flex-1 overflow-y-auto">
           <Breadcrumbs />
           <div className="px-4 pb-8 sm:px-6">
             <Outlet />

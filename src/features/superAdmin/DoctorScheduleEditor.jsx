@@ -59,12 +59,12 @@ const DayColumn = ({ day, onChange, onAdd, onRemove, onClearDay }) => {
 
   return (
     <section
-      className={`min-w-0 rounded-xl border bg-white p-4 ${
+      className={`min-w-0 overflow-hidden rounded-xl border bg-white p-4 ${
         hasOverlap ? "border-danger-300" : "border-neutral-200"
       }`}
       aria-labelledby={`schedule-${day.dayOfWeek}`}
     >
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2.5">
           <span
             className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
@@ -79,14 +79,14 @@ const DayColumn = ({ day, onChange, onAdd, onRemove, onClearDay }) => {
             />
           </span>
 
-          <div>
+          <div className="min-w-0">
             <h4
               id={`schedule-${day.dayOfWeek}`}
-              className="text-sm font-semibold text-neutral-900"
+              className="truncate text-sm font-semibold text-neutral-900"
             >
               {dayLabel}
             </h4>
-            <p className="text-xs text-neutral-500">
+            <p className="truncate text-xs text-neutral-500">
               {slots.length
                 ? `${slots.length} time slot${slots.length === 1 ? "" : "s"}`
                 : "Day off"}
@@ -140,7 +140,7 @@ const DayColumn = ({ day, onChange, onAdd, onRemove, onClearDay }) => {
                     : "border-neutral-200 bg-neutral-50/50"
                 }`}
               >
-                <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <span className="text-xs font-medium text-neutral-600">
                     Time slot {index + 1}
                   </span>
@@ -156,7 +156,8 @@ const DayColumn = ({ day, onChange, onAdd, onRemove, onClearDay }) => {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-2">
+                {/* Stack inputs vertically on very small screens, row on sm+ */}
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-end">
                   <div className="min-w-0">
                     <label
                       htmlFor={`start-${day.dayOfWeek}-${index}`}
@@ -175,7 +176,9 @@ const DayColumn = ({ day, onChange, onAdd, onRemove, onClearDay }) => {
                     />
                   </div>
 
-                  <span className="pb-3 text-sm text-neutral-400">to</span>
+                  <span className="hidden pb-3 text-sm text-neutral-400 sm:block">
+                    to
+                  </span>
 
                   <div className="min-w-0">
                     <label
@@ -264,7 +267,7 @@ export const DoctorScheduleEditor = ({
 
       {/* Preset templates */}
       <section className="rounded-xl border border-neutral-200 bg-white p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3">
           <div>
             <h4 className="text-sm font-semibold text-neutral-900">
               Schedule templates
@@ -334,8 +337,8 @@ export const DoctorScheduleEditor = ({
         </p>
       </section>
 
-      {/* Days grid */}
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+      {/* Days grid — add pb so sticky footer doesn't cover last row */}
+      <div className="grid grid-cols-1 gap-3 pb-2 md:grid-cols-2 xl:grid-cols-3">
         {days.map((day) => (
           <DayColumn
             key={day.dayOfWeek}

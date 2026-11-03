@@ -75,9 +75,7 @@ export default function ExternalDispensingPage() {
       setStep(2);
     } catch (err) {
       setError(
-        err.userMessage ||
-          err.message ||
-          "Unable to create dispensing record.",
+        err.userMessage || err.message || "Unable to create dispensing record.",
       );
     } finally {
       setLoading(false);
@@ -124,9 +122,7 @@ export default function ExternalDispensingPage() {
     setLoading(true);
 
     try {
-      const completed = await completeExternalDispensing(
-        dispensing.dispenseId,
-      );
+      const completed = await completeExternalDispensing(dispensing.dispenseId);
       setResult(completed);
       setDispensing(completed);
       setStep(4);
@@ -299,9 +295,7 @@ export default function ExternalDispensingPage() {
                 className={inputClass}
                 id="verificationMethod"
                 value={verificationMethod}
-                onChange={(event) =>
-                  setVerificationMethod(event.target.value)
-                }
+                onChange={(event) => setVerificationMethod(event.target.value)}
               >
                 <option value="PHONE">Phone</option>
                 <option value="CLINIC_ID">Clinic ID</option>
@@ -327,9 +321,7 @@ export default function ExternalDispensingPage() {
           <div className="border-t border-gray-200 pt-6">
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-base font-bold text-gray-900">
-                  Medicines
-                </h3>
+                <h3 className="text-base font-bold text-gray-900">Medicines</h3>
                 <p className="mt-1 text-sm text-gray-600">
                   Enter the medicine details from the prescription.
                 </p>
@@ -540,9 +532,7 @@ export default function ExternalDispensingPage() {
             role="note"
             className="rounded-lg border border-amber-200 bg-amber-50 p-4"
           >
-            <p className="text-sm font-semibold text-amber-900">
-              Important
-            </p>
+            <p className="text-sm font-semibold text-amber-900">Important</p>
             <p className="mt-1 text-sm leading-6 text-amber-800">
               The current backend does not validate the actual phone number or
               Clinic ID. Staff must perform the identity check against the
@@ -555,9 +545,7 @@ export default function ExternalDispensingPage() {
               className="mt-1 h-4 w-4 shrink-0 accent-blue-600"
               type="checkbox"
               checked={identityConfirmed}
-              onChange={(event) =>
-                setIdentityConfirmed(event.target.checked)
-              }
+              onChange={(event) => setIdentityConfirmed(event.target.checked)}
             />
             <span className="text-sm leading-6 text-gray-700">
               I have checked the patient's identity against the authorised
@@ -642,9 +630,9 @@ export default function ExternalDispensingPage() {
 
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
             <p className="text-sm leading-6 text-amber-900">
-              Check the prescription and available stock before confirming.
-              The backend may dispense only the available quantity when stock
-              is insufficient.
+              Check the prescription and available stock before confirming. The
+              backend may dispense only the available quantity when stock is
+              insufficient.
             </p>
           </div>
 

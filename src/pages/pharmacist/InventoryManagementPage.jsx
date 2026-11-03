@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
 import EmptyState from "../../components/EmptyState";
@@ -12,7 +11,6 @@ import {
 } from "../../services/medicineService";
 
 const today = () => new Date().toISOString().slice(0, 10);
-
 
 const dateAfterDays = (days) => {
   const date = new Date();
@@ -44,48 +42,49 @@ const InventoryManagementPage = () => {
   const [notice, setNotice] = useState("");
   const [adjustError, setAdjustError] = useState("");
 
-  const loadMedicines = useCallback(async (signal) => {
-    setLoading(true);
-    setLoadError(false);
+  const loadMedicines = useCallback(
+    async (signal) => {
+      setLoading(true);
+      setLoadError(false);
 
-    try {
-      let data;
+      try {
+        let data;
 
-      if (filter === "low") {
-        data = await getLowStockMedicines({ signal });
-      } else if (filter === "near") {
-        data = await getNearExpiryMedicines({ signal });
-      } else {
-        data = await searchMedicines(search.trim(), { signal });
+        if (filter === "low") {
+          data = await getLowStockMedicines({ signal });
+        } else if (filter === "near") {
+          data = await getNearExpiryMedicines({ signal });
+        } else {
+          data = await searchMedicines(search.trim(), { signal });
+        }
+
+        if (!signal.aborted) {
+          setMedicines(data);
+        }
+      } catch {
+        if (!signal.aborted) {
+          setLoadError(true);
+        }
+      } finally {
+        if (!signal.aborted) {
+          setLoading(false);
+        }
       }
+    },
+    [filter, search],
+  );
 
-      if (!signal.aborted) {
-        setMedicines(data);
+  useEffect(() => {
+    const controller = new AbortController();
+
+    Promise.resolve().then(() => {
+      if (!controller.signal.aborted) {
+        void loadMedicines(controller.signal);
       }
-    } catch {
-      if (!signal.aborted) {
-        setLoadError(true);
-      }
-    } finally {
-      if (!signal.aborted) {
-        setLoading(false);
-      }
-    }
-  }, [filter, search]);
+    });
 
- 
-useEffect(() => {
-  const controller = new AbortController();
-
-  Promise.resolve().then(() => {
-    if (!controller.signal.aborted) {
-      void loadMedicines(controller.signal);
-    }
-  });
-
-  return () => controller.abort();
-}, [loadMedicines, retry]);
-
+    return () => controller.abort();
+  }, [loadMedicines, retry]);
 
   const visibleMedicines = medicines.filter((medicine) => {
     const name = getMedicineName(medicine).toLowerCase();
@@ -152,8 +151,7 @@ useEffect(() => {
 
       setMedicines((current) =>
         current.map((medicine) =>
-          String(getMedicineId(medicine)) ===
-          String(getMedicineId(updated))
+          String(getMedicineId(medicine)) === String(getMedicineId(updated))
             ? updated
             : medicine,
         ),
@@ -179,7 +177,9 @@ useEffect(() => {
       } else if (status === 403) {
         setAdjustError("You do not have permission to update medicine stock.");
       } else if (status === 404) {
-        setAdjustError("This medicine could not be found. Reload the inventory.");
+        setAdjustError(
+          "This medicine could not be found. Reload the inventory.",
+        );
       } else {
         setAdjustError("Unable to update stock. Please try again.");
       }
@@ -190,26 +190,24 @@ useEffect(() => {
 
   return (
     <main className="space-y-6 p-4 sm:p-6">
-      
-<header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-  <div>
-    <h1 className="text-2xl font-bold text-gray-900">
-      Inventory Management
-    </h1>
-    <p className="mt-1 text-sm text-gray-600">
-      Review medicine stock, expiry dates, and inventory alerts.
-    </p>
-  </div>
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Inventory Management
+          </h1>
+          <p className="mt-1 text-sm text-gray-600">
+            Review medicine stock, expiry dates, and inventory alerts.
+          </p>
+        </div>
 
-  <Link
-    to="/pharmacist/add-medicine"
-    className="inline-flex items-center justify-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
-  >
-    <span aria-hidden="true">+</span>
-    Add New Medicine
-  </Link>
-</header>
-
+        <Link
+          to="/pharmacist/add-medicine"
+          className="inline-flex items-center justify-center gap-2 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+        >
+          <span aria-hidden="true">+</span>
+          Add New Medicine
+        </Link>
+      </header>
 
       {notice && (
         <div
@@ -289,12 +287,24 @@ useEffect(() => {
             <table className="w-full min-w-[720px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 text-gray-700">
-                  <th scope="col" className="px-4 py-3 font-semibold">Medicine</th>
-                  <th scope="col" className="px-4 py-3 font-semibold">Stock</th>
-                  <th scope="col" className="px-4 py-3 font-semibold">Reorder level</th>
-                  <th scope="col" className="px-4 py-3 font-semibold">Expiry date</th>
-                  <th scope="col" className="px-4 py-3 font-semibold">Status</th>
-                  <th scope="col" className="px-4 py-3 font-semibold">Action</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">
+                    Medicine
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-semibold">
+                    Stock
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-semibold">
+                    Reorder level
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-semibold">
+                    Expiry date
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-semibold">
+                    Status
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-semibold">
+                    Action
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -308,7 +318,7 @@ useEffect(() => {
                   const nearExpiry =
                     Boolean(expiryDate) &&
                     expiryDate >= today() &&
-                  expiryDate <= dateAfterDays(30);
+                    expiryDate <= dateAfterDays(30);
 
                   return (
                     <tr key={getMedicineId(medicine)} className="align-top">
@@ -351,34 +361,36 @@ useEffect(() => {
                               ⚠ Near expiry
                             </span>
                           )}
-                          {!expired && !quarantined && !lowStock && !nearExpiry && (
-                            <span className="text-gray-600">Available</span>
-                          )}
+                          {!expired &&
+                            !quarantined &&
+                            !lowStock &&
+                            !nearExpiry && (
+                              <span className="text-gray-600">Available</span>
+                            )}
                         </div>
                       </td>
-                    
-<td className="px-4 py-4">
-  <div className="flex flex-wrap gap-2">
-    <Link
-      to={`/pharmacist/medicines/${encodeURIComponent(
-        getMedicineId(medicine),
-      )}/edit`}
-      className="inline-flex items-center rounded-md border border-primary-300 px-3 py-2 text-sm font-medium text-primary-700 hover:bg-primary-50"
-    >
-      Edit
-    </Link>
 
-    <button
-      type="button"
-      disabled={expired || quarantined}
-      onClick={() => openAdjustment(medicine)}
-      className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-    >
-      Adjust stock
-    </button>
-  </div>
-</td>
+                      <td className="px-4 py-4">
+                        <div className="flex flex-wrap gap-2">
+                          <Link
+                            to={`/pharmacist/medicines/${encodeURIComponent(
+                              getMedicineId(medicine),
+                            )}/edit`}
+                            className="inline-flex items-center rounded-md border border-primary-300 px-3 py-2 text-sm font-medium text-primary-700 hover:bg-primary-50"
+                          >
+                            Edit
+                          </Link>
 
+                          <button
+                            type="button"
+                            disabled={expired || quarantined}
+                            onClick={() => openAdjustment(medicine)}
+                            className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Adjust stock
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
@@ -477,5 +489,3 @@ useEffect(() => {
 };
 
 export default InventoryManagementPage;
-
-

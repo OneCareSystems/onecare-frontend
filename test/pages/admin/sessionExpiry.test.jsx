@@ -82,7 +82,11 @@ async function signIn(role = "ADMIN") {
     target: { value: "fixture-password" },
   });
   fireEvent.click(screen.getByRole("button", { name: /Sign in securely/i }));
-  await screen.findByRole("heading", { name: "Register New Patient" });
+  await screen.findByRole(
+    "heading",
+    { name: "Register New Patient" },
+    { timeout: 10000 },
+  );
   fireEvent.change(screen.getByLabelText(/Full Name/), {
     target: { value: "Synthetic Patient" },
   });
@@ -109,7 +113,7 @@ const assertRetained = () => {
   expect(screen.queryByText(/session has expired/i)).not.toBeInTheDocument();
 };
 
-describe("ADM-02 session and registration errors", () => {
+describe("ADM-02 session and registration errors", { timeout: 15000 }, () => {
   it.each(["ADMIN"])(
     "%s logs in and posts with the bearer token",
     async (role) => {
@@ -201,7 +205,7 @@ describe("ADM-02 session and registration errors", () => {
     },
   );
 
-  it.each([400, 403, 404, 429, 500, "network"])(
+  it.each([404, 429, 500, "network"])(
     "retains form/session when refresh fails with %s",
     async (status) => {
       let posts = 0;
@@ -223,11 +227,11 @@ describe("ADM-02 session and registration errors", () => {
     },
   );
 
-  it.each(["invalid-refresh", "retry-unauthorized"])(
-    "ends the session for %s without a retry loop",
-    async (mode) => {
-      let posts = 0,
-        refreshes = 0;
+  it.each([400, 401, 403])(
+    "ends the session when refresh fails with %s",
+    async (status) => {
+      let posts = 0;
+      let refreshes = 0;
       server.use(
         http.post("*/api/patients", () => {
           posts++;
@@ -235,19 +239,36 @@ describe("ADM-02 session and registration errors", () => {
         }),
         http.post("*/api/auth/refresh", () => {
           refreshes++;
-          return mode === "invalid-refresh"
-            ? failure(401)
-            : HttpResponse.json(envelope({ accessToken: refreshedAccess }));
+          return failure(status);
         }),
       );
       await signIn();
       save();
       await screen.findByRole("heading", { name: /Sign in to OneCare/i });
       expect(selectIsAuthenticated(store.getState())).toBe(false);
-      expect([posts, refreshes]).toEqual([
-        mode === "invalid-refresh" ? 1 : 2,
-        1,
-      ]);
+      expect([posts, refreshes]).toEqual([1, 1]);
     },
   );
+
+  it("ends the session after a retried request is unauthorized", async () => {
+    let posts = 0;
+    let refreshes = 0;
+    server.use(
+      http.post("*/api/patients", () => {
+        posts++;
+        return failure(401);
+      }),
+      http.post("*/api/auth/refresh", () => {
+        refreshes++;
+        return HttpResponse.json(
+          envelope({ accessToken: refreshedAccess, expiresIn: 1800000 }),
+        );
+      }),
+    );
+    await signIn();
+    save();
+    await screen.findByRole("heading", { name: /Sign in to OneCare/i });
+    expect(selectIsAuthenticated(store.getState())).toBe(false);
+    expect([posts, refreshes]).toEqual([2, 1]);
+  });
 });

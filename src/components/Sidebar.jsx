@@ -19,7 +19,7 @@ const Sidebar = () => {
   return (
     <nav
       aria-label="Main navigation"
-      className="w-full shrink-0 border-b border-neutral-200 bg-neutral-50 lg:w-60 lg:border-b-0 lg:border-r"
+      className="w-full shrink-0 border-b border-neutral-200 bg-neutral-50 lg:w-60 lg:border-b-0 lg:border-r lg:overflow-y-auto"
     >
       <ul className="flex flex-row gap-1 overflow-x-auto p-3 lg:flex-col lg:overflow-x-visible">
         {items.map((item) => {

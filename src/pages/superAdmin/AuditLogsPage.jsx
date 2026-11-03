@@ -4,7 +4,6 @@ import {
   useDeferredValue,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 
@@ -50,7 +49,7 @@ const ActionBadge = memo(({ action }) => {
     <span
       className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-mono text-[11px] font-semibold ring-1 ring-inset ${palette}`}
     >
-      {action || "—"}
+      {action || "-"}
     </span>
   );
 });
@@ -206,31 +205,6 @@ const AuditLogsPage = () => {
   const [actionFilter, setActionFilter] = useState(ALL_ACTIONS);
   const [view, setView] = useState(VIEW_TABLE);
   const [selectedLog, setSelectedLog] = useState(null);
-  const [showShortcuts, setShowShortcuts] = useState(false);
-
-  const searchInputRef = useRef(null);
-
-  /* ---- keyboard shortcuts ---- */
-  useEffect(() => {
-    const onKey = (e) => {
-      const isMod = e.metaKey || e.ctrlKey;
-      if (isMod && e.key.toLowerCase() === "f") {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      } else if (isMod && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setShowShortcuts((v) => !v);
-      } else if (e.key === "/" && document.activeElement?.tagName !== "INPUT") {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      } else if (e.key === "Escape") {
-        setShowShortcuts(false);
-        setSelectedLog(null);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
 
   /* ---- fetch ---- */
   useEffect(() => {
@@ -357,7 +331,7 @@ const AuditLogsPage = () => {
             <ActorAvatar username={row.username} />
             <div className="min-w-0">
               <span className="block truncate text-sm font-medium text-neutral-900">
-                {row.username || "—"}
+                {row.username || "-"}
               </span>
               {row.ipAddress && (
                 <span className="block truncate font-mono text-[11px] text-neutral-500">
@@ -379,7 +353,7 @@ const AuditLogsPage = () => {
         render: (row) => (
           <div className="min-w-0 whitespace-normal">
             <span className="block text-xs font-medium text-neutral-800">
-              {row.entityType || "—"}
+              {row.entityType || "-"}
             </span>
             {row.entityId && (
               <span className="mt-0.5 block font-mono text-[11px] text-neutral-500">
@@ -394,7 +368,7 @@ const AuditLogsPage = () => {
         header: "Description",
         render: (row) => (
           <span className="block max-w-md whitespace-normal text-xs leading-relaxed text-neutral-600 line-clamp-2">
-            {row.description || "—"}
+            {row.description || "-"}
           </span>
         ),
       },
@@ -407,7 +381,7 @@ const AuditLogsPage = () => {
       {/* ============ Hero header ============ */}
       <SuperAdminPageHeader
         icon="clipboard"
-        badgeText="Live audit trail · Security"
+        badgeText="Live audit trail | Security"
         title="Audit Logs"
         description="Every privileged action across the platform, in one ledger."
         actions={
@@ -487,15 +461,14 @@ const AuditLogsPage = () => {
       <div className="sticky top-3 z-20 rounded-2xl border border-neutral-200 bg-white/95 p-3 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/80 sm:p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <SearchBar
-            ref={searchInputRef}
             value={query}
             onChange={handleQueryChange}
-            placeholder="Search user, action, entity, IP…  ( / )"
+            placeholder="Search user, action, entity, IP... ( / )"
             searchLabel="Search audit logs"
             className="w-full sm:max-w-xl"
           />
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
             <Select
               id="action-filter"
               name="action-filter"
@@ -503,7 +476,8 @@ const AuditLogsPage = () => {
               options={actionOptions}
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value || ALL_ACTIONS)}
-              className="w-full sm:w-44"
+              className="w-full sm:w-auto sm:flex-row sm:items-center sm:gap-2"
+              selectClassName="sm:w-36"
             />
 
             {/* View toggle */}
@@ -548,7 +522,7 @@ const AuditLogsPage = () => {
         {isFiltering && (
           <p className="mt-2 flex items-center gap-1.5 text-xs text-neutral-500">
             <Icon name="info" className="h-3.5 w-3.5 shrink-0" />
-            Filters apply to page {page} only — clear them to see every row.
+            Filters apply to page {page} only - clear them to see every row.
           </p>
         )}
       </div>
@@ -595,7 +569,7 @@ const AuditLogsPage = () => {
             <span className="text-xs text-neutral-500">
               {filteredLogs.length === logs.length
                 ? `${logs.length} of ${totalElements} events`
-                : `${filteredLogs.length} of ${logs.length} on this page · ${totalElements} total`}
+                : `${filteredLogs.length} of ${logs.length} on this page | ${totalElements} total`}
             </span>
           </div>
 
@@ -628,49 +602,6 @@ const AuditLogsPage = () => {
             />
           )}
         </section>
-      )}
-
-      {/* ============ Keyboard shortcut hint ============ */}
-      <button
-        type="button"
-        onClick={() => setShowShortcuts((v) => !v)}
-        className="fixed bottom-4 right-4 z-30 hidden rounded-full bg-neutral-900 px-3.5 py-2 text-xs font-medium text-white shadow-lg transition hover:bg-neutral-800 sm:inline-flex sm:items-center sm:gap-1.5"
-      >
-        <kbd className="rounded bg-white/20 px-1.5 py-0.5 font-mono text-[10px]">
-          ⌘K
-        </kbd>
-        Shortcuts
-      </button>
-
-      {showShortcuts && (
-        <div
-          className="fixed inset-0 z-40 flex items-center justify-center bg-neutral-900/30 backdrop-blur-sm p-4"
-          onClick={() => setShowShortcuts(false)}
-        >
-          <div
-            className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-5 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-sm font-semibold text-neutral-900">
-              Keyboard shortcuts
-            </h3>
-            <ul className="mt-3 space-y-2 text-sm">
-              {[
-                ["⌘ / Ctrl + F", "Focus search"],
-                ["/", "Focus search"],
-                ["⌘ / Ctrl + K", "Toggle shortcuts"],
-                ["Esc", "Close drawer / dialog"],
-              ].map(([key, label]) => (
-                <li key={key} className="flex items-center justify-between">
-                  <span className="text-neutral-600">{label}</span>
-                  <kbd className="rounded border border-neutral-200 bg-neutral-50 px-2 py-0.5 font-mono text-[11px] text-neutral-700">
-                    {key}
-                  </kbd>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
       )}
 
       {/* ============ Detail drawer ============ */}

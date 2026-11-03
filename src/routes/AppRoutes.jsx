@@ -118,8 +118,10 @@ const AppRoutes = () => {
           <Route path="billing" element={<BillingPage />} />
 
           <Route path="clinic-reports" element={<ClinicReports />} />
-          <Route path="/admin/knowledge-base"  element={<KnowledgeBaseManagementPage />}
-      />
+          <Route
+            path="/admin/knowledge-base"
+            element={<KnowledgeBaseManagementPage />}
+          />
         </Route>
       </Route>
 
@@ -159,10 +161,16 @@ const AppRoutes = () => {
           <Route path="dashboard" element={<PharmacistDashboardPage />} />
           <Route path="dispensing-queue" element={<DispensingQueuePage />} />
           <Route path="inventory" element={<InventoryManagementPage />} />
-        <Route path="add-medicine" element={<AddMedicinePage />} />
-         <Route path="medicines/:medicineId/edit" element={<UpdateMedicinePage />}/>
-         <Route path="external-dispensing" element={<ExternalDispensingPage />} />
-         <Route path="reports" element={<PharmacyReportsPage />} />
+          <Route path="add-medicine" element={<AddMedicinePage />} />
+          <Route
+            path="medicines/:medicineId/edit"
+            element={<UpdateMedicinePage />}
+          />
+          <Route
+            path="external-dispensing"
+            element={<ExternalDispensingPage />}
+          />
+          <Route path="reports" element={<PharmacyReportsPage />} />
         </Route>
       </Route>
 
@@ -186,11 +194,18 @@ const AppRoutes = () => {
 
           <Route path="audits-reports" element={<AuditLogsPage />} />
 
-
           <Route path="audits" element={<AuditLogsPage />} />
           <Route path="reports" element={<ReportsPage />} />
-          <Route path="clinic-reports" element={<Navigate to="/super-admin/reports" replace />} />
-          <Route path="pharmacy-reports" element={<Navigate to="/super-admin/reports?section=pharmacy" replace />} />
+          <Route
+            path="clinic-reports"
+            element={<Navigate to="/super-admin/reports" replace />}
+          />
+          <Route
+            path="pharmacy-reports"
+            element={
+              <Navigate to="/super-admin/reports?section=pharmacy" replace />
+            }
+          />
         </Route>
       </Route>
     </Routes>

@@ -233,9 +233,7 @@ export default function ClinicReportsPage() {
                 {report.doctorId
                   ? ` · doctor #${report.doctorId}`
                   : " · all doctors"}
-                {report.generatedAt
-                  ? ` · generated ${report.generatedAt}`
-                  : ""}
+                {report.generatedAt ? ` · generated ${report.generatedAt}` : ""}
               </p>
             </div>
             <Table

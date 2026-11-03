@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import PublicLayout from "../../src/layouts/PublicLayout";
 import i18n from "../../src/i18n";
@@ -22,7 +28,10 @@ it("navigates footer page links and scrolls to the requested page or section", (
     <MemoryRouter initialEntries={["/home"]}>
       <Routes>
         <Route element={<PublicLayout />}>
-          <Route path="/home" element={<h1 id="doctors-heading">Home page</h1>} />
+          <Route
+            path="/home"
+            element={<h1 id="doctors-heading">Home page</h1>}
+          />
           <Route path="/appointments" element={<h1>Appointment page</h1>} />
         </Route>
       </Routes>
@@ -36,7 +45,9 @@ it("navigates footer page links and scrolls to the requested page or section", (
 
   scrollTo.mockClear();
   fireEvent.click(footer.getByRole("link", { name: "Book an Appointment" }));
-  expect(screen.getByRole("heading", { name: "Appointment page" })).toBeVisible();
+  expect(
+    screen.getByRole("heading", { name: "Appointment page" }),
+  ).toBeVisible();
   expect(scrollTo).toHaveBeenLastCalledWith({
     top: 0,
     left: 0,

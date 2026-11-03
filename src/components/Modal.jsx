@@ -101,7 +101,7 @@ const Modal = ({
         tabIndex={-1}
         aria-modal="true"
         aria-labelledby={titleId}
-        className={`w-full max-w-lg rounded-lg bg-white p-6 shadow-xl ${className}`}
+        className={`w-full rounded-lg bg-white p-6 shadow-xl ${className || "max-w-lg"}`}
       >
         <div className="mb-4 flex items-center justify-between gap-4">
           <h2 id={titleId} className="text-lg font-semibold">

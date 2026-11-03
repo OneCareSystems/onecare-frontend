@@ -235,8 +235,9 @@ export default function BookingPage() {
     setPending(true);
     setMessage("");
     try {
-      const appointmentDateTime = `${form.appointmentDate}T${form.slot.length === 5 ? `${form.slot}:00` : form.slot
-        }`;
+      const appointmentDateTime = `${form.appointmentDate}T${
+        form.slot.length === 5 ? `${form.slot}:00` : form.slot
+      }`;
       const result = await submitPublicBooking({
         fullName: `${form.firstName.trim()} ${form.lastName.trim()}`,
         contactNo: normalizeSriLankanPhone(form.phone),
@@ -321,12 +322,10 @@ export default function BookingPage() {
 
   return (
     <div className="relative min-h-screen font-sans text-slate-800 selection:bg-blue-600 selection:text-white bg-slate-900">
-
       {/* Ambient Gradient Overlay */}
       <div className="fixed inset-0 z-0 bg-gradient-to-br from-slate-900/90 via-slate-800/80 to-teal-950/90 backdrop-blur-[2px]" />
 
       <div className="relative z-10 flex min-h-screen flex-col">
-
         {/* Main Content Card */}
         <main className="mx-auto my-auto w-full max-w-2xl px-4 py-8 sm:px-6 sm:py-10">
           <div className="rounded-3xl border border-white/20 bg-white/95 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
@@ -364,30 +363,46 @@ export default function BookingPage() {
               className="mt-6 flex items-center gap-3 text-xs font-semibold"
               aria-label={t("booking.progress", "Booking progress")}
             >
-              <li className="flex items-center gap-2" aria-current={step === "appointment" ? "step" : undefined}>
+              <li
+                className="flex items-center gap-2"
+                aria-current={step === "appointment" ? "step" : undefined}
+              >
                 <span
-                  className={`flex h-6 w-6 items-center justify-center rounded-full ${step === "appointment"
+                  className={`flex h-6 w-6 items-center justify-center rounded-full ${
+                    step === "appointment"
                       ? "bg-blue-700 text-white"
                       : "bg-emerald-600 text-white"
-                    }`}
+                  }`}
                 >
                   {step === "appointment" ? "1" : "✓"}
                 </span>
-                <span className={step === "appointment" ? "text-slate-900" : "text-slate-500"}>
+                <span
+                  className={
+                    step === "appointment" ? "text-slate-900" : "text-slate-500"
+                  }
+                >
                   {t("booking.stepAppointment", "Appointment")}
                 </span>
               </li>
               <li aria-hidden="true" className="h-px w-6 bg-slate-300" />
-              <li className="flex items-center gap-2" aria-current={step === "details" ? "step" : undefined}>
+              <li
+                className="flex items-center gap-2"
+                aria-current={step === "details" ? "step" : undefined}
+              >
                 <span
-                  className={`flex h-6 w-6 items-center justify-center rounded-full ${step === "details"
+                  className={`flex h-6 w-6 items-center justify-center rounded-full ${
+                    step === "details"
                       ? "bg-blue-700 text-white"
                       : "bg-slate-200 text-slate-500"
-                    }`}
+                  }`}
                 >
                   2
                 </span>
-                <span className={step === "details" ? "text-slate-900" : "text-slate-500"}>
+                <span
+                  className={
+                    step === "details" ? "text-slate-900" : "text-slate-500"
+                  }
+                >
                   {t("booking.stepDetails", "Patient details")}
                 </span>
               </li>
@@ -415,7 +430,12 @@ export default function BookingPage() {
               </div>
             )}
 
-            <form onSubmit={submit} noValidate aria-busy={pending} className="mt-6 space-y-6">
+            <form
+              onSubmit={submit}
+              noValidate
+              aria-busy={pending}
+              className="mt-6 space-y-6"
+            >
               <fieldset disabled={pending} className="space-y-6">
                 {/* Step 1: appointment */}
                 {step === "appointment" && (
@@ -423,7 +443,10 @@ export default function BookingPage() {
                     aria-labelledby="appt-heading"
                     className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/50 p-5 sm:p-6"
                   >
-                    <h2 id="appt-heading" className="text-base font-bold text-slate-900">
+                    <h2
+                      id="appt-heading"
+                      className="text-base font-bold text-slate-900"
+                    >
                       {t("booking.appointmentTitle", "Appointment")}
                     </h2>
 
@@ -443,11 +466,15 @@ export default function BookingPage() {
                           {...accessibility("doctorId")}
                         >
                           <option value="">
-                            {doctorsLoading ? t("common.loading") : t("booking.chooseDoctor")}
+                            {doctorsLoading
+                              ? t("common.loading")
+                              : t("booking.chooseDoctor")}
                           </option>
                           {doctors.map((d) => (
                             <option value={d.id} key={d.id}>
-                              {d.specialty ? `${d.name} · ${d.specialty}` : d.name}
+                              {d.specialty
+                                ? `${d.name} · ${d.specialty}`
+                                : d.name}
                             </option>
                           ))}
                         </select>
@@ -465,7 +492,10 @@ export default function BookingPage() {
 
                       {slotState === "idle" && (
                         <p className="rounded-lg bg-white border border-slate-200 px-3 py-3 text-sm text-slate-500">
-                          {t("booking.slotHint", "Choose a doctor and a date to see free times.")}
+                          {t(
+                            "booking.slotHint",
+                            "Choose a doctor and a date to see free times.",
+                          )}
                         </p>
                       )}
 
@@ -476,13 +506,19 @@ export default function BookingPage() {
                           className="flex flex-wrap gap-2 motion-safe:animate-pulse"
                         >
                           {[1, 2, 3, 4, 5, 6].map((n) => (
-                            <div key={n} className="h-9 w-20 rounded-lg bg-slate-200" />
+                            <div
+                              key={n}
+                              className="h-9 w-20 rounded-lg bg-slate-200"
+                            />
                           ))}
                         </div>
                       )}
 
                       {slotState === "ready" && !visibleSlots.length && (
-                        <p role="status" className="rounded-lg bg-amber-50 px-3 py-3 text-sm text-amber-800">
+                        <p
+                          role="status"
+                          className="rounded-lg bg-amber-50 px-3 py-3 text-sm text-amber-800"
+                        >
                           {t("booking.noSlots")}
                         </p>
                       )}
@@ -505,10 +541,11 @@ export default function BookingPage() {
                                 role="radio"
                                 aria-checked={selected}
                                 onClick={() => pickSlot(s)}
-                                className={`rounded-lg border px-3.5 py-2 text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${selected
+                                className={`rounded-lg border px-3.5 py-2 text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${
+                                  selected
                                     ? "border-blue-700 bg-blue-700 text-white shadow-sm"
                                     : "border-slate-300 bg-white text-slate-700 hover:border-blue-400"
-                                  }`}
+                                }`}
                               >
                                 {formatPatientTime(s, i18n.language)}
                               </button>
@@ -545,11 +582,16 @@ export default function BookingPage() {
                         onClick={continueToDetails}
                         className="w-full rounded-xl bg-blue-700 px-6 py-3 text-base font-bold text-white shadow-sm transition hover:bg-blue-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-blue-400"
                       >
-                        {t("booking.continueToDetails", "Continue to patient details")}
+                        {t(
+                          "booking.continueToDetails",
+                          "Continue to patient details",
+                        )}
                       </button>
                       {summaryReady && (
                         <p className="mt-2 flex items-start gap-2 text-xs text-emerald-700">
-                          <span aria-hidden="true" className="mt-0.5">✓</span>
+                          <span aria-hidden="true" className="mt-0.5">
+                            ✓
+                          </span>
                           <span>
                             {chosenDoctor.name} · {form.appointmentDate} ·{" "}
                             {formatPatientTime(form.slot, i18n.language)}
@@ -563,7 +605,10 @@ export default function BookingPage() {
                 {/* Appointment summary (step 2) */}
                 {step === "details" && summaryReady && (
                   <section
-                    aria-label={t("booking.appointmentSummary", "Your appointment")}
+                    aria-label={t(
+                      "booking.appointmentSummary",
+                      "Your appointment",
+                    )}
                     className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-5 sm:p-6"
                   >
                     <div className="flex items-start justify-between gap-4">
@@ -580,7 +625,8 @@ export default function BookingPage() {
                           ) : null}
                         </p>
                         <p className="mt-1 text-sm text-emerald-900">
-                          {form.appointmentDate} · {formatPatientTime(form.slot, i18n.language)}
+                          {form.appointmentDate} ·{" "}
+                          {formatPatientTime(form.slot, i18n.language)}
                         </p>
                       </div>
                       <button
@@ -616,8 +662,12 @@ export default function BookingPage() {
                     </p>
 
                     <div className="grid gap-4 sm:grid-cols-2">
-                      {field("firstName", "text", { autoComplete: "given-name" })}
-                      {field("lastName", "text", { autoComplete: "family-name" })}
+                      {field("firstName", "text", {
+                        autoComplete: "given-name",
+                      })}
+                      {field("lastName", "text", {
+                        autoComplete: "family-name",
+                      })}
                       {field("phone", "tel", {
                         autoComplete: "tel",
                         inputMode: "tel",
@@ -637,10 +687,18 @@ export default function BookingPage() {
                           className={`${inputClass} ${errors.gender ? inputBad : inputOk}`}
                           {...accessibility("gender")}
                         >
-                          <option value="">{t("booking.chooseGender", "Choose gender")}</option>
-                          <option value="MALE">{t("booking.genderMale", "Male")}</option>
-                          <option value="FEMALE">{t("booking.genderFemale", "Female")}</option>
-                          <option value="OTHER">{t("booking.genderOther", "Other")}</option>
+                          <option value="">
+                            {t("booking.chooseGender", "Choose gender")}
+                          </option>
+                          <option value="MALE">
+                            {t("booking.genderMale", "Male")}
+                          </option>
+                          <option value="FEMALE">
+                            {t("booking.genderFemale", "Female")}
+                          </option>
+                          <option value="OTHER">
+                            {t("booking.genderOther", "Other")}
+                          </option>
                         </select>
                         {errorFor("gender")}
                       </div>

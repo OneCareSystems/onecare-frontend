@@ -25,6 +25,9 @@ docker-compose*.yml
 # Not needed inside the image build context (DDP-#49 / DKR-01).
 test
 e2e
-playwright.config.js
+**/*.test.*
+**/*.spec.*
+vitest*.config.*
+playwright*.config.*
 playwright-report
 test-results

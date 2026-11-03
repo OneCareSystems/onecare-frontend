@@ -1,4 +1,4 @@
-import { delay,http, HttpResponse } from "msw";
+import { delay, http, HttpResponse } from "msw";
 
 import {
   PERMISSION_CODES,
@@ -138,16 +138,16 @@ export const mswState = {
   lowStockMedicineHits: [],
   lowStockMedicineResponses: [],
   lowStockMedicineErrorMode: null,
-    medicineListHits: [],
+  medicineListHits: [],
   medicineListResponses: [],
   medicineListErrorMode: null,
 
   medicineCreateDelayMs: 0,
-    medicineCreateHits: [],
+  medicineCreateHits: [],
   medicineCreateResponses: [],
   medicineCreateErrorMode: null,
 
-    // PHARM-05 — Update Medicine
+  // PHARM-05 — Update Medicine
   medicineByIdHits: [],
   medicineByIdResponses: [],
   medicineByIdErrorMode: null,
@@ -261,15 +261,15 @@ export const resetMswState = () => {
   mswState.lowStockMedicineHits = [];
   mswState.lowStockMedicineResponses = [];
   mswState.lowStockMedicineErrorMode = null;
-    mswState.medicineListHits = [];
+  mswState.medicineListHits = [];
   mswState.medicineListResponses = [];
   mswState.medicineListErrorMode = null;
 
   mswState.medicineCreateDelayMs = 0;
-    mswState.medicineCreateHits = [];
+  mswState.medicineCreateHits = [];
   mswState.medicineCreateResponses = [];
   mswState.medicineCreateErrorMode = null;
-    // PHARM-05 — Update Medicine
+  // PHARM-05 — Update Medicine
   mswState.medicineByIdHits = [];
   mswState.medicineByIdResponses = [];
   mswState.medicineByIdErrorMode = null;
@@ -683,7 +683,7 @@ export const handlers = [
     return ok(mswState.issuedPrescriptionResponses.shift() ?? []);
   }),
 
-    // PHARM-04 — Add New Medicine
+  // PHARM-04 — Add New Medicine
   http.post("*/medicines", async ({ request }) => {
     const body = await request.json().catch(() => ({}));
 
@@ -693,8 +693,8 @@ export const handlers = [
     });
 
     if (mswState.medicineCreateDelayMs > 0) {
-  await delay(mswState.medicineCreateDelayMs);
-}
+      await delay(mswState.medicineCreateDelayMs);
+    }
 
     if (mswState.medicineCreateErrorMode === "network-error") {
       return HttpResponse.error();
@@ -716,21 +716,20 @@ export const handlers = [
       return fail(500, "Unable to create medicine");
     }
 
-    const createdMedicine =
-      mswState.medicineCreateResponses.shift() ?? {
-        medicineId: 9001,
-        name: body.name,
-        genericName: body.genericName ?? null,
-        category: body.category,
-        unit: body.unit,
-        price: body.price,
-        stockQuantity: 0,
-        expiryDate: body.expiryDate,
-        reorderLevel: body.reorderLevel,
-        isQuarantined: false,
-        createdAt: "2026-10-23T09:00:00",
-        updatedAt: "2026-10-23T09:00:00",
-      };
+    const createdMedicine = mswState.medicineCreateResponses.shift() ?? {
+      medicineId: 9001,
+      name: body.name,
+      genericName: body.genericName ?? null,
+      category: body.category,
+      unit: body.unit,
+      price: body.price,
+      stockQuantity: 0,
+      expiryDate: body.expiryDate,
+      reorderLevel: body.reorderLevel,
+      isQuarantined: false,
+      createdAt: "2026-10-23T09:00:00",
+      updatedAt: "2026-10-23T09:00:00",
+    };
 
     return HttpResponse.json(
       {
@@ -742,7 +741,7 @@ export const handlers = [
     );
   }),
 
-    http.get("*/medicines", ({ request }) => {
+  http.get("*/medicines", ({ request }) => {
     const url = new URL(request.url);
 
     mswState.medicineListHits.push({
@@ -825,7 +824,6 @@ export const handlers = [
     return ok(mswState.nearExpiryMedicineResponses.shift() ?? []);
   }),
 
-  
   // PHARM-05 — Get one medicine by ID
   http.get("*/medicines/:id", ({ request, params }) => {
     mswState.medicineByIdHits.push({
@@ -849,19 +847,18 @@ export const handlers = [
       return fail(500, "Unable to load medicine");
     }
 
-    const medicine =
-      mswState.medicineByIdResponses.shift() ?? {
-        medicineId: Number(params.id),
-        name: "Paracetamol",
-        genericName: "Acetaminophen",
-        category: "Analgesic",
-        unit: "tablet",
-        price: 125.5,
-        stockQuantity: 50,
-        expiryDate: "2027-12-31",
-        reorderLevel: 10,
-        isQuarantined: false,
-      };
+    const medicine = mswState.medicineByIdResponses.shift() ?? {
+      medicineId: Number(params.id),
+      name: "Paracetamol",
+      genericName: "Acetaminophen",
+      category: "Analgesic",
+      unit: "tablet",
+      price: 125.5,
+      stockQuantity: 50,
+      expiryDate: "2027-12-31",
+      reorderLevel: 10,
+      isQuarantined: false,
+    };
 
     return ok(medicine);
   }),
@@ -900,13 +897,12 @@ export const handlers = [
       return fail(500, "Unable to update medicine");
     }
 
-    const updatedMedicine =
-      mswState.medicineUpdateResponses.shift() ?? {
-        medicineId: Number(params.id),
-        ...body,
-        stockQuantity: 50,
-        isQuarantined: false,
-      };
+    const updatedMedicine = mswState.medicineUpdateResponses.shift() ?? {
+      medicineId: Number(params.id),
+      ...body,
+      stockQuantity: 50,
+      isQuarantined: false,
+    };
 
     return ok(updatedMedicine);
   }),
@@ -943,7 +939,6 @@ export const handlers = [
       isActive: false,
     });
   }),
-
 
   // Super-admin user management (access governance): list, provision,
   // update email/role, unlock the failed-login lockout, admin reset and
@@ -1632,8 +1627,16 @@ export const handlers = [
     const sections = {
       "stock-usage": {
         stockUsage: [
-          { medicineId: 11, medicineName: "Amoxicillin 500mg", unitsDispensed: 120 },
-          { medicineId: 12, medicineName: "Ibuprofen 200mg", unitsDispensed: 85 },
+          {
+            medicineId: 11,
+            medicineName: "Amoxicillin 500mg",
+            unitsDispensed: 120,
+          },
+          {
+            medicineId: 12,
+            medicineName: "Ibuprofen 200mg",
+            unitsDispensed: 85,
+          },
         ],
         expiry: [],
         dispensingHistory: [],

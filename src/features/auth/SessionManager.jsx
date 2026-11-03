@@ -2,10 +2,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 
-import { clearSession, selectIsAuthenticated } from "./authSlice";
+import {
+  clearSession,
+  selectExpiresAt,
+  selectIsAuthenticated,
+  selectRefreshToken,
+} from "./authSlice";
 
 import { store } from "../../app/store";
-import { logout } from "../../services/authService";
+import { logout, refresh } from "../../services/authService";
 
 import {
   startTokenRefreshScheduler,
@@ -30,6 +35,8 @@ const ACTIVITY_EVENTS = [
 const SessionManager = () => {
   const navigate = useNavigate();
   const isAuthenticated = useSelector(selectIsAuthenticated);
+  const expiresAt = useSelector(selectExpiresAt);
+  const refreshToken = useSelector(selectRefreshToken);
 
   const [showWarning, setShowWarning] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(120);
@@ -152,6 +159,33 @@ const SessionManager = () => {
       resetTimersRef.current = null;
     };
   }, [isAuthenticated, clearTimers, endSession]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const checkTokenExpiry = async () => {
+      if (!expiresAt) return;
+      if (Date.now() >= expiresAt) {
+        if (refreshToken) {
+          try {
+            await refresh();
+          } catch {
+            await endSession("session-expired");
+          }
+        } else {
+          await endSession("session-expired");
+        }
+      }
+    };
+
+    void checkTokenExpiry();
+
+    if (expiresAt) {
+      const msUntilExpiry = Math.max(0, expiresAt - Date.now());
+      const timer = window.setTimeout(checkTokenExpiry, msUntilExpiry);
+      return () => window.clearTimeout(timer);
+    }
+  }, [isAuthenticated, expiresAt, refreshToken, endSession]);
 
   useEffect(() => {
     const handleSessionExpired = () => {

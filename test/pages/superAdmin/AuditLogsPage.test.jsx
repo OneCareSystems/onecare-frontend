@@ -103,7 +103,7 @@ describe("super-admin audit trail — REST cases", () => {
     expect(screen.getByText("#1")).toBeInTheDocument();
     expect(screen.queryByText("#2")).not.toBeInTheDocument();
     expect(
-      screen.getByText("1 of 2 on this page · 2 total"),
+      screen.getByText("1 of 2 on this page | 2 total"),
     ).toBeInTheDocument();
 
     fireEvent.change(document.getElementById("action-filter"), {

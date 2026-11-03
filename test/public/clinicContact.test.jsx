@@ -13,7 +13,8 @@ async function contact({ phone = "", email = "", address = "" } = {}) {
   vi.stubEnv("VITE_CLINIC_EMAIL", email);
   vi.stubEnv("VITE_CLINIC_ADDRESS", address);
   vi.resetModules();
-  const { default: ClinicContact } = await import("../../src/components/ClinicContact");
+  const { default: ClinicContact } =
+    await import("../../src/components/ClinicContact");
   render(
     <MemoryRouter>
       <ClinicContact />
@@ -53,14 +54,17 @@ describe("public clinic contact details", () => {
     ["phone", "0218700530"],
     ["email", "onecaresystems@gmail.com"],
     ["address", "QW2M+39, Moolai, Jaffna"],
-  ])("uses the default %s when configuration is blank", async (missing, fallback) => {
-    const values = {
-      phone: "+94 11 234 5678",
-      email: "hello@onecare.test",
-      address: "Colombo Clinic",
-    };
-    values[missing] = "";
-    await contact(values);
-    expect(screen.getByText(fallback)).toBeVisible();
-  });
+  ])(
+    "uses the default %s when configuration is blank",
+    async (missing, fallback) => {
+      const values = {
+        phone: "+94 11 234 5678",
+        email: "hello@onecare.test",
+        address: "Colombo Clinic",
+      };
+      values[missing] = "";
+      await contact(values);
+      expect(screen.getByText(fallback)).toBeVisible();
+    },
+  );
 });

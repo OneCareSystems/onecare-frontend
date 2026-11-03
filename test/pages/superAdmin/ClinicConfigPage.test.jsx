@@ -77,7 +77,7 @@ describe("super-admin clinic configuration — REST cases", () => {
 
     expect(screen.getByText("35h / week")).toBeInTheDocument();
     expect(screen.getByText("No schedule")).toBeInTheDocument();
-    expect(screen.getByLabelText("Amount")).toHaveValue(75);
+    expect(screen.getByLabelText("Consultation Fee")).toHaveValue(75);
   });
 
   it("persists a new consultation fee through PUT /system/settings/consultation-fee", async () => {
@@ -85,12 +85,12 @@ describe("super-admin clinic configuration — REST cases", () => {
     openPage(PATH);
     await screen.findByText(/KAPIOR-4410/);
 
-    fireEvent.change(screen.getByLabelText("Amount"), {
+    fireEvent.change(screen.getByLabelText("Consultation Fee"), {
       target: { value: "120" },
     });
-    expect(screen.getByText("Unsaved change")).toBeInTheDocument();
+    expect(screen.getByText("Unsaved")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Save fee" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     expect(
       await screen.findByText("Consultation fee updated."),
@@ -101,7 +101,7 @@ describe("super-admin clinic configuration — REST cases", () => {
       authorization: "Bearer super-admin-rest-token",
     });
     expect(stat("Active clinic-wide").getByText("120.00")).toBeInTheDocument();
-    expect(screen.getByText("Currently active")).toBeInTheDocument();
+    expect(screen.getByText("Live")).toBeInTheDocument();
   });
 
   it("shows the backend refusal and keeps the draft when the fee save fails", async () => {
@@ -110,15 +110,15 @@ describe("super-admin clinic configuration — REST cases", () => {
     await screen.findByText(/KAPIOR-4410/);
 
     mswState.consultationFeeErrorMode = "forbidden";
-    fireEvent.change(screen.getByLabelText("Amount"), {
+    fireEvent.change(screen.getByLabelText("Consultation Fee"), {
       target: { value: "150" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save fee" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     expect(await screen.findByText("Access denied")).toBeInTheDocument();
     expect(mswState.consultationFeeUpdateHits).toHaveLength(1);
-    expect(screen.getByLabelText("Amount")).toHaveValue(150);
-    expect(screen.getByText("Unsaved change")).toBeInTheDocument();
+    expect(screen.getByLabelText("Consultation Fee")).toHaveValue(150);
+    expect(screen.getByText("Unsaved")).toBeInTheDocument();
     expect(stat("Active clinic-wide").getByText("75.00")).toBeInTheDocument();
   });
 
@@ -135,7 +135,7 @@ describe("super-admin clinic configuration — REST cases", () => {
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 
     await waitFor(() =>
-      expect(screen.getByLabelText("Amount")).toHaveValue(75),
+      expect(screen.getByLabelText("Consultation Fee")).toHaveValue(75),
     );
     expect(mswState.consultationFeeHits).toHaveLength(2);
   });

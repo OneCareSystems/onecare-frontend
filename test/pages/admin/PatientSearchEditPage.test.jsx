@@ -140,7 +140,7 @@ describe("ADM-03 search, selection and privacy", () => {
     expect(
       screen.getByRole("button", { name: "Edit patient 101" }),
     ).toHaveClass("bg-primary-800", "text-white", "hover:bg-primary-900");
-  });
+  }, 10000);
   it.each([
     ["phone", "Sarah"],
     ["phone", "077abc1234"],

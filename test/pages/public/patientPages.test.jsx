@@ -21,9 +21,16 @@ import NotFoundPage from "../../../src/pages/public/NotFoundPage";
 import PublicLayout from "../../../src/layouts/PublicLayout";
 import { bookingDocumentId } from "../../../src/utils/bookingNavigation";
 import { clearPublicDoctorsCache } from "../../../src/services/publicBookingService";
-import { formatPatientDate, formatPatientTime } from "../../../src/utils/publicDateTime";
+import {
+  formatPatientDate,
+  formatPatientTime,
+} from "../../../src/utils/publicDateTime";
 
-const doctor = { doctorId: 7, displayName: "Dr Example", workingHours: "4:00 PM - 8:00 PM" };
+const doctor = {
+  doctorId: 7,
+  displayName: "Dr Example",
+  workingHours: "4:00 PM - 8:00 PM",
+};
 const date = "2099-06-15";
 const booking = { doctor: doctor.displayName, date, time: "09:00" };
 let posts;
@@ -36,14 +43,20 @@ const mount = (entry = "/appointments", layout = false) =>
           <Route element={<PublicLayout />}>
             <Route path="/home" element={<HomePage />} />
             <Route path="/appointments" element={<BookingPage />} />
-            <Route path="/appointments/confirmed" element={<BookingConfirmedPage />} />
+            <Route
+              path="/appointments/confirmed"
+              element={<BookingConfirmedPage />}
+            />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         ) : (
           <>
             <Route path="/home" element={<HomePage />} />
             <Route path="/appointments" element={<BookingPage />} />
-            <Route path="/appointments/confirmed" element={<BookingConfirmedPage />} />
+            <Route
+              path="/appointments/confirmed"
+              element={<BookingConfirmedPage />}
+            />
             <Route path="*" element={<NotFoundPage />} />
           </>
         )}
@@ -127,8 +140,12 @@ describe("public landing page", () => {
       en.publicLanding.doctorError,
     );
     expect(screen.getByText(/4:00 PM - 8:00 PM/)).toBeVisible();
-    expect(screen.getByRole("heading", { name: en.publicLanding.stepsTitle })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Book an appointment" })).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: en.publicLanding.stepsTitle }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Book an appointment" }),
+    ).toBeVisible();
 
     await userEvent.click(
       screen.getByRole("button", { name: en.publicLanding.retry }),
@@ -162,13 +179,13 @@ describe("public landing page", () => {
     const widget = document.querySelector("onecare-chat-widget");
     expect(widget).toHaveAttribute("lang", "ta");
     expect(
-      [...widget.shadowRoot.querySelectorAll('.chip[lang="ta"]')].map((chip) =>
-        chip.textContent,
+      [...widget.shadowRoot.querySelectorAll('.chip[lang="ta"]')].map(
+        (chip) => chip.textContent,
       ),
     ).toEqual(ta.chatbot.chips.map((chip) => chip.label));
     expect(
-      [...widget.shadowRoot.querySelectorAll('.chip[lang="en"]')].map((chip) =>
-        chip.textContent,
+      [...widget.shadowRoot.querySelectorAll('.chip[lang="en"]')].map(
+        (chip) => chip.textContent,
       ),
     ).toEqual(en.chatbot.chips.map((chip) => chip.label));
   });
@@ -253,8 +270,9 @@ describe("public appointment booking", () => {
           data: ++slotCalls === 1 ? ["09:00", "20:30"] : ["11:00"],
         }),
       ),
-      http.post("*/api/public/appointments", () =>
-        new HttpResponse(null, { status: 409 }),
+      http.post(
+        "*/api/public/appointments",
+        () => new HttpResponse(null, { status: 409 }),
       ),
     );
 
@@ -262,7 +280,9 @@ describe("public appointment booking", () => {
     await waitFor(() => expect(field("doctorId")).toHaveValue("7"));
     setField("appointmentDate", date);
     expect(
-      await screen.findByRole("radio", { name: formatPatientTime("09:00", "en") }),
+      await screen.findByRole("radio", {
+        name: formatPatientTime("09:00", "en"),
+      }),
     ).toBeVisible();
     expect(
       screen.queryByRole("radio", { name: formatPatientTime("20:30", "en") }),
@@ -278,7 +298,9 @@ describe("public appointment booking", () => {
 
     expect(await screen.findByText(en.booking.conflict)).toBeVisible();
     expect(
-      await screen.findByRole("radio", { name: formatPatientTime("11:00", "en") }),
+      await screen.findByRole("radio", {
+        name: formatPatientTime("11:00", "en"),
+      }),
     ).toBeVisible();
     expect(field("firstName")).toBeNull();
     expect(posts).toHaveLength(0);
@@ -287,7 +309,10 @@ describe("public appointment booking", () => {
   it("preserves patient details and shows safe translated errors for server failures", async () => {
     server.use(
       http.post("*/api/public/appointments", () =>
-        HttpResponse.json({ message: "PRIVATE SERVER DETAIL" }, { status: 500 }),
+        HttpResponse.json(
+          { message: "PRIVATE SERVER DETAIL" },
+          { status: 500 },
+        ),
       ),
     );
     mount();
@@ -298,14 +323,19 @@ describe("public appointment booking", () => {
     expect(await screen.findByText(en.booking.submitError)).toBeVisible();
     expect(field("firstName")).toHaveValue("Kumar");
     expect(screen.queryByText("PRIVATE SERVER DETAIL")).toBeNull();
-    expect(screen.getByRole("heading", { name: en.booking.title })).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: en.booking.title }),
+    ).toBeVisible();
   });
 
   it("disables form controls while the booking request is pending", async () => {
     server.use(
       http.post("*/api/public/appointments", async () => {
         await delay(100);
-        return HttpResponse.json({ success: true, data: { appointmentId: 13 } });
+        return HttpResponse.json({
+          success: true,
+          data: { appointmentId: 13 },
+        });
       }),
     );
     mount();
@@ -353,7 +383,9 @@ describe("public appointment booking", () => {
       state: { documentId: "invalid", booking },
     });
     expect(await screen.findByText(en.booking.checkMessage)).toBeVisible();
-    expect(screen.getByRole("heading", { name: en.booking.title })).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: en.booking.title }),
+    ).toBeVisible();
   });
 });
 

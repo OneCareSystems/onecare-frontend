@@ -1,4 +1,3 @@
-
 import { afterEach, describe, expect, it } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -38,14 +37,8 @@ const fillValidMedicine = async (user) => {
   await user.type(screen.getByLabelText(/^category/i), "Analgesic");
   await user.type(screen.getByLabelText(/^unit \*/i), "tablet");
   await user.type(screen.getByLabelText(/unit price/i), "125.5");
-  await user.type(
-    screen.getByLabelText(/low-stock threshold/i),
-    "10",
-  );
-  await user.type(
-    screen.getByLabelText(/expiry date/i),
-    "2027-12-31",
-  );
+  await user.type(screen.getByLabelText(/low-stock threshold/i), "10");
+  await user.type(screen.getByLabelText(/expiry date/i), "2027-12-31");
 };
 
 afterEach(() => {
@@ -73,13 +66,11 @@ describe("AddMedicinePage", () => {
     renderPage();
     await fillValidMedicine(user);
 
-    await user.click(
-      screen.getByRole("button", { name: /save medicine/i }),
-    );
+    await user.click(screen.getByRole("button", { name: /save medicine/i }));
 
-    expect(
-      await screen.findByRole("status"),
-    ).toHaveTextContent(/medicine saved successfully/i);
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      /medicine saved successfully/i,
+    );
 
     expect(screen.getByText(/Paracetamol has been added/i)).toBeInTheDocument();
     expect(mswState.medicineCreateHits).toHaveLength(1);
@@ -104,11 +95,11 @@ describe("AddMedicinePage", () => {
 
     renderPage();
 
-    await user.click(
-      screen.getByRole("button", { name: /save medicine/i }),
-    );
+    await user.click(screen.getByRole("button", { name: /save medicine/i }));
 
-    expect(await screen.findByText("Medicine name is required.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Medicine name is required."),
+    ).toBeInTheDocument();
     expect(screen.getByText("Category is required.")).toBeInTheDocument();
     expect(screen.getByText("Unit is required.")).toBeInTheDocument();
     expect(screen.getByText("Price is required.")).toBeInTheDocument();
@@ -130,9 +121,7 @@ describe("AddMedicinePage", () => {
 
     await user.clear(priceInput);
     await user.type(priceInput, "0");
-    await user.click(
-      screen.getByRole("button", { name: /save medicine/i }),
-    );
+    await user.click(screen.getByRole("button", { name: /save medicine/i }));
 
     expect(
       await screen.findByText("Price must be greater than 0."),
@@ -141,9 +130,7 @@ describe("AddMedicinePage", () => {
 
     await user.clear(priceInput);
     await user.type(priceInput, "-5");
-    await user.click(
-      screen.getByRole("button", { name: /save medicine/i }),
-    );
+    await user.click(screen.getByRole("button", { name: /save medicine/i }));
 
     expect(
       screen.getByText("Price must be greater than 0."),
@@ -162,9 +149,7 @@ describe("AddMedicinePage", () => {
     await user.clear(expiryInput);
     await user.type(expiryInput, "2020-01-01");
 
-    await user.click(
-      screen.getByRole("button", { name: /save medicine/i }),
-    );
+    await user.click(screen.getByRole("button", { name: /save medicine/i }));
 
     expect(
       await screen.findByText("Expiry date cannot be in the past."),
@@ -181,9 +166,7 @@ describe("AddMedicinePage", () => {
     renderPage();
     await fillValidMedicine(user);
 
-    await user.click(
-      screen.getByRole("button", { name: /save medicine/i }),
-    );
+    await user.click(screen.getByRole("button", { name: /save medicine/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       /already exists|duplicate/i,
@@ -192,30 +175,26 @@ describe("AddMedicinePage", () => {
     expect(mswState.medicineCreateHits).toHaveLength(1);
   });
 
+  it("disables the submit button while saving", async () => {
+    const user = userEvent.setup();
 
-it("disables the submit button while saving", async () => {
-  const user = userEvent.setup();
+    mswState.medicineCreateDelayMs = 1000;
 
-  mswState.medicineCreateDelayMs = 1000;
+    renderPage();
+    await fillValidMedicine(user);
 
-  renderPage();
-  await fillValidMedicine(user);
+    await user.click(screen.getByRole("button", { name: /save medicine/i }));
 
-  await user.click(
-    screen.getByRole("button", { name: /save medicine/i }),
-  );
+    const savingButton = await screen.findByRole("button", {
+      name: /saving/i,
+    });
 
-  const savingButton = await screen.findByRole("button", {
-    name: /saving/i,
+    expect(savingButton).toBeDisabled();
+
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveTextContent(
+        /medicine saved successfully/i,
+      );
+    });
   });
-
-  expect(savingButton).toBeDisabled();
-
-  await waitFor(() => {
-    expect(screen.getByRole("status")).toHaveTextContent(
-      /medicine saved successfully/i,
-    );
-  });
-});
-
 });

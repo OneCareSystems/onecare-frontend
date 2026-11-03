@@ -46,8 +46,7 @@ export const searchMedicines = async (search, { signal } = {}) => {
 
   return payload.data.filter(
     (medicine) =>
-      medicine &&
-      typeof (medicine.name ?? medicine.medicineName) === "string",
+      medicine && typeof (medicine.name ?? medicine.medicineName) === "string",
   );
 };
 
@@ -66,10 +65,9 @@ export const adjustMedicineStock = async (medicineId, delta) => {
     throw new Error("Stock adjustment must be a non-zero whole number.");
   }
 
-  const response = await apiClient.patch(
-    `/medicines/${medicineId}/stock`,
-    { delta },
-  );
+  const response = await apiClient.patch(`/medicines/${medicineId}/stock`, {
+    delta,
+  });
 
   const payload = response.data;
 
@@ -98,7 +96,6 @@ export const createMedicine = async (medicine) => {
   }
 
   return payload.data;
-
 };
 /** Get a single medicine by ID. */
 export const getMedicineById = async (medicineId) => {
@@ -157,5 +154,4 @@ export default {
   getMedicineById,
   updateMedicine,
   deactivateMedicine,
-    
 };

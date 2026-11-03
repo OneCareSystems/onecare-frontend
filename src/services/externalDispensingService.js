@@ -1,4 +1,3 @@
-
 import apiClient from "./apiClient";
 
 const API_PATH = "/external-dispensing";
@@ -93,18 +92,14 @@ export const getExternalDispensingById = async (
  */
 export const verifyExternalDispensingIdentity = async (
   dispenseId,
-  {
-    verificationMethod,
-    verified = true,
-    notes,
-  },
+  { verificationMethod, verified = true, notes },
   { signal } = {},
 ) => {
   if (dispenseId == null) {
     throw new Error("Dispensing record ID is required.");
   }
 
- if (!["PHONE", "CLINIC_ID"].includes(verificationMethod)) {
+  if (!["PHONE", "CLINIC_ID"].includes(verificationMethod)) {
     throw new Error("Choose Phone or Clinic ID verification.");
   }
 
@@ -141,10 +136,7 @@ export const completeExternalDispensing = async (
     { signal },
   );
 
-  return unwrapResponse(
-    response,
-    "Unable to complete external dispensing.",
-  );
+  return unwrapResponse(response, "Unable to complete external dispensing.");
 };
 
 const externalDispensingService = {

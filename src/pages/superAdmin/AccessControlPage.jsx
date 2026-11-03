@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
+import { useCallback, useEffect, useMemo, useState, memo } from "react";
 import Button from "../../components/Button";
 import ConfirmDialog from "../../components/ConfirmDialog";
+import EmptyState from "../../components/EmptyState";
 import ErrorMessage from "../../components/ErrorMessage";
 import Icon from "../../components/Icon";
 import SearchBar from "../../components/SearchBar";
 import Select from "../../components/Select";
 import StatCard from "../../components/StatCard";
-import Table from "../../components/Table";
 import Toast from "../../components/Toast";
 import { SuperAdminPageHeader } from "../../features/superAdmin/SuperAdminPageHeader";
 import {
@@ -85,6 +85,58 @@ const SavedPulse = memo(({ show, children }) => (
   </span>
 ));
 SavedPulse.displayName = "SavedPulse";
+
+const PermissionMatrixTable = ({
+  columns,
+  data,
+  emptyTitle,
+  emptyMessage,
+}) => {
+  if (data.length === 0) {
+    return <EmptyState title={emptyTitle} message={emptyMessage} />;
+  }
+
+  return (
+    <div
+      role="region"
+      aria-label="Role entitlement matrix"
+      tabIndex={0}
+      className="max-h-[70vh] w-full overflow-auto rounded-lg border border-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
+    >
+      <table className="w-full border-collapse text-left text-sm">
+        <thead>
+          <tr>
+            {columns.map((column) => (
+              <th
+                key={column.key}
+                scope="col"
+                className={`sticky top-0 z-10 whitespace-nowrap bg-neutral-50 px-4 py-3 font-semibold text-neutral-700 ${column.headerClass ?? ""}`}
+              >
+                {column.header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-neutral-200">
+          {data.map((row) => (
+            <tr key={row.code} className="hover:bg-neutral-50">
+              {columns.map((column) => (
+                <td
+                  key={column.key}
+                  className="whitespace-nowrap px-4 py-3 text-neutral-700"
+                >
+                  {column.render
+                    ? column.render(row)
+                    : (row[column.key] ?? "—")}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
 
 /* ------------------------------------------------------------------ */
 /* Scope cell                                                          */
@@ -186,7 +238,7 @@ const MatrixCell = memo(
             title={
               isBlocked
                 ? blockReason
-                : `${isGranted ? "Authorized" : "Denied"} — click to toggle`
+                : `${isGranted ? "Authorized" : "Denied"} - click to toggle`
             }
             className={`relative inline-flex ${size} items-center justify-center rounded-lg transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
               isBlocked
@@ -243,36 +295,11 @@ const AccessControlPage = () => {
   const [confirm, setConfirm] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
 
-  const searchInputRef = useRef(null);
-
   /* ---- search debounce ---- */
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchQuery), 150);
     return () => clearTimeout(t);
   }, [searchQuery]);
-
-  /* ---- shortcuts ---- */
-  useEffect(() => {
-    const onKey = (e) => {
-      const mod = e.metaKey || e.ctrlKey;
-      if (mod && e.key.toLowerCase() === "f") {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      } else if (mod && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      } else if (e.key === "/" && document.activeElement?.tagName !== "INPUT") {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      } else if (e.key === "Escape") {
-        setBulkMode(false);
-        setSelectedCodes(new Set());
-        setShowHelp(false);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
 
   /* ---- fetch ---- */
   const fetchPermissions = useCallback(
@@ -584,7 +611,7 @@ const AccessControlPage = () => {
       {/* ============ Hero ============ */}
       <SuperAdminPageHeader
         icon="shield"
-        badgeText="Access control · RBAC"
+        badgeText="Access control | RBAC"
         title="Role Permission Matrix"
         description="Toggle entitlements per role. Every change is persisted and audited."
         actions={
@@ -688,18 +715,17 @@ const AccessControlPage = () => {
         </div>
       )}
 
-      {/* ============ Sticky filter bar ============ */}
-      <div className="sticky top-3 z-20 rounded-2xl border border-neutral-200 bg-white/95 p-3 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/80 sm:p-4">
+      {/* ============ Filter bar ============ */}
+      <div className="rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm sm:p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <SearchBar
-            ref={searchInputRef}
             value={searchQuery}
             onChange={setSearchQuery}
-            placeholder="Search scope, code, or description…  ( / )"
+            placeholder="Search scope, code, or description... ( / )"
             searchLabel="Search permission scopes"
-            className="w-full sm:max-w-md"
+            className="w-full min-w-0 sm:flex-1 sm:max-w-md"
           />
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
             <Select
               id="category-filter"
               name="category-filter"
@@ -707,7 +733,8 @@ const AccessControlPage = () => {
               options={categoryOptions}
               value={category}
               onChange={(e) => setCategory(e.target.value || ALL_CATEGORIES)}
-              className="w-full sm:w-52"
+              className="w-full sm:w-auto sm:flex-row sm:items-center sm:gap-2"
+              selectClassName="sm:w-44"
             />
             {isFiltering && (
               <Button
@@ -827,18 +854,15 @@ const AccessControlPage = () => {
           </div>
         ) : (
           <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-xs">
-            <Table
+            <PermissionMatrixTable
               columns={permissionColumns}
               data={filteredPermissions}
-              getRowKey={(row) => row.code}
-              stickyHeader
               emptyTitle="No matching permissions found"
               emptyMessage={
                 isFiltering
                   ? "No permission scopes match your search or domain query."
                   : "The permission matrix catalog is empty."
               }
-              label="Role entitlement matrix"
             />
           </div>
         )}
@@ -874,7 +898,7 @@ const AccessControlPage = () => {
                   className="mt-0.5 h-4 w-4 shrink-0 text-success-600"
                 />
                 <span>
-                  <strong>Authorized</strong> — role currently holds this scope.
+                  <strong>Authorized</strong> - role currently holds this scope.
                   Click to revoke.
                 </span>
               </li>
@@ -884,7 +908,7 @@ const AccessControlPage = () => {
                   className="mt-0.5 h-4 w-4 shrink-0 text-neutral-400"
                 />
                 <span>
-                  <strong>Denied</strong> — role does not hold this scope. Click
+                  <strong>Denied</strong> - role does not hold this scope. Click
                   to grant.
                 </span>
               </li>
@@ -894,7 +918,7 @@ const AccessControlPage = () => {
                   className="mt-0.5 h-4 w-4 shrink-0 text-neutral-400"
                 />
                 <span>
-                  <strong>Blocked</strong> — protected by rule{" "}
+                  <strong>Blocked</strong> - protected by rule{" "}
                   <code className="rounded bg-neutral-100 px-1 font-mono text-[11px]">
                     BR004
                   </code>{" "}
@@ -919,27 +943,6 @@ const AccessControlPage = () => {
                 </span>
               </li>
             </ul>
-            <div className="mt-4 rounded-xl bg-neutral-50 p-3 text-xs text-neutral-600">
-              <p className="font-semibold text-neutral-800">Keyboard</p>
-              <ul className="mt-1 grid grid-cols-2 gap-1">
-                <li>
-                  <kbd className="rounded border border-neutral-200 bg-white px-1.5 py-0.5 font-mono text-[10px]">
-                    ⌘F
-                  </kbd>{" "}
-                  or{" "}
-                  <kbd className="rounded border border-neutral-200 bg-white px-1.5 py-0.5 font-mono text-[10px]">
-                    /
-                  </kbd>{" "}
-                  search
-                </li>
-                <li>
-                  <kbd className="rounded border border-neutral-200 bg-white px-1.5 py-0.5 font-mono text-[10px]">
-                    Esc
-                  </kbd>{" "}
-                  exit bulk mode
-                </li>
-              </ul>
-            </div>
           </div>
         </div>
       )}

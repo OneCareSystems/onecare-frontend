@@ -20,7 +20,11 @@ export default function BookingConfirmedPage() {
     !/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(booking?.time ?? "")
   ) {
     return (
-      <Navigate to="/appointments" replace state={{ missingConfirmation: true }} />
+      <Navigate
+        to="/appointments"
+        replace
+        state={{ missingConfirmation: true }}
+      />
     );
   }
 
@@ -45,7 +49,7 @@ export default function BookingConfirmedPage() {
             <p className="mt-1 text-sm text-emerald-800">
               {t(
                 "confirmation.subtitle",
-                "Your appointment has been booked. Please arrive a few minutes early."
+                "Your appointment has been booked. Please arrive a few minutes early.",
               )}
             </p>
           </div>

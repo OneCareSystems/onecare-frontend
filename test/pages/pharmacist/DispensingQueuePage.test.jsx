@@ -1,4 +1,3 @@
-
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -8,12 +7,15 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import DispensingQueuePage from "../../../src/pages/pharmacist/DispensingQueuePage";
 import { setupStore } from "../../../src/app/store";
 
-const { mockGetPrescriptionsByStatus, mockGetDispensePreview, mockDispensePrescription } =
-  vi.hoisted(() => ({
-    mockGetPrescriptionsByStatus: vi.fn(),
-    mockGetDispensePreview: vi.fn(),
-    mockDispensePrescription: vi.fn(),
-  }));
+const {
+  mockGetPrescriptionsByStatus,
+  mockGetDispensePreview,
+  mockDispensePrescription,
+} = vi.hoisted(() => ({
+  mockGetPrescriptionsByStatus: vi.fn(),
+  mockGetDispensePreview: vi.fn(),
+  mockDispensePrescription: vi.fn(),
+}));
 
 vi.mock("../../../src/services/prescriptionService", () => ({
   getPrescriptionsByStatus: mockGetPrescriptionsByStatus,
@@ -211,68 +213,66 @@ describe("DispensingQueuePage", () => {
     });
   });
 
- 
-it("requires partial-dispensing confirmation when stock is insufficient", async () => {
-  mockGetDispensePreview.mockResolvedValue(partialPreview);
+  it("requires partial-dispensing confirmation when stock is insufficient", async () => {
+    mockGetDispensePreview.mockResolvedValue(partialPreview);
 
-  const user = userEvent.setup();
-  renderPage();
+    const user = userEvent.setup();
+    renderPage();
 
-  await selectPrescription(user);
+    await selectPrescription(user);
 
-  await waitFor(() => {
-    expect(mockGetDispensePreview).toHaveBeenCalledWith(
-      501,
-      expect.anything(),
+    await waitFor(() => {
+      expect(mockGetDispensePreview).toHaveBeenCalledWith(
+        501,
+        expect.anything(),
+      );
+    });
+
+    // Wait until the partial stock preview is displayed.
+    expect(await screen.findByText(/insufficient stock/i)).toBeInTheDocument();
+
+    const dispenseButton = screen.getByRole("button", {
+      name: /confirm partial dispensing/i,
+    });
+
+    // Verify the patient.
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: /verified the patient identity and prescription/i,
+      }),
     );
-  });
 
-  // Wait until the partial stock preview is displayed.
-  expect(await screen.findByText(/insufficient stock/i)).toBeInTheDocument();
-
-  const dispenseButton = screen.getByRole("button", {
-    name: /confirm partial dispensing/i,
-  });
-
-  // Verify the patient.
-  await user.click(
-    screen.getByRole("checkbox", {
-      name: /verified the patient identity and prescription/i,
-    }),
-  );
-
-  // Confirm the actual dispensing operation.
-  await user.click(
-    screen.getByRole("checkbox", {
-      name: /confirm the actual dispensing operation/i,
-    }),
-  );
-
-  // Without partial confirmation, dispensing must remain disabled.
-  expect(dispenseButton).toBeDisabled();
-  expect(mockDispensePrescription).not.toHaveBeenCalled();
-
-  // Explicitly confirm dispensing only the available stock.
-  await user.click(
-    screen.getByRole("checkbox", {
-      name: /confirm dispensing only the available quantities/i,
-    }),
-  );
-
-  await waitFor(() => {
-    expect(dispenseButton).toBeEnabled();
-  });
-
-  await user.click(dispenseButton);
-
-  await waitFor(() => {
-    expect(mockDispensePrescription).toHaveBeenCalledWith(
-      501,
-      expect.objectContaining({ confirmPartial: true }),
+    // Confirm the actual dispensing operation.
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: /confirm the actual dispensing operation/i,
+      }),
     );
-  });
-});
 
+    // Without partial confirmation, dispensing must remain disabled.
+    expect(dispenseButton).toBeDisabled();
+    expect(mockDispensePrescription).not.toHaveBeenCalled();
+
+    // Explicitly confirm dispensing only the available stock.
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: /confirm dispensing only the available quantities/i,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(dispenseButton).toBeEnabled();
+    });
+
+    await user.click(dispenseButton);
+
+    await waitFor(() => {
+      expect(mockDispensePrescription).toHaveBeenCalledWith(
+        501,
+        expect.objectContaining({ confirmPartial: true }),
+      );
+    });
+  });
 
   it("shows an empty state when no prescriptions are pending", async () => {
     mockGetPrescriptionsByStatus.mockResolvedValue([]);
@@ -285,9 +285,7 @@ it("requires partial-dispensing confirmation when stock is insufficient", async 
   });
 
   it("shows an error when prescriptions cannot be loaded", async () => {
-    mockGetPrescriptionsByStatus.mockRejectedValue(
-      new Error("Server error"),
-    );
+    mockGetPrescriptionsByStatus.mockRejectedValue(new Error("Server error"));
 
     renderPage();
 

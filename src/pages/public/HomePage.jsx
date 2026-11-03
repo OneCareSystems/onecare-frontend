@@ -1,4 +1,4 @@
-import{
+import {
   memo,
   useCallback,
   useDeferredValue,
@@ -28,7 +28,11 @@ const CLINIC_HOURS =
 const TRUST = [
   { key: "noAccount", icon: "user-check", text: "No account needed to book" },
   { key: "bilingual", icon: "globe", text: "English and Tamil" },
-  { key: "underOneRoof", icon: "building-2", text: "Clinic and pharmacy in one place" },
+  {
+    key: "underOneRoof",
+    icon: "building-2",
+    text: "Clinic and pharmacy in one place",
+  },
   { key: "private", icon: "shield-check", text: "Your records stay private" },
 ];
 
@@ -57,7 +61,14 @@ const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
   window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-function SmartImage({ src, alt, className = "", width, height, priority = false }) {
+function SmartImage({
+  src,
+  alt,
+  className = "",
+  width,
+  height,
+  priority = false,
+}) {
   const [failed, setFailed] = useState(false);
   if (!src || failed) {
     return (
@@ -82,7 +93,12 @@ function SmartImage({ src, alt, className = "", width, height, priority = false 
   );
 }
 
-const DoctorCard = memo(function DoctorCard({ doctor, onBook, fallbackHours, bookLabel }) {
+const DoctorCard = memo(function DoctorCard({
+  doctor,
+  onBook,
+  fallbackHours,
+  bookLabel,
+}) {
   return (
     <article className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-5 transition hover:border-blue-300 hover:shadow-md">
       <div className="flex items-center gap-3.5">
@@ -103,9 +119,13 @@ const DoctorCard = memo(function DoctorCard({ doctor, onBook, fallbackHours, boo
           </div>
         )}
         <div className="min-w-0">
-          <h3 className="truncate text-base font-semibold text-slate-900">{doctor.name}</h3>
+          <h3 className="truncate text-base font-semibold text-slate-900">
+            {doctor.name}
+          </h3>
           {doctor.specialty && (
-            <p className="truncate text-sm text-slate-600">{doctor.specialty}</p>
+            <p className="truncate text-sm text-slate-600">
+              {doctor.specialty}
+            </p>
           )}
         </div>
       </div>
@@ -134,7 +154,11 @@ export default function HomePage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [specialty, setSpecialty] = useState("all");
-  const [live, setLive] = useState({ doctors: [], loading: true, error: false });
+  const [live, setLive] = useState({
+    doctors: [],
+    loading: true,
+    error: false,
+  });
   const [retry, setRetry] = useState(0);
 
   useEffect(() => {
@@ -156,11 +180,15 @@ export default function HomePage() {
     if (!chat) return;
     const book = () => navigate("/appointments");
     chat.addEventListener("onecare-chat:book-appointment", book);
-    return () => chat.removeEventListener("onecare-chat:book-appointment", book);
+    return () =>
+      chat.removeEventListener("onecare-chat:book-appointment", book);
   }, [navigate]);
 
   const go = useCallback((to) => navigate(to), [navigate]);
-  const bookDoctor = useCallback((id) => navigate(`/appointments?doctor=${id}`), [navigate]);
+  const bookDoctor = useCallback(
+    (id) => navigate(`/appointments?doctor=${id}`),
+    [navigate],
+  );
   const openChat = useCallback(() => chatRef.current?.open(), []);
 
   const scrollToDoctors = useCallback((e) => {
@@ -174,15 +202,20 @@ export default function HomePage() {
   const deferredQuery = useDeferredValue(searchQuery);
 
   const specialties = useMemo(
-    () => Array.from(new Set(live.doctors.map((d) => d.specialty).filter(Boolean))).sort(),
-    [live.doctors]
+    () =>
+      Array.from(
+        new Set(live.doctors.map((d) => d.specialty).filter(Boolean)),
+      ).sort(),
+    [live.doctors],
   );
 
   const filteredDoctors = useMemo(() => {
     const q = deferredQuery.trim().toLowerCase();
     return live.doctors.filter((d) => {
       const matchesQuery =
-        !q || d.name?.toLowerCase().includes(q) || (d.specialty || "").toLowerCase().includes(q);
+        !q ||
+        d.name?.toLowerCase().includes(q) ||
+        (d.specialty || "").toLowerCase().includes(q);
       return matchesQuery && (specialty === "all" || d.specialty === specialty);
     });
   }, [live.doctors, deferredQuery, specialty]);
@@ -197,18 +230,23 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-base text-slate-800 selection:bg-blue-600 selection:text-white">
-
       <main className="mx-auto max-w-6xl space-y-14 px-4 py-8 sm:px-6 sm:py-12">
         {/* Hero */}
-        <section aria-labelledby="hero-heading" className="grid items-center gap-8 md:grid-cols-2">
+        <section
+          aria-labelledby="hero-heading"
+          className="grid items-center gap-8 md:grid-cols-2"
+        >
           <div className="space-y-5">
-            <h1 id="hero-heading" className="text-3xl font-extrabold leading-tight tracking-tight text-slate-900 sm:text-4xl lg:text-5xl">
+            <h1
+              id="hero-heading"
+              className="text-3xl font-extrabold leading-tight tracking-tight text-slate-900 sm:text-4xl lg:text-5xl"
+            >
               {t("publicLanding.welcome", "Book your clinic visit online")}
             </h1>
             <p className="max-w-lg text-lg leading-relaxed text-slate-600">
               {t(
                 "publicLanding.intro",
-                "Pick a doctor and a time. Your prescription goes straight to our in-house pharmacy, so you can collect your medicines before you leave."
+                "Pick a doctor and a time. Your prescription goes straight to our in-house pharmacy, so you can collect your medicines before you leave.",
               )}
             </p>
 
@@ -258,9 +296,17 @@ export default function HomePage() {
         </ul>
 
         {/* Doctors */}
-        <section ref={doctorsRef} id="doctors" aria-labelledby="doctors-heading" className="scroll-mt-20 space-y-4">
+        <section
+          ref={doctorsRef}
+          id="doctors"
+          aria-labelledby="doctors-heading"
+          className="scroll-mt-20 space-y-4"
+        >
           <div className="flex flex-col justify-between gap-1 sm:flex-row sm:items-end">
-            <h2 id="doctors-heading" className="text-2xl font-bold text-slate-900">
+            <h2
+              id="doctors-heading"
+              className="text-2xl font-bold text-slate-900"
+            >
               {t("publicLanding.doctorsTitle", "Our doctors")}
             </h2>
             <p className="text-sm text-slate-600">
@@ -271,19 +317,32 @@ export default function HomePage() {
           {showFilters && (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="relative w-full sm:max-w-xs">
-                <Icon name="search" className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <Icon
+                  name="search"
+                  className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+                />
                 <input
                   type="search"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  aria-label={t("publicLanding.searchLabel", "Search doctor name or specialty")}
-                  placeholder={t("publicLanding.searchPlaceholder", "Search doctor or specialty")}
+                  aria-label={t(
+                    "publicLanding.searchLabel",
+                    "Search doctor name or specialty",
+                  )}
+                  placeholder={t(
+                    "publicLanding.searchPlaceholder",
+                    "Search doctor or specialty",
+                  )}
                   className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-base text-slate-900 placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 />
               </div>
 
               {specialties.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Filter by specialty">
+                <div
+                  className="flex gap-2 overflow-x-auto pb-1"
+                  role="group"
+                  aria-label="Filter by specialty"
+                >
                   {["all", ...specialties].map((s) => (
                     <button
                       key={s}
@@ -305,9 +364,16 @@ export default function HomePage() {
           )}
 
           {live.loading && (
-            <div role="status" aria-label="Loading doctors" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div
+              role="status"
+              aria-label="Loading doctors"
+              className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+            >
               {[1, 2, 3].map((n) => (
-                <div key={n} className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 motion-safe:animate-pulse">
+                <div
+                  key={n}
+                  className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 motion-safe:animate-pulse"
+                >
                   <div className="flex items-center gap-3">
                     <div className="h-[52px] w-[52px] rounded-full bg-slate-200" />
                     <div className="flex-1 space-y-2">
@@ -322,10 +388,19 @@ export default function HomePage() {
           )}
 
           {live.error && (
-            <div role="alert" className="flex flex-col items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-4 sm:flex-row sm:items-center">
+            <div
+              role="alert"
+              className="flex flex-col items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-4 sm:flex-row sm:items-center"
+            >
               <p className="flex items-center gap-2 text-sm font-medium text-red-800">
-                <Icon name="alert-triangle" className="h-4 w-4 shrink-0 text-red-600" />
-                {t("publicLanding.doctorError", "Unable to load live doctor schedules at the moment.")}
+                <Icon
+                  name="alert-triangle"
+                  className="h-4 w-4 shrink-0 text-red-600"
+                />
+                {t(
+                  "publicLanding.doctorError",
+                  "Unable to load live doctor schedules at the moment.",
+                )}
               </p>
               <button
                 type="button"
@@ -346,7 +421,10 @@ export default function HomePage() {
               <p className="text-base text-slate-600">
                 {hasFilters
                   ? t("publicLanding.noMatch", "No doctors match your search.")
-                  : t("publicLanding.noDoctors", "No doctors are currently available.")}
+                  : t(
+                      "publicLanding.noDoctors",
+                      "No doctors are currently available.",
+                    )}
               </p>
               {hasFilters && (
                 <button
@@ -385,7 +463,10 @@ export default function HomePage() {
           </h2>
           <ol className="grid gap-3 md:grid-cols-3">
             {STEPS.map(({ key, icon, title, text }, i) => (
-              <li key={key} className="flex gap-4 rounded-xl border border-slate-200 bg-white p-5">
+              <li
+                key={key}
+                className="flex gap-4 rounded-xl border border-slate-200 bg-white p-5"
+              >
                 <span className="relative shrink-0">
                   <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
                     <Icon name={icon} className="h-6 w-6" />
@@ -416,20 +497,26 @@ export default function HomePage() {
           className="flex flex-col justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 sm:p-6 md:flex-row md:items-center"
         >
           <div className="max-w-2xl space-y-1.5">
-            <h2 id="assistant-heading" className="flex items-center gap-2 text-lg font-bold text-emerald-950">
-              <Icon name="message-square-text" className="h-5 w-5 text-emerald-700" />
+            <h2
+              id="assistant-heading"
+              className="flex items-center gap-2 text-lg font-bold text-emerald-950"
+            >
+              <Icon
+                name="message-square-text"
+                className="h-5 w-5 text-emerald-700"
+              />
               {t("publicLanding.assistantTitle", "Ask the clinic assistant")}
             </h2>
             <p className="text-sm text-emerald-900">
               {t(
                 "publicLanding.assistantHint",
-                "Try asking: What are the clinic hours? When is the doctor available? What services do you offer?"
+                "Try asking: What are the clinic hours? When is the doctor available? What services do you offer?",
               )}
             </p>
             <p className="text-sm text-emerald-800">
               {t(
                 "publicLanding.assistantLimit",
-                "It shares general clinic information only. It can't diagnose or prescribe, so please see the doctor for medical advice."
+                "It shares general clinic information only. It can't diagnose or prescribe, so please see the doctor for medical advice.",
               )}
             </p>
           </div>
