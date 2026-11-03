@@ -10,6 +10,22 @@ const pathDepth = (path) => path.split("/").filter(Boolean).length;
 const MAX_NAV_STEPS = 3;
 
 describe("AC6 — common tasks within ≤ 3 navigation steps per role", () => {
+  it("keeps dispensing history in the Pharmacist menu under the existing role access", () => {
+    expect(NAV_ITEMS[ROLES.PHARMACIST].map((item) => item.label)).toEqual([
+      "Dashboard",
+      "Dispensing Queue",
+      "Inventory",
+      "External Dispensing",
+      "Dispensing History",
+      "Reports",
+    ]);
+    expect(ROUTE_ACCESS.pharmacist).toEqual([ROLES.PHARMACIST]);
+    expect(
+      NAV_ITEMS[ROLES.ADMIN].some((item) =>
+        item.to.includes("dispensing-history"),
+      ),
+    ).toBe(false);
+  });
   it("defines a menu for every staff role", () => {
     for (const role of Object.values(ROLES)) {
       expect(NAV_ITEMS[role]).toBeDefined();

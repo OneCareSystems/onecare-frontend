@@ -85,7 +85,7 @@ describe("StaffLayout — CFG-04 staff chrome (integration)", () => {
     renderAppAt("/pharmacist/dashboard");
 
     expect(
-      screen.getByRole("heading", { name: "PharmacistDashboardPage" }),
+      screen.getByRole("heading", { name: "Pharmacist Dashboard" }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("link", { name: "Queue" }),

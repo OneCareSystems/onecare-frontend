@@ -103,7 +103,7 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
       {
         role: ROLES.PHARMACIST,
         path: "/pharmacist/dashboard",
-        heading: /PharmacistDashboardPage/i,
+        heading: /Pharmacist Dashboard/i,
       },
       {
         role: ROLES.SUPER_ADMIN,
@@ -145,7 +145,7 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
 
     expect(
       await screen.findByRole("heading", {
-        name: /PharmacistDashboardPage/i,
+        name: /Pharmacist Dashboard/i,
       }),
     ).toBeInTheDocument();
 
@@ -207,7 +207,7 @@ describe("AppRoutes — CFG-03 role-based routing (integration)", () => {
 
     expect(
       await screen.findByRole("heading", {
-        name: /PharmacistDashboardPage/i,
+        name: /Pharmacist Dashboard/i,
       }),
     ).toBeInTheDocument();
 

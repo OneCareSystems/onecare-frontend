@@ -98,7 +98,7 @@ const renderPage = () => {
 
 const selectPrescription = async (user) => {
   await user.click(
-    await screen.findByRole("button", { name: /Prescription #501/i }),
+    await screen.findByRole("button", { name: /#\s*501(?!\d)/i }),
   );
 };
 
@@ -121,6 +121,8 @@ beforeEach(() => {
 
   mockDispensePrescription.mockResolvedValue({
     prescriptionId: 501,
+    dispenseId: 7001,
+    patientId: 25,
     status: "DISPENSED",
   });
 });
@@ -211,6 +213,9 @@ describe("DispensingQueuePage", () => {
         expect.objectContaining({ confirmPartial: false }),
       );
     });
+    expect(
+      await screen.findByRole("button", { name: "View / Generate Invoice" }),
+    ).toBeInTheDocument();
   });
 
   it("requires partial-dispensing confirmation when stock is insufficient", async () => {
@@ -229,7 +234,11 @@ describe("DispensingQueuePage", () => {
     });
 
     // Wait until the partial stock preview is displayed.
-    expect(await screen.findByText(/insufficient stock/i)).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", {
+        name: /confirm partial dispensing/i,
+      }),
+    ).toBeInTheDocument();
 
     const dispenseButton = screen.getByRole("button", {
       name: /confirm partial dispensing/i,
@@ -256,7 +265,7 @@ describe("DispensingQueuePage", () => {
     // Explicitly confirm dispensing only the available stock.
     await user.click(
       screen.getByRole("checkbox", {
-        name: /confirm dispensing only the available quantities/i,
+        name: /^confirm partial dispensing\./i,
       }),
     );
 

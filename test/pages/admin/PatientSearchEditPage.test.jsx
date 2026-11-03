@@ -357,7 +357,7 @@ describe("ADM-03 search, selection and privacy", () => {
   it("rejects unauthorized roles", async () => {
     open("PHARMACIST");
     expect(
-      await screen.findByRole("heading", { name: "PharmacistDashboardPage" }),
+      await screen.findByRole("heading", { name: "Pharmacist Dashboard" }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
   });

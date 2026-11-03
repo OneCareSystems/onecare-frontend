@@ -1,4 +1,5 @@
 import apiClient from "./apiClient";
+import { positiveId } from "../utils/adminWorkflows";
 
 const API_PATH = "/external-dispensing";
 
@@ -31,9 +32,8 @@ export const createExternalDispensing = async (
   },
   { signal } = {},
 ) => {
-  if (prescriptionId == null || patientId == null) {
-    throw new Error("Prescription ID and patient ID are required.");
-  }
+  const optionalId = (value) =>
+    value == null || value === "" ? null : Number(positiveId(value));
 
   if (!Array.isArray(items) || items.length === 0) {
     throw new Error("At least one medicine item is required.");
@@ -42,8 +42,8 @@ export const createExternalDispensing = async (
   const response = await apiClient.post(
     API_PATH,
     {
-      prescriptionId,
-      patientId,
+      prescriptionId: optionalId(prescriptionId),
+      patientId: optionalId(patientId),
       verificationMethod,
       deliveryMethod,
       items: items.map((item) => ({
@@ -82,6 +82,17 @@ export const getExternalDispensingById = async (
     response,
     "Unable to retrieve the external dispensing record.",
   );
+};
+
+export const listExternalDispensing = async ({ signal } = {}) => {
+  const response = await apiClient.get(API_PATH, { signal });
+  const records = unwrapResponse(
+    response,
+    "Unable to retrieve dispensing history.",
+  );
+  if (!Array.isArray(records))
+    throw new Error("Unexpected dispensing history response format");
+  return records;
 };
 
 /**
@@ -142,6 +153,7 @@ export const completeExternalDispensing = async (
 const externalDispensingService = {
   createExternalDispensing,
   getExternalDispensingById,
+  listExternalDispensing,
   verifyExternalDispensingIdentity,
   completeExternalDispensing,
 };

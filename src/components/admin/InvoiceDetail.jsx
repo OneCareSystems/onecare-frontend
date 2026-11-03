@@ -197,7 +197,11 @@ function InvoiceEditor({ invoice, onChanged, onRecover, busy }) {
   );
 }
 
-export default function InvoiceDetail({ invoiceId, onUpdated }) {
+export default function InvoiceDetail({
+  invoiceId,
+  onUpdated,
+  readOnly = false,
+}) {
   const [revision, setRevision] = useState(0),
     [confirmed, setConfirmed] = useState(null),
     [message, setMessage] = useState("");
@@ -299,18 +303,20 @@ export default function InvoiceDetail({ invoiceId, onUpdated }) {
               Refresh invoice
             </Button>
           </div>
-          <div className="print:hidden">
-            <InvoiceEditor
-              invoice={invoice}
-              busy={resource.loading || Boolean(resource.error)}
-              onRecover={recover}
-              onChanged={(result, text) => {
-                setConfirmed(result);
-                setMessage(text);
-                onUpdated?.();
-              }}
-            />
-          </div>
+          {!readOnly && (
+            <div className="print:hidden">
+              <InvoiceEditor
+                invoice={invoice}
+                busy={resource.loading || Boolean(resource.error)}
+                onRecover={recover}
+                onChanged={(result, text) => {
+                  setConfirmed(result);
+                  setMessage(text);
+                  onUpdated?.();
+                }}
+              />
+            </div>
+          )}
         </>
       )}
     </WorkflowCard>
