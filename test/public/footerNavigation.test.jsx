@@ -11,11 +11,13 @@ import PublicLayout from "../../src/layouts/PublicLayout";
 import i18n from "../../src/i18n";
 
 beforeEach(async () => {
+  vi.stubEnv("VITE_DOCTOR_WHATSAPP", "0771234567");
   await i18n.changeLanguage("en");
 });
 
 afterEach(async () => {
   cleanup();
+  vi.unstubAllEnvs();
   vi.restoreAllMocks();
   await i18n.changeLanguage("en");
 });
@@ -73,6 +75,19 @@ it("navigates footer page links and scrolls to the requested page or section", (
     behavior: "instant",
   });
 
-  const contactLink = quickLinks.getByRole("link", { name: "Contact Us" });
-  expect(contactLink).toHaveAttribute("href", "#footer-contact");
+  const whatsappLink = quickLinks.getByRole("link", {
+    name: "WhatsApp",
+  });
+
+  expect(whatsappLink).toHaveAttribute(
+    "href",
+    expect.stringMatching(/^https:\/\/wa\.me\/\d+$/),
+  );
+
+  expect(whatsappLink).toHaveAttribute("target", "_blank");
+
+  expect(whatsappLink).toHaveAttribute("rel", "noopener noreferrer");
+
+  // const contactLink = quickLinks.getByRole("link", { name: "Contact Us" });
+  // expect(contactLink).toHaveAttribute("href", "#footer-contact");
 });

@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { FaPhoneAlt, FaMapMarkerAlt } from "react-icons/fa";
+import { FaPhoneAlt, FaMapMarkerAlt, FaWhatsapp } from "react-icons/fa";
+// import { FaPhoneAlt, FaMapMarkerAlt } from "react-icons/fa";
 
 const linkClass =
   "rounded text-sm text-slate-600 transition hover:text-blue-700 hover:underline hover:underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
@@ -17,6 +18,13 @@ export default function Footer() {
   const address =
     import.meta.env.VITE_CLINIC_ADDRESS?.trim() || "QW2M+39, Moolai, Jaffna";
 
+  const doctorWhatsApp = (
+    import.meta.env.VITE_DOCTOR_WHATSAPP || ""
+  ).replace(/\D/g, "");
+
+  const whatsappUrl = doctorWhatsApp
+    ? `https://wa.me/${doctorWhatsApp}`
+   : null;
   return (
     <footer className="mt-12 border-t border-slate-200 bg-white text-sm text-slate-600 [overflow-wrap:anywhere]">
       <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
@@ -67,10 +75,29 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                {whatsappUrl ? (
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="WhatsApp"
+                    className="inline-flex items-center gap-2 rounded text-sm font-medium text-green-700 transition hover:text-green-800 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+                  >
+                    <FaWhatsapp aria-hidden="true" className="h-5 w-5" />
+                    <span>WhatsApp</span>
+                  </a>
+                ) : (
+                  <span className="inline-flex items-center gap-2 text-sm text-slate-400">
+                    <FaWhatsapp aria-hidden="true" className="h-5 w-5" />
+                    WhatsApp unavailable
+                  </span>
+                )}
+              </li>
+              {/* <li>
                 <a href="#footer-contact" className={linkClass}>
                   {copy("contact")}
                 </a>
-              </li>
+              </li> */}
             </ul>
           </nav>
 
